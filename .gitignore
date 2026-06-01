@@ -176,15 +176,9 @@ publish/
 !shared/contracts/*.json
 
 
-.env
-MYSQL_HOST=
-MYSQL_PORT=
-MYSQL_DATABASE=
-MYSQL_USER=
-MYSQL_PASSWORD=
+# ==========================================
+# VARIABLES DE ENTORNO
+# ==========================================
 
-SQLSERVER_HOST=
-SQLSERVER_PORT=
-SQLSERVER_DATABASE=
-SQLSERVER_USER=
-SQLSERVER_PASSWORD=
+.env.*
+!.env.example

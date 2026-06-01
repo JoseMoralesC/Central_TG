@@ -1,0 +1,36 @@
+{
+  "caso_prueba": "CONSULTA_SALDO_EXITOSA",
+
+  "descripcion": "Caso donde un teléfono prepago activo consulta su saldo mediante el código especial #9090*.",
+
+  "entrada_simulador": {
+    "tipo_transaccion": "CONSULTA_SALDO",
+
+    "telefono_origen": "88889999",
+
+    "codigo_consulta": "#9090*",
+
+    "identificador_dispositivo": "1234567891234567",
+    "identificador_tarjeta": "1234567891234567891",
+
+    "fecha_hora": "2026-06-01T10:45:00"
+  },
+
+  "respuesta_esperada": {
+    "tipo_transaccion": "RESPUESTA_SALDO",
+
+    "telefono_origen": "88889999",
+
+    "resultado": {
+      "codigo": "OK",
+      "estado": "CONSULTA_EXITOSA",
+      "mensaje": "Consulta realizada correctamente"
+    },
+
+    "datos_saldo": {
+      "tipo_servicio": "PREPAGO",
+      "saldo_disponible": 5000.00,
+      "moneda": "CRC"
+    }
+  }
+}

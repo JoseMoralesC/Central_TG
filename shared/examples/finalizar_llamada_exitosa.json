@@ -1,0 +1,84 @@
+{
+  "caso_prueba": "FINALIZAR_LLAMADA_EXITOSA",
+
+  "descripcion": "Caso donde una llamada activa finaliza correctamente y se registra el movimiento correspondiente en el proveedor.",
+
+
+  "entrada_simulador": {
+
+    "tipo_transaccion": "FINALIZAR_LLAMADA",
+
+
+    "datos_llamada": {
+
+      "id_llamada": "CALL-000001",
+
+      "telefono_origen": "88889999",
+
+      "telefono_destino": "22223333",
+
+
+      "fecha_inicio": "2026-06-01T10:00:00",
+
+      "fecha_fin": "2026-06-01T10:10:00",
+
+
+      "duracion_segundos": 600,
+
+      "duracion_minutos": 10,
+
+
+      "motivo_finalizacion": "FINALIZACION_MANUAL"
+    },
+
+
+    "datos_cobro": {
+
+      "tipo_servicio": "PREPAGO",
+
+      "tipo_llamada": "NACIONAL",
+
+      "costo_por_minuto": 10.00,
+
+      "monto_total": 100.00,
+
+      "moneda": "CRC"
+
+    }
+  },
+
+
+  "respuesta_esperada": {
+
+
+    "tipo_transaccion": "RESPUESTA_FINALIZACION",
+
+
+    "resultado": {
+
+
+      "codigo": "OK",
+
+
+      "estado": "LLAMADA_FINALIZADA",
+
+
+      "mensaje": "La llamada fue finalizada y registrada correctamente"
+
+    },
+
+
+    "movimiento": {
+
+
+      "saldo_anterior": 5000.00,
+
+
+      "monto_rebajado": 100.00,
+
+
+      "saldo_actual": 4900.00
+
+    }
+  }
+}

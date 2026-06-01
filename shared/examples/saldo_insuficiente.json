@@ -1,0 +1,30 @@
+{
+  "caso_prueba": "SALDO_INSUFICIENTE",
+
+  "descripcion": "Caso donde un teléfono prepago activo intenta realizar una llamada nacional, pero no tiene saldo disponible.",
+
+  "entrada_simulador": {
+    "tipo_transaccion": "SOLICITUD_LLAMADA",
+    "telefono_origen": "88880000",
+    "telefono_destino": "22223333",
+    "identificador_dispositivo": "2222222222222222",
+    "identificador_tarjeta": "2222222222222222222",
+    "ubicacion": {
+      "pais": "Costa Rica",
+      "provincia": "Cartago",
+      "latitud": 9.8644,
+      "longitud": -83.9194
+    },
+    "tipo_llamada": "NACIONAL",
+    "fecha_hora": "2026-06-01T09:45:00"
+  },
+
+  "respuesta_esperada": {
+    "tipo_transaccion": "RESPUESTA_LLAMADA",
+    "resultado": {
+      "codigo": "INSUF",
+      "estado": "RECHAZADA",
+      "mensaje": "Saldo insuficiente"
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "proyecto": "Central_TG",
+
+  "entorno": "DESARROLLO",
+
+  "mysql_identificador": {
+
+    "motor": "MySQL",
+
+    "host": "100.114.84.5",
+
+    "puerto": 3306,
+
+    "database": "central_identificador",
+
+    "usuarios": {
+
+      "jose": "jose",
+
+      "gabriel": "gabriel",
+
+      "charlie": "charlie"
+
+    },
+
+    "descripcion": "Base de datos utilizada por el componente Identificador desarrollado en Python"
+  },
+
+
+  "sqlserver_proveedor": {
+
+    "motor": "SQL Server",
+
+    "host": "100.88.25.17",
+
+    "puerto": 49172,
+
+    "database": "CentralProveedor",
+
+    "usuarios": {
+
+      "jose": "jose_dev",
+
+      "gabriel": "gabriel_dev",
+
+      "charlie": "charlie_dev"
+
+    },
+
+    "descripcion": "Base de datos utilizada por el componente Proveedor desarrollado en Java"
+  }
+}
