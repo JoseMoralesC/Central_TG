@@ -1,9 +1,10 @@
 using System;
-using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
 using SimuladorTelefonico.Config;
+using SimuladorTelefonico.Models;
 using SimuladorTelefonico.UI;
 
 namespace SimuladorTelefonico
@@ -13,137 +14,221 @@ namespace SimuladorTelefonico
         public Form1()
         {
             InitializeComponent();
-            ConfigurarVentana();
-            ConstruirPantallaPrincipal();
-        }
 
-        private void ConfigurarVentana()
-        {
-            Text = "Simulador Telefónico";
+            Text = "Simulador Telefónico - Central TG";
+            Size = new Size(1000, 780);
             StartPosition = FormStartPosition.CenterScreen;
-            Size = new Size(440, 660);
-            MinimumSize = new Size(440, 660);
+            BackColor = Color.FromArgb(12, 12, 16);
+            FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
-        }
 
-        private void ConstruirPantallaPrincipal()
-        {
             Controls.Clear();
 
-            Label titulo = new Label
+            CrearInterfaz();
+        }
+
+        private void CrearInterfaz()
+        {
+            Label lblTitulo = new Label
             {
-                Text = "Simulador Telefónico",
-                Font = new Font("Segoe UI", 20, FontStyle.Bold),
-                AutoSize = false,
-                TextAlign = ContentAlignment.MiddleCenter,
-                Dock = DockStyle.Top,
-                Height = 80
+                Text = "Central TG - Simulador de Teléfonos Virtuales",
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 22, FontStyle.Bold),
+                Location = new Point(40, 20),
+                Size = new Size(900, 45),
+                TextAlign = ContentAlignment.MiddleCenter
             };
 
-            Label subtitulo = new Label
+            Label lblSubtitulo = new Label
             {
-                Text = "Central Telefónica - Módulo C#",
+                Text = $"Identificador Python: {AppConfig.HostIdentificador}:{AppConfig.PuertoIdentificador}",
+                ForeColor = Color.LightGray,
                 Font = new Font("Segoe UI", 11),
-                AutoSize = false,
-                TextAlign = ContentAlignment.MiddleCenter,
-                Dock = DockStyle.Top,
-                Height = 40
+                Location = new Point(40, 68),
+                Size = new Size(900, 25),
+                TextAlign = ContentAlignment.MiddleCenter
             };
 
-            Label configuracion = new Label
+            Controls.Add(lblTitulo);
+            Controls.Add(lblSubtitulo);
+
+            TelefonoVirtual[] telefonos = AppConfig.TelefonosVirtuales
+                .Where(t => t.Maquina == AppConfig.TelefonoActual.Maquina)
+                .ToArray();
+
+            int x = 115;
+
+            foreach (TelefonoVirtual telefono in telefonos)
+            {
+                Panel celular = CrearCelular(telefono, x, 120);
+                Controls.Add(celular);
+                x += 390;
+            }
+        }
+
+        private Panel CrearCelular(TelefonoVirtual telefono, int x, int y)
+        {
+            Panel carcasa = new Panel
+            {
+                Location = new Point(x, y),
+                Size = new Size(330, 600),
+                BackColor = Color.FromArgb(32, 32, 36)
+            };
+
+            Panel pantalla = new Panel
+            {
+                Location = new Point(18, 18),
+                Size = new Size(294, 540),
+                BackColor = Color.FromArgb(5, 10, 18)
+            };
+
+            Label lblBarra = new Label
+            {
+                Text = "📶  Central TG                  🔋",
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 9),
+                Location = new Point(12, 10),
+                Size = new Size(270, 22)
+            };
+
+            Label lblHora = new Label
+            {
+                Text = DateTime.Now.ToString("HH:mm"),
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Location = new Point(116, 35),
+                Size = new Size(60, 20),
+                TextAlign = ContentAlignment.MiddleCenter
+            };
+
+            Label lblNombre = new Label
+            {
+                Text = telefono.Nombre,
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 18, FontStyle.Bold),
+                Location = new Point(20, 80),
+                Size = new Size(250, 38),
+                TextAlign = ContentAlignment.MiddleCenter
+            };
+
+            Label lblNumero = new Label
+            {
+                Text = telefono.Numero,
+                ForeColor = Color.FromArgb(0, 200, 255),
+                Font = new Font("Segoe UI", 20, FontStyle.Bold),
+                Location = new Point(20, 122),
+                Size = new Size(250, 42),
+                TextAlign = ContentAlignment.MiddleCenter
+            };
+
+            Label lblDetalle = new Label
             {
                 Text =
-                    $"Origen: {AppConfig.NumeroOrigen}\n" +
-                    $"Identificador: {AppConfig.HostIdentificador}:{AppConfig.PuertoIdentificador}\n" +
-                    $"Servicio: {AppConfig.TipoServicio} / {AppConfig.TipoLlamada}",
+                    $"{telefono.Maquina}\n" +
+                    $"{telefono.TipoServicio}\n" +
+                    $"ID: {telefono.Id}",
+                ForeColor = Color.LightGray,
                 Font = new Font("Segoe UI", 9),
-                AutoSize = false,
-                TextAlign = ContentAlignment.MiddleCenter,
-                Top = 115,
-                Left = 30,
-                Width = 360,
-                Height = 70
+                Location = new Point(20, 170),
+                Size = new Size(250, 65),
+                TextAlign = ContentAlignment.MiddleCenter
             };
 
-            Button btnMarcar = CrearBoton("Marcar número", 210);
-            Button btnConsultarSaldo = CrearBoton("Consultar saldo #9090*", 280);
-            Button btnVerBitacora = CrearBoton("Ver bitácora local", 350);
-            Button btnSalir = CrearBoton("Salir", 420);
-
-            btnMarcar.Click += (s, e) =>
+            Button btnMarcar = CrearBoton("📞  Marcar", 260);
+            btnMarcar.Click += (sender, e) =>
             {
-                using MarcarNumeroForm form = new MarcarNumeroForm();
-                form.ShowDialog(this);
+                AppConfig.SeleccionarTelefono(telefono.Id);
+                MarcarNumeroForm form = new MarcarNumeroForm();
+                form.ShowDialog();
             };
 
-            btnConsultarSaldo.Click += (s, e) =>
+            Button btnSaldo = CrearBoton("💰  Saldo", 320);
+            btnSaldo.Click += (sender, e) =>
             {
-                using ConsultaSaldoForm form = new ConsultaSaldoForm();
-                form.ShowDialog(this);
+                AppConfig.SeleccionarTelefono(telefono.Id);
+                ConsultaSaldoForm form = new ConsultaSaldoForm();
+                form.ShowDialog();
             };
 
-            btnVerBitacora.Click += (s, e) =>
+            Button btnBitacora = CrearBoton("📄  Bitácora", 380);
+            btnBitacora.Click += (sender, e) =>
             {
-                AbrirBitacoraLocal();
+                AppConfig.SeleccionarTelefono(telefono.Id);
+                MostrarBitacora();
             };
 
-            btnSalir.Click += (s, e) =>
+            Label lblActivo = new Label
             {
-                Close();
+                Text = "Disponible",
+                ForeColor = Color.FromArgb(0, 255, 120),
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                Location = new Point(20, 455),
+                Size = new Size(250, 25),
+                TextAlign = ContentAlignment.MiddleCenter
             };
 
-            Controls.Add(btnSalir);
-            Controls.Add(btnVerBitacora);
-            Controls.Add(btnConsultarSaldo);
-            Controls.Add(btnMarcar);
-            Controls.Add(configuracion);
-            Controls.Add(subtitulo);
-            Controls.Add(titulo);
+            pantalla.Controls.Add(lblBarra);
+            pantalla.Controls.Add(lblHora);
+            pantalla.Controls.Add(lblNombre);
+            pantalla.Controls.Add(lblNumero);
+            pantalla.Controls.Add(lblDetalle);
+            pantalla.Controls.Add(btnMarcar);
+            pantalla.Controls.Add(btnSaldo);
+            pantalla.Controls.Add(btnBitacora);
+            pantalla.Controls.Add(lblActivo);
+
+            carcasa.Controls.Add(pantalla);
+
+            return carcasa;
         }
 
-        private Button CrearBoton(string texto, int top)
+        private Button CrearBoton(string texto, int y)
         {
-            return new Button
+            Button boton = new Button
             {
                 Text = texto,
-                Font = new Font("Segoe UI", 12, FontStyle.Bold),
-                Width = 280,
-                Height = 50,
-                Left = 70,
-                Top = top
+                Location = new Point(47, y),
+                Size = new Size(200, 44),
+                BackColor = Color.FromArgb(0, 130, 200),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                Cursor = Cursors.Hand
             };
+
+            boton.FlatAppearance.BorderSize = 0;
+
+            return boton;
         }
 
-        private void AbrirBitacoraLocal()
+        private void MostrarBitacora()
         {
-            string rutaLogs = Path.Combine(
-                AppDomain.CurrentDomain.BaseDirectory,
-                "logs"
-            );
-
             string rutaBitacora = Path.Combine(
-                rutaLogs,
+                AppDomain.CurrentDomain.BaseDirectory,
+                "logs",
                 "bitacora_simulador.txt"
             );
 
-            if (!Directory.Exists(rutaLogs))
-            {
-                Directory.CreateDirectory(rutaLogs);
-            }
-
             if (!File.Exists(rutaBitacora))
             {
-                File.WriteAllText(
-                    rutaBitacora,
-                    "Bitácora local del Simulador Telefónico C#\n"
+                MessageBox.Show(
+                    "Todavía no existen registros en la bitácora local.",
+                    "Bitácora",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information
                 );
+
+                return;
             }
 
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = rutaBitacora,
-                UseShellExecute = true
-            });
+            string contenido = File.ReadAllText(rutaBitacora);
+
+            MessageBox.Show(
+                contenido,
+                "Bitácora local del simulador",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information
+            );
         }
     }
 }
