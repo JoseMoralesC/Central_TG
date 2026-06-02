@@ -20,7 +20,7 @@ namespace SimuladorTelefonico.Models
         public string IdentificadorTarjeta { get; set; } = string.Empty;
 
         [JsonPropertyName("ubicacion")]
-        public Ubicacion Ubicacion { get; set; } = new();
+        public UbicacionTelefono Ubicacion { get; set; } = new();
 
         [JsonPropertyName("tipo_llamada")]
         public string TipoLlamada { get; set; } = "NACIONAL";
@@ -29,7 +29,7 @@ namespace SimuladorTelefonico.Models
         public string FechaHora { get; set; } = string.Empty;
     }
 
-    public class Ubicacion
+    public class UbicacionTelefono
     {
         [JsonPropertyName("pais")]
         public string Pais { get; set; } = "Costa Rica";

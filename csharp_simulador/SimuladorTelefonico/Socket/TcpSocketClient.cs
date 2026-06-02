@@ -18,6 +18,11 @@ namespace SimuladorTelefonico.Socket
 
         public async Task<string> EnviarTramaAsync(string tramaJson)
         {
+            if (string.IsNullOrWhiteSpace(tramaJson))
+            {
+                return "ERROR: La trama JSON está vacía.";
+            }
+
             try
             {
                 using TcpClient client = new TcpClient();
@@ -26,31 +31,37 @@ namespace SimuladorTelefonico.Socket
 
                 using NetworkStream stream = client.GetStream();
 
-                string mensaje = tramaJson + "\n";
+                string mensaje = tramaJson.Trim() + "\n";
                 byte[] data = Encoding.UTF8.GetBytes(mensaje);
 
-                await stream.WriteAsync(data);
+                await stream.WriteAsync(data, 0, data.Length);
                 await stream.FlushAsync();
 
                 byte[] buffer = new byte[8192];
-                StringBuilder respuestaCompleta = new StringBuilder();
 
-                int bytesLeidos = await stream.ReadAsync(buffer);
+                int bytesLeidos = await stream.ReadAsync(
+                    buffer,
+                    0,
+                    buffer.Length
+                );
 
                 if (bytesLeidos <= 0)
                 {
                     return "ERROR: No se recibió respuesta del Identificador Python.";
                 }
 
-                respuestaCompleta.Append(
-                    Encoding.UTF8.GetString(buffer, 0, bytesLeidos)
+                string respuesta = Encoding.UTF8.GetString(
+                    buffer,
+                    0,
+                    bytesLeidos
                 );
 
-                return respuestaCompleta.ToString().Trim();
+                return respuesta.Trim();
             }
             catch (SocketException)
             {
-                return $"ERROR: No fue posible conectar con el Identificador Python en {_host}:{_port}.";
+                return
+                    $"ERROR: No fue posible conectar con el Identificador Python en {_host}:{_port}.";
             }
             catch (Exception ex)
             {

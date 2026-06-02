@@ -183,7 +183,7 @@ namespace SimuladorTelefonico.UI
                     DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss"),
 
 
-                Ubicacion = new Ubicacion
+                Ubicacion = new UbicacionTelefono
                 {
                     Pais =
                         AppConfig.Pais,
