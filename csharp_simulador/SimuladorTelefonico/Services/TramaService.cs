@@ -1,3 +1,4 @@
+using System;
 using System.Text.Json;
 using System.Threading.Tasks;
 using SimuladorTelefonico.Config;
@@ -22,25 +23,61 @@ namespace SimuladorTelefonico.Services
 
         public string ConvertirAJson<T>(T trama)
         {
+            if (trama == null)
+            {
+                throw new ArgumentNullException(
+                    nameof(trama),
+                    "La trama no puede ser nula."
+                );
+            }
+
             return JsonSerializer.Serialize(trama, _opcionesJson);
         }
 
         public async Task<string> EnviarTramaAsync<T>(T trama)
         {
-            string json = ConvertirAJson(trama);
+            try
+            {
+                string json = ConvertirAJson(trama);
 
-            _bitacoraService.RegistrarEvento("TRAMA ENVIADA", json);
+                _bitacoraService.RegistrarEvento(
+                    "TRAMA ENVIADA",
+                    json
+                );
 
-            TcpSocketClient cliente = new TcpSocketClient(
-                AppConfig.HostIdentificador,
-                AppConfig.PuertoIdentificador
-            );
+                TcpSocketClient cliente = new TcpSocketClient(
+                    AppConfig.HostIdentificador,
+                    AppConfig.PuertoIdentificador
+                );
 
-            string respuesta = await cliente.EnviarTramaAsync(json);
+                string respuesta =
+                    await cliente.EnviarTramaAsync(json);
 
-            _bitacoraService.RegistrarEvento("RESPUESTA RECIBIDA", respuesta);
+                if (string.IsNullOrWhiteSpace(respuesta))
+                {
+                    respuesta =
+                        "ERROR: El Identificador Python no devolvió respuesta.";
+                }
 
-            return respuesta;
+                _bitacoraService.RegistrarEvento(
+                    "RESPUESTA RECIBIDA",
+                    respuesta
+                );
+
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                string error =
+                    $"ERROR: No fue posible enviar la trama. {ex.Message}";
+
+                _bitacoraService.RegistrarEvento(
+                    "ERROR ENVIO TRAMA",
+                    error
+                );
+
+                return error;
+            }
         }
     }
 }

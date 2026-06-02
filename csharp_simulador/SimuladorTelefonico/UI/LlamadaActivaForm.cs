@@ -21,6 +21,7 @@ namespace SimuladorTelefonico.UI
         private System.Windows.Forms.Timer timer = null!;
 
         private readonly TramaService _tramaService = new();
+        private readonly RespuestaService _respuestaService = new();
 
         public LlamadaActivaForm(string numeroDestino)
         {
@@ -154,8 +155,24 @@ namespace SimuladorTelefonico.UI
             lblEstado.Text = "Estado: enviando inicio de llamada a Python...";
 
             string respuesta = await _tramaService.EnviarTramaAsync(inicio);
+            string mensaje = _respuestaService.ObtenerMensaje(respuesta);
 
-            lblEstado.Text = $"Estado: llamada activa.\n{respuesta}";
+            if (!_respuestaService.EsRespuestaExitosa(respuesta))
+            {
+                timer.Stop();
+                btnFinalizar.Enabled = false;
+
+                lblEstado.Text = $"Estado: error al iniciar.\n{mensaje}";
+
+                MessageBox.Show(
+                    $"No fue posible iniciar la llamada.\n\nTrama:\n{json}\n\nRespuesta:\n{respuesta}",
+                    "Error al iniciar llamada"
+                );
+
+                return;
+            }
+
+            lblEstado.Text = $"Estado: llamada activa.\n{mensaje}";
 
             MessageBox.Show(
                 $"Inicio enviado:\n\n{json}\n\nRespuesta:\n\n{respuesta}",
@@ -209,8 +226,22 @@ namespace SimuladorTelefonico.UI
             lblEstado.Text = "Estado: enviando finalización a Python...";
 
             string respuesta = await _tramaService.EnviarTramaAsync(finalizar);
+            string mensaje = _respuestaService.ObtenerMensaje(respuesta);
 
-            lblEstado.Text = "Estado: llamada finalizada.";
+            if (!_respuestaService.EsRespuestaExitosa(respuesta))
+            {
+                lblEstado.Text = $"Estado: error al finalizar.\n{mensaje}";
+
+                MessageBox.Show(
+                    $"La llamada fue detenida localmente, pero Python respondió con error.\n\nTrama:\n{json}\n\nRespuesta:\n{respuesta}",
+                    "Error al finalizar llamada"
+                );
+
+                Close();
+                return;
+            }
+
+            lblEstado.Text = $"Estado: llamada finalizada.\n{mensaje}";
 
             MessageBox.Show(
                 $"Finalización enviada:\n\n{json}\n\nRespuesta:\n\n{respuesta}",
