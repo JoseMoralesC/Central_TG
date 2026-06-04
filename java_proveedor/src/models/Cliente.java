@@ -17,6 +17,16 @@ public class Cliente
     }
 
     // Getters y Setters
+    public String getIdCliente()
+    {
+        return idCliente;
+    }
+
+    public void setIdCliente(String idCliente)
+    {
+        this.idCliente = idCliente;
+    }
+
     public String getNombre()
     {
         return nombre;
