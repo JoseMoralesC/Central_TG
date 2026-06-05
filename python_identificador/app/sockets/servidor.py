@@ -1,51 +1,40 @@
+# app/sockets/server.py
 import socket
-import json
+import threading
 from app.config.config import settings
+from app.sockets.handler import manejar_cliente  # <--- Importamos el hilo
 
-servidor = socket.socket()
-#defino puerto y host,
-host = settings.SOCKET_HOST
-port = settings.SOCKET_PORT
-
-
-def iniciar_servidor():
+def iniciar_servidor_socket():
+    """
+    Inicializa el socket principal y distribuye las conexiones entrantes
+    en hilos independientes de forma asíncrona.
+    """
+    servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # Permite reutilizar el puerto inmediatamente si el servidor se reinicia
+    servidor.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    
+    host = settings.SOCKET_HOST
+    port = settings.SOCKET_PORT
+    
     try:
-        #asigno al servidor el host y puerto
-        servidor.bind((host,port))
-        #de momento que ponga en cola solo 5, esto puede cambiar
-        servidor.listen(5)
-        #prueba para ver si esta conectado correctamente
-        print(f'servidor activo y escuchado en host: {host}, puerto: {port}')
+        servidor.bind((host, port))
+        servidor.listen(100)  # Capacidad de respuesta ante ráfagas concurrentes
+        print(f"📡 [Socket Servidor] Escuchando activamente en {host}:{port}")
         
-        #mantiene el servidor vivo
         while True:
-            #asigno el puerto y direccion IP del cliente a una variable
-            conection_cliente, address_cliente = servidor.accept()
-            #prueba de conexion
-            print(f'Conexion de cliente entrando desde: {address_cliente}')
+            # El hilo principal se queda esperando conexiones de C# aquí
+            conexion_cliente, direccion_cliente = servidor.accept()
+            print(f"\n⚡ [Socket] Nueva conexión entrante desde: {direccion_cliente}")
             
-            #el numero de bytes puede cambiar dependiendo del tamanio del mensaje
-            bytes_aceptados = conection_cliente.recv(1024)
+            # ¡La magia del split! Creamos el hilo llamando al handler asignado
+            hilo = threading.Thread(
+                target=manejar_cliente, 
+                args=(conexion_cliente, direccion_cliente)
+            )
+            hilo.start()
             
-            archivo_recibido = bytes_aceptados.decode('utf-8')
-            print(f'Mensaje recibido: {archivo_recibido}')
-            
-            try:
-                #cargo en el json los archivos recibidos // aqui faltaria la logica y metodos para decidir que hacer con el json
-                datos_json = json.loads (archivo_recibido)
-                print(f"JSON recibido con éxito: {datos_json}")
-
-                #respuesta prueba
-                respuesta = {}
-                conection_cliente.sendall(json.dumps(respuesta).encode('utf-8'))
-            except json.JSONDecodeError:
-                        print("Error: Los datos recibidos no son un JSON válido.")
-                        respuesta = {"status": "error", "message": "Formato JSON inválido"}
-                        conection_cliente.sendall(json.dumps(respuesta).encode('utf-8'))
-                        
     except Exception as e:
-            print(f"[Socket] Error al interactuar con el cliente: {e}")
+        print(f"❌ [Socket] Error crítico en el bucle principal: {e}")
     finally:
-            # Cerramos la sesión con este cliente para liberar el canal
-            conection_cliente.close()
-            print(f"[Socket] Conexión con {address_cliente} finalizada.\n")
+        servidor.close()
+        print("🛑 [Socket] Servidor detenido.")
