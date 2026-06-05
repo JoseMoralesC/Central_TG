@@ -21,4 +21,5 @@ class Settings:
     
     AES_KEY: bytes = os.getenv("AES_KEY", "ClaveSecreta12345").encode('utf-8')
     AES_IV: bytes = os.getenv("AES_IV", "VectorInicio1234").encode('utf-8')
+    
 settings = Settings()

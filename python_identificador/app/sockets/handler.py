@@ -19,7 +19,7 @@ def manejar_cliente(conexion_cliente, direccion_cliente):
         trama = json.loads(texto_recibido)
         
         tipo_transaccion = trama.get("tipo_transaccion")
-        print(f"📥 [Socket] Tipo de transacción recibida: '{tipo_transaccion}'")
+        print(f"[Socket] Tipo de transacción recibida: '{tipo_transaccion}'")
 
         # -----------------------------------------------------------------
         # ENRUTADOR DE HISTORIAS DE USUARIO (HU)
@@ -39,27 +39,27 @@ def manejar_cliente(conexion_cliente, direccion_cliente):
         elif tipo_transaccion == "CONSULTA_SALDO":
             # HU Identificador4: Consulta rápida de saldo
             respuesta = procesar_saldo_pendiente(trama)
-            
+
         else:
-            print(f"⚠️ [Socket] Transacción desconocida: {tipo_transaccion}")
+            print(f"[Socket] Transacción desconocida: {tipo_transaccion}")
             respuesta = {"status": "error", "motivo": 4, "message": "Acción inválida"}
 
         # Enviar la respuesta final en bytes al simulador de C#
         conexion_cliente.sendall(json.dumps(respuesta).encode('utf-8'))
 
     except json.JSONDecodeError:
-        print(f"⚠️ [Socket] Trama JSON malformada desde {direccion_cliente}")
+        print(f"[Socket] Trama JSON malformada desde {direccion_cliente}")
         respuesta = {"status": "error", "motivo": 5, "message": "Formato JSON inválido"}
         conexion_cliente.sendall(json.dumps(respuesta).encode('utf-8'))
         
     except Exception as e:
-        print(f"❌ [Socket] Error inesperado en el hilo de {direccion_cliente}: {e}")
+        print(f"[Socket] Error inesperado en el hilo de {direccion_cliente}: {e}")
         respuesta = {"status": "error", "motivo": 5, "message": "Error no controlado"}
         conexion_cliente.sendall(json.dumps(respuesta).encode('utf-8'))
         
     finally:
         conexion_cliente.close()
-        print(f"🔌 [Socket] Conexión con {direccion_cliente} finalizada de forma limpia.\n")
+        print(f"[Socket] Conexión con {direccion_cliente} finalizada de forma limpia.\n")
 
 
 # =====================================================================
@@ -67,13 +67,13 @@ def manejar_cliente(conexion_cliente, direccion_cliente):
 # =====================================================================
 
 def procesar_llamada_pendiente(trama):
-    print("🧠 [Servicio] Procesando HU2: Registrar inicio de llamada...")
+    print("[Servicio] Procesando HU2: Registrar inicio de llamada...")
     return {"status": "OK", "message": "Llamada registrada en memoria"}
 
 def procesar_finalizacion_pendiente(trama):
-    print("🧠 [Servicio] Procesando HU3: Terminación de llamada...")
+    print("[Servicio] Procesando HU3: Terminación de llamada...")
     return {"status": "ok"}
 
 def procesar_saldo_pendiente(trama):
-    print("🧠 [Servicio] Procesando HU4: Consulta de saldo...")
+    print("[Servicio] Procesando HU4: Consulta de saldo...")
     return {"status": "OK", "saldo": "0000000012345678900"}
