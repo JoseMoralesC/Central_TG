@@ -2,34 +2,33 @@
 package java_proveedor.src.sockets;
 
 //Imports
-
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.net.ServerSocket;
 import java.net.Socket;
+
+
 
 //Clase Socket
 public class SocketTCP
 {
+
+    private static final int puerto = 6000;
+
     public static void main(String[] args)
     {
-        try
-    {
-        //Servidor TCP escuchando en el puerto 6000
-        ServerSocket serverSocket = new ServerSocket(6000);
-        System.out.println("Servidor TCP escuchando...");
-
-        while (true)
+        //Cada hilo que entre nuevo, va a ser atendido por un nuevo hilo
+        try (ServerSocket serverSocket = new ServerSocket(puerto);)
         {
-            //Aceptar una conexión entrante
-            Socket clientSocket = serverSocket.accept();
-            System.out.println("Cliente conectado: " + clientSocket.getInetAddress());
+            while (true)
+            {
+                Socket clienteSocket = serverSocket.accept();
 
-            //Cerrar la conexión con el cliente
-            clientSocket.close();
-            serverSocket.close();
-
-            break; // Salir del bucle después de manejar una conexión (opcional, dependiendo de si quieres manejar múltiples conexiones)
+                Thread hilo = new Thread(new ManejoCliente(clienteSocket));
+                hilo.start();
+                
+            }
         }
-    }
 
     catch (Exception e)
     {
