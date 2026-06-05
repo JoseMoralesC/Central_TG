@@ -2,8 +2,6 @@
 package java_proveedor.src.sockets;
 
 //Imports
-import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.net.ServerSocket;
 import java.net.Socket;
 
