@@ -7,3 +7,4 @@ pip install python-dotenv
 
 -El install de AES para cifrado
 pip install pycrpytodome
+
