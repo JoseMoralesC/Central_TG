@@ -1,0 +1,10 @@
+requerimentos para funcionamientoo de parte Python:
+install:
+pip install
+
+-El install de dotenv es para rastrear el archivo .env del sistema
+pip install python-dotenv 
+
+-El install de AES para cifrado
+pip install pycrpytodome
+
