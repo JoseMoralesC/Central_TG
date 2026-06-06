@@ -6,9 +6,9 @@ import json
 # =====================================================================
 try:
     from app.services.autorizacion_llamada import procesar_autorizacion_llamada  # HU1
-    from app.services.iniciar_llamada import procesar_llamada_pendiente          # HU2
-    from app.services.termina_llamada import procesar_finalizacion_pendiente     # HU3
-    from app.services.consulta import procesar_saldo_pendiente                  # HU4
+    #from app.services.iniciar_llamada import procesar_llamada_pendiente          # HU2
+    #from app.services.termina_llamada import procesar_finalizacion_pendiente     # HU3
+    #from app.services.consulta import procesar_saldo_pendiente                  # HU4
 except ImportError as e:
     print(f"[Handler] Alerta: No se pudieron importar todos los servicios ({e})")
     # Mocks temporales por si aún no has creado los archivos en app/services/

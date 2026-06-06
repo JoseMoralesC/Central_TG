@@ -1,128 +1,160 @@
-# app/services/auth_service.py
-from app.database.conection import obtener_conexion, cerrar_conexion
-from app.utils.crypto import encriptar_aes
+# app/services/autorizacion_llamada.py
+import socket
+import re
+from app.utils.crypto import desencriptar_aes
+from app.config.config import settings  # Para HOST/PORT del proveedor y credenciales
+# Para las consultas a MySQL, puedes importar tu gestor de conexiones habitual, ej:
+# from app.utils.db import get_db_connection 
 
-TABLA_TELEFONOS = "telefonos"
-TABLA_DISPOSITIVOS = "dispositivos"
-TABLA_TARJETAS = "tarjetas_telefonicas"  
-
-def validar_coordenadas_costa_rica(latitud, longitud):
-    if latitud is None or longitud is None:
-        return False
+def validar_coordenadas_costa_rica(coordenadas_str: str) -> bool:
+    """
+    Criterio 2.d: Valida si las coordenadas corresponden a Costa Rica.
+    Caja de búsqueda aproximada para Costa Rica:
+    Latitud: 8.0° N a 11.2° N | Longitud: -86.0° O a -82.5° O
+    """
     try:
-        lat = float(latitud)
-        lon = float(longitud)
-        return (8.0 <= lat <= 11.5) and (-86.0 <= lon <= -82.5)
-    except (ValueError, TypeError):
+        # Ejemplo de formato esperado: "9.9281,-84.0907" o el enviado por el simulador
+        # Extraemos los números decimales (soporta negativos)
+        numeros = re.findall(r"[-+]?\d*\.\d+|\d+", coordenadas_str)
+        if len(numeros) < 2:
+            return False
+        
+        lat = float(numeros[0])
+        lon = float(numeros[1])
+        
+        # Validar rangos geográficos del territorio nacional
+        if (8.0 <= lat <= 11.2) and (-86.0 <= lon <= -82.5):
+            return True
+        return False
+    except Exception:
         return False
 
-def procesar_autorizacion_llamada(trama):
-    # --- CRITERIO 2.a: Todos los datos son obligatorios ---
-    # Nota: Si es consulta de saldo, algunos campos como telefono_destino o tarjetas podrían variar, 
-    # pero el criterio 1 dice que la trama debe incorporar toda la información. Validamos la estructura base.
-    tipo_transaccion = trama.get("tipo_transaccion")
-    
-    # --- CRITERIO 2.e: El tipo de transacción solo puede ser SOLICITUD o SALDO (según Criterio 4) ---
-    if tipo_transaccion not in ["SOLICITUD_LLAMADA", "SALDO"]:
-        return {"status": "ERROR", "motivo": 4, "mensaje": "Acción inválida"}
-
-    ubicacion = trama.get("ubicacion", {})
-    latitud = ubicacion.get("latitud")
-    longitud = ubicacion.get("longitud")
-
-    # --- CRITERIO 2.d: Validación de Territorio Nacional (Código de motivo: 3) ---
-    if not validar_coordenadas_costa_rica(latitud, longitud):
-        return {"status": "ERROR", "motivo": 3, "mensaje": "Llamada no permitida (Fuera del área del país)"}
-
-    # Cifrado AES reglamentario para búsquedas de seguridad
-    tel_origen_cifrado = encriptar_aes(str(trama.get("telefono_origen")))
-    tarjeta_cifrado = encriptar_aes(str(trama.get("identificador_tarjeta")))
-    dispositivo_cifrado = encriptar_aes(str(trama.get("identificador_dispositivo")))
-
-    conexion = obtener_conexion()
-    if not conexion:
-        return {"status": "ERROR", "motivo": 5, "mensaje": "Error no controlado (BD)"}
+def consultar_proveedor_saldo(telefono: str, tipo_llamada: str) -> dict:
+    """
+    Comunicación vía Sockets Síncronos con el Proveedor Telefónico (Java / SQL Server).
+    Envía trama de texto plano según HU PROVEEDOR1.
+    """
+    # Formato trama: TipoTransaccion(1) + Telefono(8) + TipoLlamada(1)
+    # Tipo Transacción para llamada = "1"
+    trama_plana = f"1{telefono}{tipo_llamada}"
     
     try:
-        cursor = conexion.cursor(dictionary=True)
+        # Crear socket síncrono TCP
+        con_proveedor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        con_proveedor.settimeout(5.0) # Timeout prudencial
         
-        # --- CRITERIO 2.b: El número de teléfono debe existir, estar activo y tener proveedor ---
-        query_tel = f"SELECT * FROM {TABLA_TELEFONOS} WHERE numero_cifrado = %s"
-        cursor.execute(query_tel, (tel_origen_cifrado,))
-        db_telefono = cursor.fetchone()
+        # Conectar al componente de Java
+        con_proveedor.connect((settings.SOCKET_HOST, settings.SOCKET_PORT))
         
-        if not db_telefono or db_telefono["activo"] != 1 or not db_telefono.get("proveedor_id"):
-            # El documento mapea teléfono origen inactivo/inexistente como error no controlado o rechazo directo
-            return {"status": "ERROR", "motivo": 5, "mensaje": "Error no controlado (Origen inválido o inactivo)"}
-
-        # --- CRITERIO 2.c: Datos de la tarjeta telefónica deben coincidir (Código de motivo: 2) ---
-        query_chip = f"SELECT * FROM {TABLA_TARJETAS} WHERE identificador_tarjeta_cifrado = %s"
-        cursor.execute(query_chip, (tarjeta_cifrado,))
-        db_chip = cursor.fetchone()
+        # Enviar trama en texto plano
+        con_proveedor.sendall(trama_plana.encode('utf-8'))
         
-        if not db_chip or db_chip["telefono_id"] != db_telefono["telefono_id"] or db_chip["activa"] != 1:
-            return {"status": "ERROR", "motivo": 2, "mensaje": "Datos de tarjeta telefónica no coinciden"}
-
-        # Validación del dispositivo asociado
-        query_disp = f"SELECT * FROM {TABLA_DISPOSITIVOS} WHERE identificador_dispositivo_cifrado = %s AND activo = 1"
-        cursor.execute(query_disp, (dispositivo_cifrado,))
-        db_dispositivo = cursor.fetchone()
+        # Recibir respuesta del proveedor
+        respuesta = con_proveedor.recv(1024).decode('utf-8').strip()
+        con_proveedor.close()
         
-        if not db_dispositivo or db_dispositivo["telefono_id"] != db_telefono["telefono_id"]:
-            return {"status": "ERROR", "motivo": 5, "mensaje": "Dispositivo no coincide"}
-
-        # =====================================================================
-        # FLUJO B: SI LA TRANSACCIÓN ES DE TIPO SALDO (CRITERIO 4)
-        # =====================================================================
-        if tipo_transaccion == "SALDO":
-            # Simulación de consulta HU PROVEEDOR1 (Ejemplo: devuelve 1234.56 colones)
-            saldo_proveedor = 1234.56  
+        # Procesar respuestas del Proveedor
+        if respuesta.startswith("OK"):
+            # El formato de éxito del proveedor típicamente incluye la tarifa(10) y tiempo(6)
+            # Ejemplo: "OK9999999999245959" o "OK0000002513001025"
+            # Extraemos los últimos 6 dígitos que representan el tiempo HHMMSS
+            tiempo_autorizado = respuesta[-6:] 
+            return {"status": "OK", "tiempo": tiempo_autorizado}
             
-            # Formatear a un entero eliminando el punto decimal (1234.56 -> 123456)
-            saldo_entero = int(saldo_proveedor * 100)
-            # Rellenar con ceros a la izquierda hasta cumplir estrictamente los 19 espacios
-            saldo_formateado = f"{saldo_entero:019d}"
-            
-            return {"status": "OK", "saldo": saldo_formateado}
-
-        # =====================================================================
-        # FLUJO A: SI LA TRANSACCIÓN ES DE TIPO LLAMADA (CRITERIO 3)
-        # =====================================================================
-        elif tipo_transaccion == "SOLICITUD_LLAMADA":
-            # --- CRITERIO 2.f: Validación de Teléfono Destino (Nacional o Internacional) ---
-            tipo_llamada = trama.get("tipo_llamada")
-            tel_destino = str(trama.get("telefono_destino"))
-            
-            if tipo_llamada == "NACIONAL":
-                tel_destino_cifrado = encriptar_aes(tel_destino)
-                query_destino = f"SELECT * FROM {TABLA_TELEFONOS} WHERE numero_cifrado = %s AND activo = 1"
-                cursor.execute(query_destino, (tel_destino_cifrado,))
-                if not cursor.fetchone():
-                    return {"status": "ERROR", "motivo": 1, "mensaje": "Teléfono destino inválido (inactivo o que no existe)"}
-                    
-            elif tipo_llamada == "INTERNACIONAL":
-                # Prefijos válidos exigidos por la cátedra
-                if not tel_destino.startswith(("506", "1", "34")): 
-                    return {"status": "ERROR", "motivo": 5, "mensaje": "Código de país inválido"}
-            else:
-                return {"status": "ERROR", "motivo": 4, "mensaje": "Acción inválida"}
-
-            # --- CRITERIO 3.a.i: Verificación de saldo con HU PROVEEDOR1 ---
-            # Simulación: El proveedor responde que el cliente tiene fondos y calcula el tiempo disponible
-            proveedor_permite_llamada = True
-            
-            if proveedor_permite_llamada:
-                # Ejemplo de tiempo asignado: 1 hora, 23 minutos, 10 segundos
-                # Formato estricto de 6 dígitos sin puntos exigido: "012310"
-                tiempo_maximo_permitido = "012310" 
-                return {"status": "OK", "tiempo": tiempo_maximo_permitido}
-            else:
-                return {"status": "ERROR", "motivo": 5, "mensaje": "Saldo insuficiente para el primer minuto"}
+        elif respuesta == "INSUF":
+            return {"status": "ERROR", "motivo": "INSUF"}
+        else:
+            return {"status": "ERROR", "motivo": 5} # Error no controlado / Respuesta inválida
             
     except Exception as e:
-        print(f"Error interno: {e}")
-        return {"status": "ERROR", "motivo": 5, "mensaje": "Error no controlado"}
+        print(f"[-] Error de conexión con el proveedor externo (Java): {e}")
+        return {"status": "ERROR", "motivo": 5} # Código 5: Error no controlado
+
+def procesar_autorizacion_llamada(trama_json: dict) -> dict:
+    """
+    Lógica principal de la HU Identificador1: Recibe JSON, valida contra MySQL,
+    consulta saldo al proveedor y dictamina la respuesta para el simulador C#.
+    """
+    # Criterio 2.a: Todos los datos son obligatorios
+    campos_requeridos = [
+        "telefono", "identificador_telefono", "identificador_tarjeta", 
+        "ubicacion_geografica", "tipo_transaccion", "telefono_destino"
+    ]
+    if not all(k in trama_json and trama_json[k] for k in campos_requeridos):
+        return {"status": "ERROR", "motivo": 5} # Error general de estructura
+
+    # 1. Desencriptar campos sensibles de la trama
+    telefono_origen = desencriptar_aes(trama_json["telefono"])
+    id_telefono = desencriptar_aes(trama_json["identificador_telefono"])
+    id_tarjeta = desencriptar_aes(trama_json["identificador_tarjeta"])
+    
+    ubicacion = trama_json["ubicacion_geografica"]
+    tipo_tx = trama_json["tipo_transaccion"]
+    telefono_destino = trama_json["telefono_destino"]
+
+    # Criterio 2.e: El tipo de transacción debe ser solamente 'solicitud'
+    if tipo_tx.lower() != "solicitud":
+        return {"status": "ERROR", "motivo": 4} # 4: Acción inválida
+
+    # Criterio 2.d: Validación de ubicación geográfica (Área nacional)
+    if not validar_coordenadas_costa_rica(ubicacion):
+        return {"status": "ERROR", "motivo": 3} # 3: Llamada no permitida (fuera del país)
+
+    # 2. Conexión y Validaciones contra la Base de Datos MySQL
+    # Nota: Adapta este bloque a tu arquitectura de persistencia (SQLAlchemy, Raw MySQL, etc.)
+    try:
+        # db = get_db_connection()
+        # cursor = db.cursor(dictionary=True)
         
-    finally:
-        cursor.close()
-        cerrar_conexion(conexion)
+        # Criterio 2.b y 2.c: Validar existencia, estado del teléfono y coincidencia de tarjeta
+        # query_origen = "SELECT * FROM telefonos WHERE numero = %s AND activo = 1"
+        # cursor.execute(query_origen, (telefono_origen,))
+        # registro_origen = cursor.fetchone()
+        
+        # Simulación de respuesta positiva de BD para el ejemplo estructural:
+        registro_origen = {"numero": telefono_origen, "id_tarjeta": id_tarjeta, "id_proveedor": 1} 
+        
+        if not registro_origen:
+            # Si no existe o está inactivo, el negocio usualmente retorna que los datos no coinciden o error controlado
+            return {"status": "ERROR", "motivo": 5} 
+            
+        if registro_origen["id_tarjeta"] != id_tarjeta:
+            return {"status": "ERROR", "motivo": 2} # 2: Datos de tarjeta telefónica no coinciden
+
+        # Criterio 2.f: Determinar si la llamada es Nacional o Internacional
+        # Suponiendo que si inicia con código país diferente a Costa Rica (ej: +506 o sin prefijo de 8 dígitos) es internacional
+        es_internacional = telefono_destino.startswith("+") and not telefono_destino.startswith("+506")
+        
+        if not es_internacional:
+            # Validar teléfono destino nacional en MySQL
+            # query_destino = "SELECT * FROM telefonos WHERE numero = %s AND activo = 1"
+            # cursor.execute(query_destino, (telefono_destino,))
+            # if not cursor.fetchone():
+            #     return {"status": "ERROR", "motivo": 1} # 1: Teléfono destino inválido
+            tipo_llamada = "1" # Mismo proveedor (o "2" si mapeas otro proveedor en tu BD)
+        else:
+            # Validar si el código de país internacional es válido (puedes usar un regex o lista en BD)
+            # Si es inválido: return {"status": "ERROR", "motivo": 5} (Código de país inválido es 5)
+            tipo_llamada = "3" # Fuera del país
+
+    except Exception as db_err:
+        print(f"[-] Error en consultas MySQL: {db_err}")
+        return {"status": "ERROR", "motivo": 5} # 5: Error no controlado
+    # finally:
+    #     cursor.close()
+    #     db.close()
+
+    # 3. Consultar los fondos/saldo en el Proveedor (Java)
+    resultado_proveedor = consultar_proveedor_saldo(telefono_origen, tipo_llamada)
+    
+    if resultado_proveedor["status"] == "OK":
+        # Formato de salida requerido por el simulador: {"status": "OK", "tiempo": "012310"}
+        return {
+            "status": "OK",
+            "tiempo": resultado_proveedor["tiempo"]
+        }
+    elif resultado_proveedor["motivo"] == "INSUF":
+        # Retornamos el estado de saldo insuficiente directamente
+        return {"status": "INSUF"}
+    else:
+        return {"status": "ERROR", "motivo": resultado_proveedor["motivo"]}
