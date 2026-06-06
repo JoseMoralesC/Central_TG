@@ -9,7 +9,12 @@ public class ManejoCliente extends Thread
 {
     //Atributos
     private Socket clienteSocket;
+    
     //Clases instanciadas desde la carpeta de servicios
+    //Calculo_Saldo calculoTarifa = new Calculo_Saldo();
+    //Registrar_Movimiento registrarMovimiento = new Registrar_Movimiento();
+    //Verificar_Saldo verificarSaldo = new Verificar_Saldo();
+
 
     public ManejoCliente(Socket clienteSocket)
     {
