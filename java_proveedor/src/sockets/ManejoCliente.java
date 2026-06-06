@@ -1,4 +1,5 @@
 package java_proveedor.src.sockets;
+package java_proveedor.src.services;
 
 //Imports
 import java.net.Socket;
@@ -9,9 +10,9 @@ public class ManejoCliente extends Thread
 {
     //Atributos
     private Socket clienteSocket;
-    
+
     //Clases instanciadas desde la carpeta de servicios
-    //Calculo_Saldo calculoTarifa = new Calculo_Saldo();
+    Consulta_Saldo calculoSaldo = new Consulta_Saldo();
     //Registrar_Movimiento registrarMovimiento = new Registrar_Movimiento();
     //Verificar_Saldo verificarSaldo = new Verificar_Saldo();
 
