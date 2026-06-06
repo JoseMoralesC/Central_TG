@@ -38,6 +38,24 @@ public class ManejoCliente extends Thread
                 return;
             }
             
+            switch (accion)
+            {
+                case "registrar_producto":
+                    //Lógica para registrar producto
+                    break;
+
+                case "actualizar_inventario":
+                    //Lógica para actualizar inventario
+                    break;
+
+                case "consultar_ventas":
+                    //Lógica para consultar ventas
+                    break;
+                    
+                default:
+                    writer.println("Acción no reconocida: " + accion);
+            }
+
         }
 
         catch (Exception e)
