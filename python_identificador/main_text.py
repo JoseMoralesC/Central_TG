@@ -1,82 +1,96 @@
-# main_test.py
+# app/main.py
 import socket
 import threading
 import json
+from app.config.config import settings
+from app.services.autorizacion_llamada import procesar_autorizacion_llamada
+
+
+# app/main.py
 import sys
 import os
 
-# Asegurar que Python reconozca la estructura de la carpeta 'app'
-sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+# Asegura que Python pueda encontrar la carpeta 'app' desde cualquier directorio
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.services.autorizacion_llamada import procesar_autorizacion_llamada
+from app.sockets.servidor import iniciar_servidor_socket
 
-HOST = '127.0.0.1'
-PORT = 5000
+if __name__ == "__main__":
+    print("[🚀] Iniciando el ecosistema del Sistema Identificador...")
+    iniciar_servidor_socket()
 
-def manejar_cliente(conexion_cliente, direccion):
-    """Maneja la conexión de cada cliente en un hilo independiente."""
-    print(f"📡 [Servidor] Nueva conexión entrante desde {direccion}")
+
+def manejar_cliente(socket_cliente, direccion_cliente):
+    """
+    Atiende la conexión individual de un cliente en un hilo independiente.
+    """
+    print(f"[+] Nueva conexión establecida desde {direccion_cliente}")
     try:
-        # Recibir la trama del socket (búfer de hasta 4096 bytes)
-        datos = conexion_cliente.recv(4096)
-        if not datos:
+        # Buffer de lectura para tramas JSON
+        datos_recibidos = socket_cliente.recv(4096).decode('utf-8')
+        if not datos_recibidos:
             return
 
-        # Decodificar el texto plano recibido
-        trama_texto = datos.decode('utf-8')
-        print(f"📥 [Servidor] Trama JSON recibida:\n{trama_texto}")
+        print(f"[*] Trama cruda recibida en el Socket: {datos_recibidos}")
         
-        # Convertir a diccionario de Python
-        trama_json = json.loads(trama_texto)
-
-        # Ejecutar la validación transaccional en la Base de Datos
-        respuesta = procesar_autorizacion_llamada(trama_json)
-
-        # Serializar y enviar la respuesta oficial obligatoria
-        respuesta_texto = json.dumps(respuesta)
-        print(f"📤 [Servidor] Enviando respuesta a cliente: {respuesta_texto}")
-        conexion_cliente.sendall(respuesta_texto.encode('utf-8'))
-
+        # 1. Parsear el JSON entrante
+        trama_json = json.loads(datos_recibidos)
+        
+        # 2. Procesar la solicitud con las validaciones de negocio y proveedor
+        respuesta_dict = procesar_autorizacion_llamada(trama_json)
+        
+        # 3. Serializar y enviar respuesta de vuelta al cliente
+        trama_respuesta = json.dumps(respuesta_dict)
+        print(f"[*] Enviando respuesta al cliente: {trama_respuesta}")
+        socket_cliente.sendall(trama_respuesta.encode('utf-8'))
+        
     except json.JSONDecodeError:
-        print("❌ [Servidor] Error: La trama recibida no tiene un formato JSON válido.")
-        error_resp = {"codigo": "ERROR", "estado": "ERROR"}
-        conexion_cliente.sendall(json.dumps(error_resp).encode('utf-8'))
+        print("[-] Error: La trama recibida no tiene un formato JSON válido.")
+        error_resp = {"status": "ERROR", "motivo": 5}
+        socket_cliente.sendall(json.dumps(error_resp).encode('utf-8'))
     except Exception as e:
-        print(f"❌ [Servidor] Error crítico al procesar la solicitud: {e}")
-        error_resp = {"codigo": "ERROR", "estado": "ERROR"}
-        conexion_cliente.sendall(json.dumps(error_resp).encode('utf-8'))
+        print(f"[-] Error gestionando la petición del cliente: {e}")
+        error_resp = {"status": "ERROR", "motivo": 5}
+        socket_cliente.sendall(json.dumps(error_resp).encode('utf-8'))
     finally:
-        conexion_cliente.close()
-        print(f"🛑 [Servidor] Conexión cerrada con {direccion}\n" + "-" * 50)
+        socket_cliente.close()
+        print(f"[-] Conexión cerrada con {direccion_cliente}\n")
 
 def iniciar_servidor():
-    """Inicializa el socket principal y escucha en modo multi-hilo."""
+    """
+    Inicializa el socket del Servidor Identificador.
+    """
+    # Configuración por defecto si no están mapeados en settings
+    host = getattr(settings, "IDENTIFICADOR_HOST", "127.0.0.1")
+    port = getattr(settings, "IDENTIFICADOR_PORT", 5000)
+
     servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    
-    # SO_REUSEADDR evita el bloqueo del puerto si reinicias el servidor rápido
+    # Permite reutilizar el puerto inmediatamente si se reinicia el script
     servidor.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     
     try:
-        servidor.bind((HOST, PORT))
-        servidor.listen()
-        print("=" * 60)
-        print(f"🚀 [Socket Servidor] Escuchando activamente en {HOST}:{PORT}")
-        print("   Esperando solicitudes de autorización (HU1)...")
-        print("=" * 60)
-
+        servidor.bind((host, port))
+        servidor.listen(10)  # Cola de espera para conexiones
+        print(f"=====================================================")
+        print(f"[🚀] Servidor Identificador iniciado en {host}:{port}")
+        print(f"=====================================================")
+        
         while True:
-            # Esperar conexiones entrantes
-            conexion_cliente, direccion = servidor.accept()
+            # Bloquea el hilo principal esperando un cliente
+            socket_cliente, direccion_cliente = servidor.accept()
             
-            # Crear y lanzar el hilo asíncrono para no bloquear a otros usuarios
-            hilo = threading.Thread(target=manejar_cliente, args=(conexion_cliente, direccion))
-            hilo.daemon = True
+            # Crear y arrancar un hilo exclusivo para atender al cliente de forma síncrona
+            hilo = threading.Thread(
+                target=manejar_cliente, 
+                args=(socket_cliente, direccion_cliente)
+            )
+            hilo.daemon = True # El hilo muere si el proceso principal se detiene
             hilo.start()
-
+            
     except KeyboardInterrupt:
-        print("\n🛑 [Servidor] Apagando el servidor de sockets de forma ordenada...")
+        print("\n[🛑] Servidor detenido manualmente por el usuario.")
     except Exception as e:
-        print(f"❌ [Servidor] Error fatal en el ciclo del socket: {e}")
+        print(f"[-] Error crítico en el servidor: {e}")
     finally:
         servidor.close()
 

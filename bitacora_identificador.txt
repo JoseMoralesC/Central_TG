@@ -1,0 +1,10 @@
+06/06/2026: {"telefono": "código_aes_aquí", "identificador_telefono": "código_aes_aquí", "identificador_tarjeta": "código_aes_aquí", "ubicacion_geografica": "9.9281,-84.0907", "tipo_transaccion": "solicitud", "telefono_destino": "89154242"}
+06/06/2026: 11
+06/06/2026: {"status": "ERROR", "motivo": 5, "message": "Error interno: 'int' object has no attribute 'get'"}
+06/06/2026: {"status": "ERROR", "motivo": 5}
+06/06/2026: {"telefono": "código_aes_aquí", "identificador_telefono": "código_aes_aquí", "identificador_tarjeta": "código_aes_aquí", "ubicacion_geografica": "9.9281,-84.0907", "tipo_transaccion": "solicitud", "telefono_destino": "89154242"}
+06/06/2026: 11
+06/06/2026: {"status": "ERROR", "motivo": 5, "detalle": "'int' object has no attribute 'get'"}
+06/06/2026: {"status": "ERROR", "motivo": 5}
+06/06/2026: {"tipo": "ENTRADA", "data": {"telefono": "código_aes_aquí", "identificador_telefono": "código_aes_aquí", "identificador_tarjeta": "código_aes_aquí", "ubicacion_geografica": "9.9281,-84.0907", "tipo_transaccion": "solicitud", "telefono_destino": "89154242"}}
+06/06/2026: {"tipo": "SALIDA", "data": {"status": "ERROR", "motivo": 5, "detalle": "Error interno del servidor"}}
