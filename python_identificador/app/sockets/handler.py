@@ -1,74 +1,110 @@
 import json
 import logging
-
-# Importaciones de servicios (Logica de Negocio)
 from app.services.autorizacion_llamada import procesar_autorizacion_llamada
-#from app.services.iniciar_llamada import procesar_llamada_pendiente
-#from app.services.termina_llamada import procesar_finalizacion_pendiente
-#from app.services.consulta import procesar_saldo_pendiente
+from app.services.iniciar_llamada import procesar_inicio_llamada
+from app.services.termina_llamada import procesar_finalizacion_llamada
+from app.services.consulta import procesar_consulta_saldo
 
-# Referencia global para la bitácora
-bitacora_queue = None
+# Cola de bitácora (inyectada desde servidor.py)
+cola_bitacora = None
 
-def inicializar_handler(queue_compartida):
-    global bitacora_queue
-    bitacora_queue = queue_compartida
+def inicializar_handler(cola):
+    """Recibe la cola de bitácora desde servidor.py"""
+    global cola_bitacora
+    cola_bitacora = cola
 
-def enviar_a_bitacora(data):
-    if bitacora_queue:
-        bitacora_queue.put(data)
+def registrar_en_bitacora(trama, tipo="ENTRADA"):
+    """Registra una trama en la bitácora (entrada o salida)"""
+    if cola_bitacora is None:
+        return
+    try:
+        registro = {
+            "tipo": tipo,
+            "trama": trama
+        }
+        cola_bitacora.put(registro)
+    except Exception as e:
+        print(f"[Bitácora] Error encolando registro: {e}")
 
 def manejar_cliente(conexion_cliente, direccion_cliente):
     """
-    Handler defensivo: Valida estructura antes de ejecutar cualquier lógica.
+    Despachador central: Valida, Rutea y Responde.
+    Soporta los tipos de transacción del protocolo:
+    - SOLICITUD_LLAMADA
+    - INICIO_LLAMADA
+    - FINALIZAR_LLAMADA
+    - CONSULTA_SALDO
     """
     try:
-        # 1. Recepción
-        data_raw = conexion_cliente.recv(4096).decode('utf-8')
-        if not data_raw:
+        # Leer trama completa (incluyendo \n final)
+        data = b""
+        while True:
+            chunk = conexion_cliente.recv(4096)
+            if not chunk:
+                break
+            data += chunk
+            if b"\n" in chunk:
+                break
+        
+        trama_str = data.decode('utf-8').strip()
+        if not trama_str:
             return
 
-        # 2. Deserialización segura
-        try:
-            trama = json.loads(data_raw)
-        except json.JSONDecodeError:
-            raise ValueError("Formato JSON inválido")
-
-        # 3. Validación de estructura (Garantizar que sea un diccionario)
-        if not isinstance(trama, dict):
-            raise ValueError("La trama no es un objeto JSON (dict)")
-
-        # Registrar entrada
-        enviar_a_bitacora({"tipo": "ENTRADA", "data": trama})
-
-        # 4. Enrutamiento controlado
-        tipo_tx = str(trama.get("tipo_transaccion", "")).strip().lower()
+        trama = json.loads(trama_str)
         
-        # Mapa de funciones para evitar un "if-else" gigante
+        # Registrar trama de entrada en bitácora
+        registrar_en_bitacora(trama, "ENTRADA")
+        
+        # Router de transacciones
         router = {
-            "solicitud": procesar_autorizacion_llamada,
-            "llamada": procesar_llamada_pendiente,
-            "finalizacion": procesar_finalizacion_pendiente,
-            "saldo": procesar_saldo_pendiente
+            "SOLICITUD_LLAMADA": procesar_autorizacion_llamada,
+            "INICIO_LLAMADA": procesar_inicio_llamada,
+            "FINALIZAR_LLAMADA": procesar_finalizacion_llamada,
+            "CONSULTA_SALDO": procesar_consulta_saldo
         }
 
+        # Validar tipo de transacción
+        tipo_tx = trama.get("tipo_transaccion")
+        
         if tipo_tx in router:
-            respuesta = router[tipo_tx](trama)
+            resultado = router[tipo_tx](trama)
         else:
-            respuesta = {"status": "ERROR", "motivo": 4, "detalle": "Tipo de transacción desconocido"}
+            resultado = {
+                "tipo_transaccion": "RESPUESTA_ERROR",
+                "resultado": {
+                    "codigo": "ERROR",
+                    "estado": "RECHAZADA",
+                    "mensaje": f"Tipo de transacción no soportado: {tipo_tx}"
+                }
+            }
 
-    except ValueError as ve:
-        # Errores de formato (JSON mal hecho o tipo incorrecto)
-        respuesta = {"status": "ERROR", "motivo": 4, "detalle": str(ve)}
+        # Registrar trama de salida en bitácora
+        registrar_en_bitacora(resultado, "SALIDA")
+        
+        # Enviar respuesta con salto de línea (\n) como requiere el protocolo
+        respuesta_json = json.dumps(resultado) + "\n"
+        conexion_cliente.sendall(respuesta_json.encode('utf-8'))
+
+    except json.JSONDecodeError:
+        error_resp = {
+            "tipo_transaccion": "RESPUESTA_ERROR",
+            "resultado": {
+                "codigo": "ERROR",
+                "estado": "RECHAZADA",
+                "mensaje": "JSON mal formado"
+            }
+        }
+        conexion_cliente.sendall((json.dumps(error_resp) + "\n").encode('utf-8'))
     except Exception as e:
-        # Errores críticos de sistema (NullPointer, Base de datos, etc)
-        print(f"[!] Error crítico procesando cliente {direccion_cliente}: {e}")
-        respuesta = {"status": "ERROR", "motivo": 5, "detalle": "Error interno del servidor"}
+        print(f"[CRÍTICO] Error en el handler: {e}")
+        error_resp = {
+            "tipo_transaccion": "RESPUESTA_ERROR",
+            "resultado": {
+                "codigo": "ERROR",
+                "estado": "RECHAZADA",
+                "mensaje": "Error interno del servidor"
+            }
+        }
+        conexion_cliente.sendall((json.dumps(error_resp) + "\n").encode('utf-8'))
     finally:
-        # 5. Registro y Envío
-        enviar_a_bitacora({"tipo": "SALIDA", "data": respuesta})
-        try:
-            conexion_cliente.sendall(json.dumps(respuesta, ensure_ascii=False).encode('utf-8'))
-        except:
-            pass
         conexion_cliente.close()

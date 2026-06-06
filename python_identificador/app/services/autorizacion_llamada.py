@@ -1,160 +1,249 @@
 # app/services/autorizacion_llamada.py
-import socket
+import json
 import re
+from datetime import datetime
 from app.utils.crypto import desencriptar_aes
-from app.config.config import settings  # Para HOST/PORT del proveedor y credenciales
-# Para las consultas a MySQL, puedes importar tu gestor de conexiones habitual, ej:
-# from app.utils.db import get_db_connection 
+from app.services.proveedor_cliente import enviar_al_proveedor
 
-def validar_coordenadas_costa_rica(coordenadas_str: str) -> bool:
+def validar_coordenadas_costa_rica(ubicacion: dict) -> bool:
     """
-    Criterio 2.d: Valida si las coordenadas corresponden a Costa Rica.
-    Caja de búsqueda aproximada para Costa Rica:
-    Latitud: 8.0° N a 11.2° N | Longitud: -86.0° O a -82.5° O
+    Valida si las coordenadas corresponden a Costa Rica.
+    La ubicación viene como objeto: {"pais": "...", "provincia": "...", "latitud": ..., "longitud": ...}
     """
     try:
-        # Ejemplo de formato esperado: "9.9281,-84.0907" o el enviado por el simulador
-        # Extraemos los números decimales (soporta negativos)
-        numeros = re.findall(r"[-+]?\d*\.\d+|\d+", coordenadas_str)
-        if len(numeros) < 2:
-            return False
+        lat = float(ubicacion.get("latitud", 0))
+        lon = float(ubicacion.get("longitud", 0))
         
-        lat = float(numeros[0])
-        lon = float(numeros[1])
-        
-        # Validar rangos geográficos del territorio nacional
+        # Rangos geográficos de Costa Rica
+        # Latitud: 8.0° N a 11.2° N | Longitud: -86.0° O a -82.5° O
         if (8.0 <= lat <= 11.2) and (-86.0 <= lon <= -82.5):
             return True
         return False
     except Exception:
         return False
 
-def consultar_proveedor_saldo(telefono: str, tipo_llamada: str) -> dict:
+def consultar_proveedor_saldo(telefono_origen: str, telefono_destino: str, 
+                               tipo_servicio: str, tipo_llamada: str) -> dict:
     """
-    Comunicación vía Sockets Síncronos con el Proveedor Telefónico (Java / SQL Server).
-    Envía trama de texto plano según HU PROVEEDOR1.
-    """
-    # Formato trama: TipoTransaccion(1) + Telefono(8) + TipoLlamada(1)
-    # Tipo Transacción para llamada = "1"
-    trama_plana = f"1{telefono}{tipo_llamada}"
+    Consulta saldo al Proveedor Java usando JSON según contrato consulta_proveedor.json.
     
-    try:
-        # Crear socket síncrono TCP
-        con_proveedor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        con_proveedor.settimeout(5.0) # Timeout prudencial
-        
-        # Conectar al componente de Java
-        con_proveedor.connect((settings.SOCKET_HOST, settings.SOCKET_PORT))
-        
-        # Enviar trama en texto plano
-        con_proveedor.sendall(trama_plana.encode('utf-8'))
-        
-        # Recibir respuesta del proveedor
-        respuesta = con_proveedor.recv(1024).decode('utf-8').strip()
-        con_proveedor.close()
-        
-        # Procesar respuestas del Proveedor
-        if respuesta.startswith("OK"):
-            # El formato de éxito del proveedor típicamente incluye la tarifa(10) y tiempo(6)
-            # Ejemplo: "OK9999999999245959" o "OK0000002513001025"
-            # Extraemos los últimos 6 dígitos que representan el tiempo HHMMSS
-            tiempo_autorizado = respuesta[-6:] 
-            return {"status": "OK", "tiempo": tiempo_autorizado}
-            
-        elif respuesta == "INSUF":
-            return {"status": "ERROR", "motivo": "INSUF"}
-        else:
-            return {"status": "ERROR", "motivo": 5} # Error no controlado / Respuesta inválida
-            
-    except Exception as e:
-        print(f"[-] Error de conexión con el proveedor externo (Java): {e}")
-        return {"status": "ERROR", "motivo": 5} # Código 5: Error no controlado
+    Envía:
+    {
+        "tipo_transaccion": "CONSULTA_PROVEEDOR",
+        "accion": "VERIFICAR_SALDO",
+        "telefono_origen": "...",
+        "telefono_destino": "...",
+        "tipo_servicio": "PREPAGO",
+        "tipo_llamada": "NACIONAL",
+        "datos_tarifa": { "moneda": "CRC", "tiempo_estimado_segundos": 1800 },
+        "fecha_hora": "..."
+    }
+    
+    Respuesta esperada (respuesta_proveedor.json):
+    {
+        "tipo_transaccion": "RESPUESTA_PROVEEDOR",
+        "resultado": { "codigo": "OK", "estado": "AUTORIZADO", ... },
+        "datos_autorizacion": { "saldo_disponible": ..., "costo_por_minuto": ...,
+                                "tiempo_maximo_segundos": ..., "moneda": "CRC" }
+    }
+    """
+    trama_consulta = {
+        "tipo_transaccion": "CONSULTA_PROVEEDOR",
+        "accion": "VERIFICAR_SALDO",
+        "telefono_origen": telefono_origen,
+        "telefono_destino": telefono_destino,
+        "tipo_servicio": tipo_servicio,
+        "tipo_llamada": tipo_llamada,
+        "datos_tarifa": {
+            "moneda": "CRC",
+            "tiempo_estimado_segundos": 1800
+        },
+        "fecha_hora": datetime.now().isoformat()
+    }
+    
+    respuesta = enviar_al_proveedor(trama_consulta)
+    return respuesta
 
 def procesar_autorizacion_llamada(trama_json: dict) -> dict:
     """
-    Lógica principal de la HU Identificador1: Recibe JSON, valida contra MySQL,
-    consulta saldo al proveedor y dictamina la respuesta para el simulador C#.
+    HU Identificador1: Autorizar llamada telefónica.
+    Recibe JSON del simulador C#, valida contra MySQL, consulta saldo al proveedor.
+    
+    Campos esperados del contrato solicitud_llamada.json:
+    - tipo_transaccion: "SOLICITUD_LLAMADA"
+    - telefono_origen: str (cifrado)
+    - telefono_destino: str
+    - identificador_dispositivo: str (cifrado, 16 dígitos)
+    - identificador_tarjeta: str (cifrado, 19 dígitos)
+    - ubicacion: {"pais": str, "provincia": str, "latitud": float, "longitud": float}
+    - tipo_llamada: str ("NACIONAL" o "INTERNACIONAL")
+    - fecha_hora: str
     """
     # Criterio 2.a: Todos los datos son obligatorios
     campos_requeridos = [
-        "telefono", "identificador_telefono", "identificador_tarjeta", 
-        "ubicacion_geografica", "tipo_transaccion", "telefono_destino"
+        "telefono_origen", "identificador_dispositivo", "identificador_tarjeta",
+        "ubicacion", "tipo_transaccion", "telefono_destino", "tipo_llamada"
     ]
     if not all(k in trama_json and trama_json[k] for k in campos_requeridos):
-        return {"status": "ERROR", "motivo": 5} # Error general de estructura
+        return {
+            "tipo_transaccion": "RESPUESTA_LLAMADA",
+            "resultado": {
+                "codigo": "ERROR",
+                "estado": "RECHAZADA",
+                "mensaje": "Datos incompletos"
+            }
+        }
 
-    # 1. Desencriptar campos sensibles de la trama
-    telefono_origen = desencriptar_aes(trama_json["telefono"])
-    id_telefono = desencriptar_aes(trama_json["identificador_telefono"])
-    id_tarjeta = desencriptar_aes(trama_json["identificador_tarjeta"])
-    
-    ubicacion = trama_json["ubicacion_geografica"]
+    # Desencriptar campos sensibles
+    try:
+        telefono_origen = desencriptar_aes(trama_json["telefono_origen"])
+        id_dispositivo = desencriptar_aes(trama_json["identificador_dispositivo"])
+        id_tarjeta = desencriptar_aes(trama_json["identificador_tarjeta"])
+    except Exception:
+        # Si falla desencriptación, usar valores planos (modo depuración)
+        telefono_origen = trama_json["telefono_origen"]
+        id_dispositivo = trama_json["identificador_dispositivo"]
+        id_tarjeta = trama_json["identificador_tarjeta"]
+        print("[!] Advertencia: Usando datos en plano (sin desencriptar)")
+
+    ubicacion = trama_json["ubicacion"]
     tipo_tx = trama_json["tipo_transaccion"]
     telefono_destino = trama_json["telefono_destino"]
+    tipo_llamada = trama_json.get("tipo_llamada", "NACIONAL")
 
-    # Criterio 2.e: El tipo de transacción debe ser solamente 'solicitud'
-    if tipo_tx.lower() != "solicitud":
-        return {"status": "ERROR", "motivo": 4} # 4: Acción inválida
+    # Criterio 2.e: El tipo de transacción debe ser SOLICITUD_LLAMADA
+    if tipo_tx != "SOLICITUD_LLAMADA":
+        return {
+            "tipo_transaccion": "RESPUESTA_LLAMADA",
+            "resultado": {
+                "codigo": "ERROR",
+                "estado": "RECHAZADA",
+                "mensaje": "Acción inválida"
+            }
+        }
 
-    # Criterio 2.d: Validación de ubicación geográfica (Área nacional)
+    # Criterio 2.d: Validación de ubicación geográfica
     if not validar_coordenadas_costa_rica(ubicacion):
-        return {"status": "ERROR", "motivo": 3} # 3: Llamada no permitida (fuera del país)
+        return {
+            "tipo_transaccion": "RESPUESTA_LLAMADA",
+            "resultado": {
+                "codigo": "UBICACION_INVALIDA",
+                "estado": "RECHAZADA",
+                "mensaje": "La ubicación enviada no pertenece al territorio nacional permitido"
+            }
+        }
 
-    # 2. Conexión y Validaciones contra la Base de Datos MySQL
-    # Nota: Adapta este bloque a tu arquitectura de persistencia (SQLAlchemy, Raw MySQL, etc.)
+    # Criterio 2.f: Validar teléfono destino según tipo de llamada
+    if tipo_llamada == "INTERNACIONAL":
+        # Validar que el código de país internacional sea válido
+        # Formatos esperados: +506 (con código), 00506 (con prefijo internacional)
+        if not re.match(r"^(\+|00)\d{1,3}", telefono_destino):
+            return {
+                "tipo_transaccion": "RESPUESTA_LLAMADA",
+                "resultado": {
+                    "codigo": "ERROR",
+                    "estado": "RECHAZADA",
+                    "mensaje": "Código de país inválido"
+                }
+            }
+    else:
+        # Llamada nacional: validar que el destino sea un número de 8 dígitos
+        if not re.match(r"^\d{8}$", telefono_destino):
+            return {
+                "tipo_transaccion": "RESPUESTA_LLAMADA",
+                "resultado": {
+                    "codigo": "ERROR",
+                    "estado": "RECHAZADA",
+                    "mensaje": "Teléfono destino inválido (debe ser 8 dígitos para llamada nacional)"
+                }
+            }
+
+    # Validaciones contra MySQL (simuladas - BD no disponible aún)
     try:
-        # db = get_db_connection()
-        # cursor = db.cursor(dictionary=True)
+        # TODO: Implementar consultas reales a MySQL cuando la BD esté disponible
+        # Criterio 2.b: Teléfono debe existir, estar activo y pertenecer a un proveedor
+        # Criterio 2.c: Identificador de tarjeta debe coincidir
         
-        # Criterio 2.b y 2.c: Validar existencia, estado del teléfono y coincidencia de tarjeta
-        # query_origen = "SELECT * FROM telefonos WHERE numero = %s AND activo = 1"
-        # cursor.execute(query_origen, (telefono_origen,))
-        # registro_origen = cursor.fetchone()
+        # Simulación: datos válidos para pruebas
+        registro_origen = {
+            "numero": telefono_origen,
+            "activo": True,
+            "id_tarjeta": id_tarjeta,
+            "id_proveedor": 1,
+            "tipo_servicio": "PREPAGO"
+        }
         
-        # Simulación de respuesta positiva de BD para el ejemplo estructural:
-        registro_origen = {"numero": telefono_origen, "id_tarjeta": id_tarjeta, "id_proveedor": 1} 
-        
-        if not registro_origen:
-            # Si no existe o está inactivo, el negocio usualmente retorna que los datos no coinciden o error controlado
-            return {"status": "ERROR", "motivo": 5} 
+        if not registro_origen or not registro_origen.get("activo"):
+            return {
+                "tipo_transaccion": "RESPUESTA_LLAMADA",
+                "resultado": {
+                    "codigo": "TEL_INACTIVO",
+                    "estado": "RECHAZADA",
+                    "mensaje": "El teléfono origen se encuentra inactivo"
+                }
+            }
             
         if registro_origen["id_tarjeta"] != id_tarjeta:
-            return {"status": "ERROR", "motivo": 2} # 2: Datos de tarjeta telefónica no coinciden
-
-        # Criterio 2.f: Determinar si la llamada es Nacional o Internacional
-        # Suponiendo que si inicia con código país diferente a Costa Rica (ej: +506 o sin prefijo de 8 dígitos) es internacional
-        es_internacional = telefono_destino.startswith("+") and not telefono_destino.startswith("+506")
-        
-        if not es_internacional:
-            # Validar teléfono destino nacional en MySQL
-            # query_destino = "SELECT * FROM telefonos WHERE numero = %s AND activo = 1"
-            # cursor.execute(query_destino, (telefono_destino,))
-            # if not cursor.fetchone():
-            #     return {"status": "ERROR", "motivo": 1} # 1: Teléfono destino inválido
-            tipo_llamada = "1" # Mismo proveedor (o "2" si mapeas otro proveedor en tu BD)
-        else:
-            # Validar si el código de país internacional es válido (puedes usar un regex o lista en BD)
-            # Si es inválido: return {"status": "ERROR", "motivo": 5} (Código de país inválido es 5)
-            tipo_llamada = "3" # Fuera del país
+            return {
+                "tipo_transaccion": "RESPUESTA_LLAMADA",
+                "resultado": {
+                    "codigo": "SIM_INVALIDA",
+                    "estado": "RECHAZADA",
+                    "mensaje": "La tarjeta SIM no corresponde al teléfono registrado"
+                }
+            }
 
     except Exception as db_err:
         print(f"[-] Error en consultas MySQL: {db_err}")
-        return {"status": "ERROR", "motivo": 5} # 5: Error no controlado
-    # finally:
-    #     cursor.close()
-    #     db.close()
-
-    # 3. Consultar los fondos/saldo en el Proveedor (Java)
-    resultado_proveedor = consultar_proveedor_saldo(telefono_origen, tipo_llamada)
-    
-    if resultado_proveedor["status"] == "OK":
-        # Formato de salida requerido por el simulador: {"status": "OK", "tiempo": "012310"}
         return {
-            "status": "OK",
-            "tiempo": resultado_proveedor["tiempo"]
+            "tipo_transaccion": "RESPUESTA_LLAMADA",
+            "resultado": {
+                "codigo": "ERROR",
+                "estado": "RECHAZADA",
+                "mensaje": "Error no controlado"
+            }
         }
-    elif resultado_proveedor["motivo"] == "INSUF":
-        # Retornamos el estado de saldo insuficiente directamente
-        return {"status": "INSUF"}
+
+    # Consultar saldo en el Proveedor (Java) usando JSON
+    tipo_servicio = registro_origen.get("tipo_servicio", "PREPAGO")
+    resultado_proveedor = consultar_proveedor_saldo(
+        telefono_origen, telefono_destino, tipo_servicio, tipo_llamada
+    )
+    
+    # Procesar respuesta del proveedor
+    resultado_codigo = resultado_proveedor.get("resultado", {}).get("codigo", "ERROR")
+    datos_autorizacion = resultado_proveedor.get("datos_autorizacion", {})
+    
+    if resultado_codigo == "OK":
+        tiempo_maximo = datos_autorizacion.get("tiempo_maximo_segundos", 1800)
+        return {
+            "tipo_transaccion": "RESPUESTA_LLAMADA",
+            "resultado": {
+                "codigo": "OK",
+                "estado": "AUTORIZADA",
+                "mensaje": "Llamada autorizada correctamente"
+            },
+            "datos_llamada": {
+                "tiempo_maximo_segundos": tiempo_maximo,
+                "costo_por_minuto": datos_autorizacion.get("costo_por_minuto", 0),
+                "saldo_disponible": datos_autorizacion.get("saldo_disponible", 0)
+            }
+        }
+    elif resultado_codigo == "INSUF" or resultado_proveedor.get("resultado", {}).get("estado") == "SALDO_INSUFICIENTE":
+        return {
+            "tipo_transaccion": "RESPUESTA_LLAMADA",
+            "resultado": {
+                "codigo": "INSUF",
+                "estado": "RECHAZADA",
+                "mensaje": "Saldo insuficiente"
+            }
+        }
     else:
-        return {"status": "ERROR", "motivo": resultado_proveedor["motivo"]}
+        return {
+            "tipo_transaccion": "RESPUESTA_LLAMADA",
+            "resultado": {
+                "codigo": "ERROR",
+                "estado": "RECHAZADA",
+                "mensaje": resultado_proveedor.get("resultado", {}).get("mensaje", "Error no controlado")
+            }
+        }
