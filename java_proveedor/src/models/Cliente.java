@@ -1,58 +1,43 @@
 package java_proveedor.src.models;
 
+import java.util.List;
+
 public class Cliente
 {
-    private String idCliente; //Consultar ya que aparece como dato generado automáticamente en vez de uno ingresado por el usuario
+    private int clienteId;
     private String nombre;
-    private String email;
-    //private String telefono; //Consultar ya que no aparece en el diagrama de clases pero es un dato comúnmente asociado a un cliente
+    private String identificacion;
+    private String correo;
     private boolean activo;
+    private List<Servicio> servicios;
 
-    public Cliente(String idCliente, String nombre, String email, boolean activo)
+    public Cliente() {}
+
+    public Cliente(int clienteId, String nombre, String identificacion, String correo, boolean activo)
     {
-        this.idCliente = idCliente;
+        this.clienteId = clienteId;
         this.nombre = nombre;
-        this.email = email;
+        this.identificacion = identificacion;
+        this.correo = correo;
         this.activo = activo;
     }
 
     // Getters y Setters
-    public String getIdCliente()
-    {
-        return idCliente;
-    }
+    public int getClienteId() { return clienteId; }
+    public void setClienteId(int clienteId) { this.clienteId = clienteId; }
 
-    public void setIdCliente(String idCliente)
-    {
-        this.idCliente = idCliente;
-    }
+    public String getNombre() { return nombre; }
+    public void setNombre(String nombre) { this.nombre = nombre; }
 
-    public String getNombre()
-    {
-        return nombre;
-    }
+    public String getIdentificacion() { return identificacion; }
+    public void setIdentificacion(String identificacion) { this.identificacion = identificacion; }
 
-    public void setNombre(String nombre)
-    {
-        this.nombre = nombre;
-    }
+    public String getCorreo() { return correo; }
+    public void setCorreo(String correo) { this.correo = correo; }
 
-    public String getEmail() {
-        return email;
-    }
+    public boolean isActivo() { return activo; }
+    public void setActivo(boolean activo) { this.activo = activo; }
 
-    public void setEmail(String email)
-    {
-        this.email = email;
-    }
-
-    public boolean getActivo()
-    {
-        return activo;
-    }
-
-    public void setActivo(boolean activo)
-    {
-        this.activo = activo;
-    }
+    public List<Servicio> getServicios() { return servicios; }
+    public void setServicios(List<Servicio> servicios) { this.servicios = servicios; }
 }

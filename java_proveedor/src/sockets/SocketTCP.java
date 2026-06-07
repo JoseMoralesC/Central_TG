@@ -15,14 +15,14 @@ public class SocketTCP
 
     public static void main(String[] args)
     {
-        //Cada hilo que entre nuevo, va a ser atendido por un nuevo hilo
+        //Cada que entre un nuevo cliente, va a ser atendido por un nuevo hilo
         try (ServerSocket serverSocket = new ServerSocket(puerto);)
         {
             while (true)
             {
                 Socket clienteSocket = serverSocket.accept();
 
-                Thread hilo = new Thread(new ManejoCliente(clienteSocket));
+                ManejoCliente hilo = new ManejoCliente(clienteSocket);
                 hilo.start();
                 
             }
