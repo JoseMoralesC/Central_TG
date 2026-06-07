@@ -22,7 +22,7 @@ public class SocketTCP
             {
                 Socket clienteSocket = serverSocket.accept();
 
-                Manejo_Cliente hilo = new Manejo_Cliente(clienteSocket);
+                ManejoCliente hilo = new ManejoCliente(clienteSocket);
                 hilo.start();
                 
             }

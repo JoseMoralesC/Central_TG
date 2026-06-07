@@ -1,25 +1,29 @@
 package java_proveedor.src.sockets;
 
 //Imports de las clases de servicios
-import java_proveedor.src.services.Consulta_Saldo;
+import java_proveedor.src.services.CalculoTarifa;
+import java_proveedor.src.services.ConsultaSaldo;
+import java_proveedor.src.services.RegistrarMovimiento;
+import java_proveedor.src.services.VerificarSaldo;
 
 //Imports
 import java.net.Socket;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 
-public class Manejo_Cliente extends Thread
+public class ManejoCliente extends Thread
 {
     //Atributos
     private Socket clienteSocket;
 
     //Clases instanciadas desde la carpeta de servicios
-    Consulta_Saldo calculoSaldo = new Consulta_Saldo();
-    //Registrar_Movimiento registrarMovimiento = new Registrar_Movimiento();
-    //Verificar_Saldo verificarSaldo = new Verificar_Saldo();
+    ConsultaSaldo calculoSaldo = new ConsultaSaldo();
+    CalculoTarifa calculoTarifa = new CalculoTarifa();
+    RegistrarMovimiento registrarMovimiento = new RegistrarMovimiento();
+    VerificarSaldo verificarSaldo = new VerificarSaldo();
 
 
-    public Manejo_Cliente(Socket clienteSocket)
+    public ManejoCliente(Socket clienteSocket)
     {
         this.clienteSocket = clienteSocket;
     }
