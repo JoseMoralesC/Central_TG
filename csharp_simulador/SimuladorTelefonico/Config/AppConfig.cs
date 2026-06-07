@@ -42,31 +42,31 @@ namespace SimuladorTelefonico.Config
             new TelefonoVirtual
             {
                 Id = "TEL-001",
-                Nombre = "Teléfono #1",
-                Numero = "88888888",
-                Maquina = "Máquina #1",
-                IdentificadorDispositivo = "DISP-CSHARP-001",
-                IdentificadorTarjeta = "SIM-CR-000000000000001",
+                Nombre = "Telefono #1",
+                Numero = "88889999",
+                Maquina = "Maquina #1",
+                IdentificadorDispositivo = "1234567891234567",
+                IdentificadorTarjeta = "1234567891234567891",
                 TipoServicio = "PREPAGO",
                 TipoLlamada = "NACIONAL"
             },
             new TelefonoVirtual
             {
                 Id = "TEL-002",
-                Nombre = "Teléfono #2",
-                Numero = "88889999",
-                Maquina = "Máquina #1",
-                IdentificadorDispositivo = "DISP-CSHARP-002",
-                IdentificadorTarjeta = "SIM-CR-000000000000002",
-                TipoServicio = "PREPAGO",
+                Nombre = "Telefono #2",
+                Numero = "22223333",
+                Maquina = "Maquina #1",
+                IdentificadorDispositivo = "1234567891234567",
+                IdentificadorTarjeta = "1234567891234567891",
+                TipoServicio = "POSTPAGO",
                 TipoLlamada = "NACIONAL"
             },
             new TelefonoVirtual
             {
                 Id = "TEL-003",
-                Nombre = "Teléfono #3",
+                Nombre = "Telefono #3",
                 Numero = "60001111",
-                Maquina = "Máquina #2",
+                Maquina = "Maquina #2",
                 IdentificadorDispositivo = "DISP-CSHARP-003",
                 IdentificadorTarjeta = "SIM-CR-000000000000003",
                 TipoServicio = "POSTPAGO",
@@ -75,9 +75,9 @@ namespace SimuladorTelefonico.Config
             new TelefonoVirtual
             {
                 Id = "TEL-004",
-                Nombre = "Teléfono #4",
+                Nombre = "Telefono #4",
                 Numero = "60002222",
-                Maquina = "Máquina #2",
+                Maquina = "Maquina #2",
                 IdentificadorDispositivo = "DISP-CSHARP-004",
                 IdentificadorTarjeta = "SIM-CR-000000000000004",
                 TipoServicio = "POSTPAGO",
@@ -85,7 +85,8 @@ namespace SimuladorTelefonico.Config
             }
         };
 
-        public static TelefonoVirtual TelefonoActual { get; private set; } = TelefonosVirtuales.First();
+        public static TelefonoVirtual TelefonoActual { get; private set; } =
+            TelefonosVirtuales.First();
 
         public static void SeleccionarTelefono(string id)
         {
@@ -95,11 +96,14 @@ namespace SimuladorTelefonico.Config
 
         public static string NumeroOrigen => TelefonoActual.Numero;
 
-        public static string IdentificadorTelefono => TelefonoActual.IdentificadorDispositivo;
+        public static string IdentificadorTelefono =>
+            TelefonoActual.IdentificadorDispositivo;
 
-        public static string IdentificadorDispositivo => TelefonoActual.IdentificadorDispositivo;
+        public static string IdentificadorDispositivo =>
+            TelefonoActual.IdentificadorDispositivo;
 
-        public static string IdentificadorTarjeta => TelefonoActual.IdentificadorTarjeta;
+        public static string IdentificadorTarjeta =>
+            TelefonoActual.IdentificadorTarjeta;
 
         public static string TipoServicio => TelefonoActual.TipoServicio;
 

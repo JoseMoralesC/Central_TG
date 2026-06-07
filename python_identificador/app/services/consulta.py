@@ -28,6 +28,7 @@ def consultar_saldo_proveedor(telefono_origen: str) -> dict:
         "tipo_transaccion": "CONSULTA_PROVEEDOR",
         "accion": "CONSULTAR_SALDO",
         "telefono_origen": telefono_origen,
+        "numero": telefono_origen,
         "datos_tarifa": {
             "moneda": "CRC"
         },
@@ -148,11 +149,17 @@ def procesar_consulta_saldo(trama_json: dict) -> dict:
     # Consultar saldo al proveedor
     resultado = consultar_saldo_proveedor(telefono_origen)
     
-    resultado_codigo = resultado.get("resultado", {}).get("codigo", "ERROR")
+    resultado_codigo = resultado.get(
+        "status",
+        resultado.get("resultado", {}).get("codigo", "ERROR")
+    )
     datos_autorizacion = resultado.get("datos_autorizacion", {})
     
     if resultado_codigo == "OK":
-        saldo_disponible = datos_autorizacion.get("saldo_disponible", 0)
+        saldo_disponible = resultado.get(
+            "saldo",
+            datos_autorizacion.get("saldo_disponible", 0)
+        )
         return {
             "tipo_transaccion": "RESPUESTA_SALDO",
             "telefono_origen": telefono_origen,

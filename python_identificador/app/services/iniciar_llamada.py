@@ -31,17 +31,24 @@ def agregar_llamada_activa(id_llamada, telefono_origen, telefono_destino,
         
         # Persistir también en BD (best-effort, no bloquea si falla)
         try:
-            from app.database.repositorio import insertar_llamada_activa
+            from app.database.repositorio import (
+                buscar_telefono_por_numero_cifrado,
+                insertar_llamada_activa
+            )
             
             # Intentar insertar en BD (el telefono_id se busca si está cifrado)
-            insertar_llamada_activa(
-                telefono_id=0,  # Se ignora si no se puede resolver
-                telefono_destino=telefono_destino,
-                fecha_inicio=datetime.fromisoformat(fecha_inicio),
-                fecha_fin_maxima=hora_fin,
-                tiempo_maximo=str(tiempo_maximo_segundos),
-                estado="ACTIVA"
-            )
+            telefono = buscar_telefono_por_numero_cifrado(telefono_origen)
+            if telefono and telefono.get("telefono_id"):
+                insertar_llamada_activa(
+                    telefono_id=telefono["telefono_id"],
+                    telefono_destino=telefono_destino,
+                    fecha_inicio=datetime.fromisoformat(fecha_inicio),
+                    fecha_fin_maxima=hora_fin,
+                    tiempo_maximo=str(tiempo_maximo_segundos),
+                    estado="ACTIVA"
+                )
+            else:
+                print(f"[-] No se pudo resolver telefono_id para llamada activa: {telefono_origen}")
         except Exception:
             pass  # La lista en memoria es la fuente primaria
         

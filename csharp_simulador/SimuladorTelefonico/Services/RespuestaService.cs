@@ -191,6 +191,24 @@ namespace SimuladorTelefonico.Services
                 using JsonDocument documento = JsonDocument.Parse(respuesta);
                 JsonElement raiz = documento.RootElement;
 
+                if (raiz.TryGetProperty("datos_saldo", out JsonElement datosSaldo))
+                {
+                    string montoTexto = "No disponible";
+                    string monedaTexto = "CRC";
+
+                    if (datosSaldo.TryGetProperty("saldo_disponible", out JsonElement saldoDisponible))
+                    {
+                        montoTexto = FormatearMonto(saldoDisponible);
+                    }
+
+                    if (datosSaldo.TryGetProperty("moneda", out JsonElement moneda))
+                    {
+                        monedaTexto = moneda.GetString() ?? monedaTexto;
+                    }
+
+                    return $"{montoTexto} {monedaTexto}";
+                }
+
                 if (raiz.TryGetProperty("saldo", out JsonElement saldo))
                 {
                     if (saldo.ValueKind == JsonValueKind.Object
