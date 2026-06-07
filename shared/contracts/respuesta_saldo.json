@@ -1,0 +1,18 @@
+{
+  "tipo_transaccion": "RESPUESTA_SALDO",
+
+  "telefono_origen": "88889999",
+
+  "resultado": {
+    "codigo": "OK",
+    "estado": "CONSULTA_EXITOSA",
+    "mensaje": "Consulta realizada correctamente"
+  },
+
+  "datos_saldo": {
+    "tipo_servicio": "PREPAGO",
+    "saldo_disponible": 4900.00,
+    "moneda": "CRC",
+    "fecha_consulta": "2026-06-01T09:35:00"
+  }
+}

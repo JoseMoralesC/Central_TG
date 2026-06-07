@@ -1,0 +1,23 @@
+{
+  "proyecto": "Central_TG",
+
+  "entorno": "LOCAL",
+
+  "servicios": {
+    "identificador_python": {
+      "host": "127.0.0.1",
+      "puerto": 5000,
+      "descripcion": "Socket TCP del Identificador que recibe solicitudes desde C#"
+    },
+
+    "proveedor_java": {
+      "host": "127.0.0.1",
+      "puerto": 6000,
+      "descripcion": "Socket TCP del Proveedor que recibe solicitudes desde Python"
+    }
+  },
+
+  "codificacion": "UTF-8",
+
+  "fin_mensaje": "\\n"
+}

@@ -1,0 +1,20 @@
+{
+  "tipo_transaccion": "RESPUESTA_PROVEEDOR",
+  "accion": "VERIFICAR_SALDO",
+
+  "telefono_origen": "88889999",
+
+  "resultado": {
+    "codigo": "OK",
+    "estado": "AUTORIZADO",
+    "mensaje": "Servicio autorizado por el proveedor"
+  },
+
+  "datos_autorizacion": {
+    "tipo_servicio": "PREPAGO",
+    "saldo_disponible": 5000.00,
+    "costo_por_minuto": 10.00,
+    "tiempo_maximo_segundos": 1800,
+    "moneda": "CRC"
+  }
+}

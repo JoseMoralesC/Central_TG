@@ -1,0 +1,41 @@
+{
+  "caso_prueba": "TELEFONO_INACTIVO",
+
+  "descripcion": "Caso donde un teléfono registrado intenta realizar una llamada pero se encuentra inactivo.",
+
+  "entrada_simulador": {
+    "tipo_transaccion": "SOLICITUD_LLAMADA",
+
+    "telefono_origen": "77776666",
+    "telefono_destino": "22223333",
+
+    "identificador_dispositivo": "4444444444444444",
+    "identificador_tarjeta": "4444444444444444444",
+
+    "ubicacion": {
+      "pais": "Costa Rica",
+      "provincia": "Cartago",
+      "latitud": 9.8644,
+      "longitud": -83.9194
+    },
+
+    "tipo_llamada": "NACIONAL",
+
+    "fecha_hora": "2026-06-01T10:00:00"
+  },
+
+
+  "respuesta_esperada": {
+
+    "tipo_transaccion": "RESPUESTA_LLAMADA",
+
+    "resultado": {
+
+      "codigo": "TEL_INACTIVO",
+
+      "estado": "RECHAZADA",
+
+      "mensaje": "El teléfono origen se encuentra inactivo"
+    }
+  }
+}

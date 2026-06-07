@@ -1,0 +1,18 @@
+{
+  "tipo_transaccion": "RESPUESTA_LLAMADA",
+
+  "telefono_origen": "88889999",
+
+  "resultado": {
+    "codigo": "OK",
+    "estado": "AUTORIZADA",
+    "mensaje": "Llamada autorizada correctamente"
+  },
+
+  "datos_llamada": {
+    "id_llamada": "CALL-000001",
+    "tiempo_maximo_segundos": 1800,
+    "hora_inicio": "2026-06-01T09:05:00",
+    "hora_fin_maxima": "2026-06-01T09:35:00"
+  }
+}
