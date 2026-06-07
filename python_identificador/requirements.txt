@@ -1,10 +1,6 @@
-requerimentos para funcionamientoo de parte Python:
-install:
-pip install
+# Dependencias del Identificador Python
+# Instalar con: pip install -r requirements.txt
 
--El install de dotenv es para rastrear el archivo .env del sistema
-pip install python-dotenv 
-
--El install de AES para cifrado
-pip install pycrpytodome
-
+python-dotenv==1.0.1
+pycryptodome==3.20.0
+mysql-connector-python==8.0.33

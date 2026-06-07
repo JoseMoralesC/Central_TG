@@ -1,0 +1,15 @@
+06/06/2026: {"telefono": "código_aes_aquí", "identificador_telefono": "código_aes_aquí", "identificador_tarjeta": "código_aes_aquí", "ubicacion_geografica": "9.9281,-84.0907", "tipo_transaccion": "solicitud", "telefono_destino": "89154242"}
+06/06/2026: 11
+06/06/2026: {"status": "ERROR", "motivo": 5, "message": "Error interno: 'int' object has no attribute 'get'"}
+06/06/2026: {"status": "ERROR", "motivo": 5}
+06/06/2026: {"telefono": "código_aes_aquí", "identificador_telefono": "código_aes_aquí", "identificador_tarjeta": "código_aes_aquí", "ubicacion_geografica": "9.9281,-84.0907", "tipo_transaccion": "solicitud", "telefono_destino": "89154242"}
+06/06/2026: 11
+06/06/2026: {"status": "ERROR", "motivo": 5, "detalle": "'int' object has no attribute 'get'"}
+06/06/2026: {"status": "ERROR", "motivo": 5}
+06/06/2026: {"tipo": "ENTRADA", "data": {"telefono": "código_aes_aquí", "identificador_telefono": "código_aes_aquí", "identificador_tarjeta": "código_aes_aquí", "ubicacion_geografica": "9.9281,-84.0907", "tipo_transaccion": "solicitud", "telefono_destino": "89154242"}}
+06/06/2026: {"tipo": "SALIDA", "data": {"status": "ERROR", "motivo": 5, "detalle": "Error interno del servidor"}}
+06/06/2026: {"tipo": "ENTRADA", "data": {"telefono": "código_aes_aquí", "identificador_telefono": "código_aes_aquí", "identificador_tarjeta": "código_aes_aquí", "ubicacion_geografica": "9.9281,-84.0907", "tipo_transaccion": "solicitud", "telefono_destino": "89154242"}}
+06/06/2026: {"tipo": "SALIDA", "data": {"status": "ERROR", "motivo": 5, "detalle": "Error interno del servidor"}}
+06/06/2026: {"tipo": "ENTRADA", "data": {"tipo_transaccion": "solicitud", "telefono": "MjU3NDM3MTU=", "identificador_telefono": "MTIzNDU2Nzg5MDEyMzQ1Ng==", "identificador_tarjeta": "MTEyMzQwNDU2OTg5OTY5Njk2OQ==", "ubicacion_geografica": "9.9281,-84.0907", "telefono_destino": "89154242"}}
+06/06/2026: {"tipo": "SALIDA", "data": {"status": "ERROR", "motivo": 4, "detalle": "La trama no es un objeto JSON (dict)"}}
+06/06/2026: {"tipo": "SALIDA", "data": {"status": "ERROR", "motivo": 5, "detalle": "Error interno del servidor"}}

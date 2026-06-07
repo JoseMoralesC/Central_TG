@@ -1,79 +1,110 @@
-# app/sockets/handler.py
 import json
+import logging
 from app.services.autorizacion_llamada import procesar_autorizacion_llamada
+from app.services.iniciar_llamada import procesar_inicio_llamada
+from app.services.termina_llamada import procesar_finalizacion_llamada
+from app.services.consulta import procesar_consulta_saldo
+
+# Cola de bitácora (inyectada desde servidor.py)
+cola_bitacora = None
+
+def inicializar_handler(cola):
+    """Recibe la cola de bitácora desde servidor.py"""
+    global cola_bitacora
+    cola_bitacora = cola
+
+def registrar_en_bitacora(trama, tipo="ENTRADA"):
+    """Registra una trama en la bitácora (entrada o salida)"""
+    if cola_bitacora is None:
+        return
+    try:
+        registro = {
+            "tipo": tipo,
+            "trama": trama
+        }
+        cola_bitacora.put(registro)
+    except Exception as e:
+        print(f"[Bitácora] Error encolando registro: {e}")
 
 def manejar_cliente(conexion_cliente, direccion_cliente):
     """
-    Atiende la solicitud de un cliente específico de forma síncrona 
-    dentro de su propio hilo, sin bloquear el resto de conexiones.
+    Despachador central: Valida, Rutea y Responde.
+    Soporta los tipos de transacción del protocolo:
+    - SOLICITUD_LLAMADA
+    - INICIO_LLAMADA
+    - FINALIZAR_LLAMADA
+    - CONSULTA_SALDO
     """
-    print(f"🧵 [Hilo] Asignado para atender a: {direccion_cliente}")
-    
     try:
-        # Recibir la trama de datos (Buffer de 4096 bytes)
-        bytes_recibidos = conexion_cliente.recv(4096)
-        if not bytes_recibidos:
+        # Leer trama completa (incluyendo \n final)
+        data = b""
+        while True:
+            chunk = conexion_cliente.recv(4096)
+            if not chunk:
+                break
+            data += chunk
+            if b"\n" in chunk:
+                break
+        
+        trama_str = data.decode('utf-8').strip()
+        if not trama_str:
             return
 
-        texto_recibido = bytes_recibidos.decode('utf-8')
-        trama = json.loads(texto_recibido)
+        trama = json.loads(trama_str)
         
-        tipo_transaccion = trama.get("tipo_transaccion")
-        print(f"[Socket] Tipo de transacción recibida: '{tipo_transaccion}'")
+        # Registrar trama de entrada en bitácora
+        registrar_en_bitacora(trama, "ENTRADA")
+        
+        # Router de transacciones
+        router = {
+            "SOLICITUD_LLAMADA": procesar_autorizacion_llamada,
+            "INICIO_LLAMADA": procesar_inicio_llamada,
+            "FINALIZAR_LLAMADA": procesar_finalizacion_llamada,
+            "CONSULTA_SALDO": procesar_consulta_saldo
+        }
 
-        # -----------------------------------------------------------------
-        # ENRUTADOR DE HISTORIAS DE USUARIO (HU)
-        # -----------------------------------------------------------------
-        if tipo_transaccion == "SOLICITUD_LLAMADA":
-            # HU Identificador1: Autorizar llamada (Validaciones, AES y MySQL)
-            respuesta = procesar_autorizacion_llamada(trama)
-            
-        elif tipo_transaccion == "INICIAR_LLAMADA":
-            # HU Identificador2: Registrar en la lista de llamadas activas
-            respuesta = procesar_llamada_pendiente(trama)
-            
-        elif tipo_transaccion == "TERMINAR_LLAMADA":
-            # HU Identificador3: Sacar de la lista y procesar fin
-            respuesta = procesar_finalizacion_pendiente(trama)
-            
-        elif tipo_transaccion == "CONSULTA_SALDO":
-            # HU Identificador4: Consulta rápida de saldo
-            respuesta = procesar_saldo_pendiente(trama)
-
+        # Validar tipo de transacción
+        tipo_tx = trama.get("tipo_transaccion")
+        
+        if tipo_tx in router:
+            resultado = router[tipo_tx](trama)
         else:
-            print(f"[Socket] Transacción desconocida: {tipo_transaccion}")
-            respuesta = {"status": "error", "motivo": 4, "message": "Acción inválida"}
+            resultado = {
+                "tipo_transaccion": "RESPUESTA_ERROR",
+                "resultado": {
+                    "codigo": "ERROR",
+                    "estado": "RECHAZADA",
+                    "mensaje": f"Tipo de transacción no soportado: {tipo_tx}"
+                }
+            }
 
-        # Enviar la respuesta final en bytes al simulador de C#
-        conexion_cliente.sendall(json.dumps(respuesta).encode('utf-8'))
+        # Registrar trama de salida en bitácora
+        registrar_en_bitacora(resultado, "SALIDA")
+        
+        # Enviar respuesta con salto de línea (\n) como requiere el protocolo
+        respuesta_json = json.dumps(resultado) + "\n"
+        conexion_cliente.sendall(respuesta_json.encode('utf-8'))
 
     except json.JSONDecodeError:
-        print(f"[Socket] Trama JSON malformada desde {direccion_cliente}")
-        respuesta = {"status": "error", "motivo": 5, "message": "Formato JSON inválido"}
-        conexion_cliente.sendall(json.dumps(respuesta).encode('utf-8'))
-        
+        error_resp = {
+            "tipo_transaccion": "RESPUESTA_ERROR",
+            "resultado": {
+                "codigo": "ERROR",
+                "estado": "RECHAZADA",
+                "mensaje": "JSON mal formado"
+            }
+        }
+        conexion_cliente.sendall((json.dumps(error_resp) + "\n").encode('utf-8'))
     except Exception as e:
-        print(f"[Socket] Error inesperado en el hilo de {direccion_cliente}: {e}")
-        respuesta = {"status": "error", "motivo": 5, "message": "Error no controlado"}
-        conexion_cliente.sendall(json.dumps(respuesta).encode('utf-8'))
-        
+        print(f"[CRÍTICO] Error en el handler: {e}")
+        error_resp = {
+            "tipo_transaccion": "RESPUESTA_ERROR",
+            "resultado": {
+                "codigo": "ERROR",
+                "estado": "RECHAZADA",
+                "mensaje": "Error interno del servidor"
+            }
+        }
+        conexion_cliente.sendall((json.dumps(error_resp) + "\n").encode('utf-8'))
     finally:
         conexion_cliente.close()
-        print(f"[Socket] Conexión con {direccion_cliente} finalizada de forma limpia.\n")
-
-
-# =====================================================================
-# TEMPLATES DE PROCESAMIENTO (PENDIENTES DE CONFIGURAR EN PASOS SIGUIENTES)
-# =====================================================================
-
-def procesar_llamada_pendiente(trama):
-    print("[Servicio] Procesando HU2: Registrar inicio de llamada...")
-    return {"status": "OK", "message": "Llamada registrada en memoria"}
-
-def procesar_finalizacion_pendiente(trama):
-    print("[Servicio] Procesando HU3: Terminación de llamada...")
-    return {"status": "ok"}
-
-def procesar_saldo_pendiente(trama):
-    print("[Servicio] Procesando HU4: Consulta de saldo...")
-    return {"status": "OK", "saldo": "0000000012345678900"}
