@@ -11,7 +11,8 @@ public class Main
         // Forzamos el inicio de la conexión de prueba
         try (Connection conn = ConexionSQL.getConexion())
         {
-            if (conn != null && !conn.isClosed()) {
+            if (conn != null && !conn.isClosed())
+            {
                 System.out.println("[Éxito] ¡Conexión establecida con SQL Server Local!");
             }
         }
