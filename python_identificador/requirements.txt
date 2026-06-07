@@ -3,3 +3,4 @@
 
 python-dotenv==1.0.1
 pycryptodome==3.20.0
+mysql-connector-python==8.0.33

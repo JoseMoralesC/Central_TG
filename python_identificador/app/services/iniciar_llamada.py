@@ -11,7 +11,7 @@ lock_llamadas = threading.Lock()
 
 def agregar_llamada_activa(id_llamada, telefono_origen, telefono_destino, 
                            fecha_inicio, tiempo_maximo_segundos, tipo_servicio="PREPAGO"):
-    """Agrega una llamada a la lista de llamadas activas (thread-safe)"""
+    """Agrega una llamada a la lista de llamadas activas (thread-safe) y a la BD"""
     with lock_llamadas:
         # Calcular hora de finalización máxima
         fecha_inicio_dt = datetime.fromisoformat(fecha_inicio)
@@ -28,6 +28,23 @@ def agregar_llamada_activa(id_llamada, telefono_origen, telefono_destino,
         llamadas_activas.append(llamada)
         # Ordenar por hora_fin_maxima (más cercanas primero)
         llamadas_activas.sort(key=lambda x: x["hora_fin_maxima"])
+        
+        # Persistir también en BD (best-effort, no bloquea si falla)
+        try:
+            from app.database.repositorio import insertar_llamada_activa
+            
+            # Intentar insertar en BD (el telefono_id se busca si está cifrado)
+            insertar_llamada_activa(
+                telefono_id=0,  # Se ignora si no se puede resolver
+                telefono_destino=telefono_destino,
+                fecha_inicio=datetime.fromisoformat(fecha_inicio),
+                fecha_fin_maxima=hora_fin,
+                tiempo_maximo=str(tiempo_maximo_segundos),
+                estado="ACTIVA"
+            )
+        except Exception:
+            pass  # La lista en memoria es la fuente primaria
+        
         return llamada
 
 def obtener_llamada_activa(id_llamada):

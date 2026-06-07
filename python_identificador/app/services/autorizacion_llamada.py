@@ -158,22 +158,32 @@ def procesar_autorizacion_llamada(trama_json: dict) -> dict:
                 }
             }
 
-    # Validaciones contra MySQL (simuladas - BD no disponible aún)
+    # Validaciones contra MySQL (base de datos real compartida)
+    # NOTA: La BD almacena datos cifrados (AES). C# envía datos cifrados,
+    #       por lo que se compara el valor cifrado directamente con la BD.
     try:
-        # TODO: Implementar consultas reales a MySQL cuando la BD esté disponible
-        # Criterio 2.b: Teléfono debe existir, estar activo y pertenecer a un proveedor
-        # Criterio 2.c: Identificador de tarjeta debe coincidir
+        from app.database.repositorio import (
+            buscar_telefono_por_numero_cifrado,
+            buscar_tarjeta_por_telefono_id,
+            buscar_dispositivo_por_telefono_id
+        )
         
-        # Simulación: datos válidos para pruebas
-        registro_origen = {
-            "numero": telefono_origen,
-            "activo": True,
-            "id_tarjeta": id_tarjeta,
-            "id_proveedor": 1,
-            "tipo_servicio": "PREPAGO"
-        }
+        # Criterio 2.b: Buscar teléfono origen por su número cifrado
+        # Se usa el valor cifrado original (no desencriptado) para buscar en BD
+        telefono_cifrado = trama_json["telefono_origen"]
+        registro_origen = buscar_telefono_por_numero_cifrado(telefono_cifrado)
         
-        if not registro_origen or not registro_origen.get("activo"):
+        if not registro_origen:
+            return {
+                "tipo_transaccion": "RESPUESTA_LLAMADA",
+                "resultado": {
+                    "codigo": "TEL_INACTIVO",
+                    "estado": "RECHAZADA",
+                    "mensaje": "El teléfono origen no existe en la base de datos"
+                }
+            }
+            
+        if not registro_origen.get("activo"):
             return {
                 "tipo_transaccion": "RESPUESTA_LLAMADA",
                 "resultado": {
@@ -182,14 +192,43 @@ def procesar_autorizacion_llamada(trama_json: dict) -> dict:
                     "mensaje": "El teléfono origen se encuentra inactivo"
                 }
             }
-            
-        if registro_origen["id_tarjeta"] != id_tarjeta:
+        
+        # Criterio 2.c: Validar que la tarjeta SIM corresponda al teléfono
+        telefono_id = registro_origen["telefono_id"]
+        tarjeta_cifrada = trama_json["identificador_tarjeta"]
+        tarjeta = buscar_tarjeta_por_telefono_id(telefono_id, tarjeta_cifrada)
+        
+        if not tarjeta:
             return {
                 "tipo_transaccion": "RESPUESTA_LLAMADA",
                 "resultado": {
                     "codigo": "SIM_INVALIDA",
                     "estado": "RECHAZADA",
                     "mensaje": "La tarjeta SIM no corresponde al teléfono registrado"
+                }
+            }
+            
+        if not tarjeta.get("activa"):
+            return {
+                "tipo_transaccion": "RESPUESTA_LLAMADA",
+                "resultado": {
+                    "codigo": "SIM_INVALIDA",
+                    "estado": "RECHAZADA",
+                    "mensaje": "La tarjeta SIM se encuentra inactiva"
+                }
+            }
+        
+        # Validar que el dispositivo corresponda al teléfono
+        dispositivo_cifrado = trama_json["identificador_dispositivo"]
+        dispositivo = buscar_dispositivo_por_telefono_id(telefono_id, dispositivo_cifrado)
+        
+        if not dispositivo:
+            return {
+                "tipo_transaccion": "RESPUESTA_LLAMADA",
+                "resultado": {
+                    "codigo": "ERROR",
+                    "estado": "RECHAZADA",
+                    "mensaje": "El dispositivo no corresponde al teléfono registrado"
                 }
             }
 

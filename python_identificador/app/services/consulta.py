@@ -40,7 +40,7 @@ def consultar_saldo_proveedor(telefono_origen: str) -> dict:
 def procesar_consulta_saldo(trama_json: dict) -> dict:
     """
     HU Identificador4: Consulta de saldo.
-    Recibe solicitud de consulta de saldo, valida datos y consulta al proveedor.
+    Recibe solicitud de consulta de saldo, valida datos contra BD y consulta al proveedor.
     
     Campos esperados del contrato consulta_saldo.json:
     - tipo_transaccion: "CONSULTA_SALDO"
@@ -87,20 +87,29 @@ def procesar_consulta_saldo(trama_json: dict) -> dict:
             }
         }
 
-    # Validaciones contra MySQL (simuladas - BD no disponible aún)
+    # Validaciones contra MySQL (base de datos real)
+    # NOTA: La BD almacena datos cifrados, se compara el valor cifrado directamente
     try:
-        # TODO: Implementar consultas reales a MySQL
-        # Validar que el teléfono existe, está activo y la tarjeta coincide
+        from app.database.repositorio import (
+            buscar_telefono_por_numero_cifrado,
+            buscar_tarjeta_por_telefono_id
+        )
         
-        # Simulación para pruebas
-        registro_origen = {
-            "numero": telefono_origen,
-            "activo": True,
-            "id_tarjeta": id_tarjeta,
-            "tipo_servicio": "PREPAGO"
-        }
+        # Buscar teléfono por su valor cifrado
+        telefono_cifrado = trama_json["telefono_origen"]
+        registro_origen = buscar_telefono_por_numero_cifrado(telefono_cifrado)
         
-        if not registro_origen or not registro_origen.get("activo"):
+        if not registro_origen:
+            return {
+                "tipo_transaccion": "RESPUESTA_SALDO",
+                "resultado": {
+                    "codigo": "TEL_INACTIVO",
+                    "estado": "CONSULTA_FALLIDA",
+                    "mensaje": "El teléfono no existe en la base de datos"
+                }
+            }
+            
+        if not registro_origen.get("activo"):
             return {
                 "tipo_transaccion": "RESPUESTA_SALDO",
                 "resultado": {
@@ -109,8 +118,13 @@ def procesar_consulta_saldo(trama_json: dict) -> dict:
                     "mensaje": "El teléfono se encuentra inactivo"
                 }
             }
-            
-        if registro_origen["id_tarjeta"] != id_tarjeta:
+        
+        # Validar que la tarjeta SIM corresponda al teléfono
+        telefono_id = registro_origen["telefono_id"]
+        tarjeta_cifrada = trama_json["identificador_tarjeta"]
+        tarjeta = buscar_tarjeta_por_telefono_id(telefono_id, tarjeta_cifrada)
+        
+        if not tarjeta:
             return {
                 "tipo_transaccion": "RESPUESTA_SALDO",
                 "resultado": {
