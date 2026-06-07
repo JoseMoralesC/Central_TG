@@ -51,18 +51,20 @@ public class Manejo_Cliente extends Thread
                 case "INICIAR_LLAMADA":
                     // Aquí llamarás a tus servicios/DAOs para verificar si la línea está activa (HU1)
                     // y si cuenta con saldo suficiente (HU2).
+                    writer.println("{\"status\": \"OK\", \"mensaje\": \"Llamada autorizada\"}");
                     break;
 
                 case "FINALIZAR_LLAMADA":
                     // Aquí procesarás la duración de la llamada, calcularás la tasa (HU3)
                     // y actualizarás la base de datos local de SQL Server.
+                    writer.println("{\"status\": \"OK\", \"mensaje\": \"Llamada procesada y facturada\"}");
                     break;
 
                 case "CONSULTAR_SALDO":
                     break;
                     
                 default:
-                    writer.println("Acción no reconocida: " + accion);
+                    writer.println("{\"error\": \"Acción no reconocida: " + accion + "\"}");
             }
 
         }
@@ -86,13 +88,15 @@ public class Manejo_Cliente extends Thread
 
     }
 
+    //LA SOLICITUD DE LA LLAMADA EN FORMATO JSON nativo, sin usar librerias externas, para extraer el valor de un campo específico (como "accion") de la solicitud JSON recibida del cliente.
     public String leerCampo(String solicitud_llamada, String campo)
     {
 
         try
         {
             int posClave = solicitud_llamada.indexOf("\"" + campo + "\":");
-
+            
+            //Si no lo encuentra, retorna vacío
             if (posClave == -1) return "";
             
             int posDosPuntos = solicitud_llamada.indexOf(":", posClave);
