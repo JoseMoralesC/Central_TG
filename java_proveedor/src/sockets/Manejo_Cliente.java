@@ -8,7 +8,7 @@ import java.net.Socket;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 
-public class ManejoCliente extends Thread
+public class Manejo_Cliente extends Thread
 {
     //Atributos
     private Socket clienteSocket;
@@ -19,7 +19,7 @@ public class ManejoCliente extends Thread
     //Verificar_Saldo verificarSaldo = new Verificar_Saldo();
 
 
-    public ManejoCliente(Socket clienteSocket)
+    public Manejo_Cliente(Socket clienteSocket)
     {
         this.clienteSocket = clienteSocket;
     }
@@ -33,7 +33,7 @@ public class ManejoCliente extends Thread
         {
             String solicitud_llamada = reader.readLine();
 
-            if(solicitud_llamada != null)
+            if(solicitud_llamada == null || solicitud_llamada.trim().isEmpty())
             {
                 writer.println("Llamada recibida: " + solicitud_llamada);
                 return;
@@ -48,16 +48,17 @@ public class ManejoCliente extends Thread
             
             switch (accion)
             {
-                case "registrar_producto":
-                    //Lógica para registrar producto
+                case "INICIAR_LLAMADA":
+                    // Aquí llamarás a tus servicios/DAOs para verificar si la línea está activa (HU1)
+                    // y si cuenta con saldo suficiente (HU2).
                     break;
 
-                case "actualizar_inventario":
-                    //Lógica para actualizar inventario
+                case "FINALIZAR_LLAMADA":
+                    // Aquí procesarás la duración de la llamada, calcularás la tasa (HU3)
+                    // y actualizarás la base de datos local de SQL Server.
                     break;
 
-                case "consultar_ventas":
-                    //Lógica para consultar ventas
+                case "CONSULTAR_SALDO":
                     break;
                     
                 default:
@@ -71,6 +72,18 @@ public class ManejoCliente extends Thread
             e.printStackTrace();
         }
 
+        finally 
+        {
+            // Asegurar que el socket se cierre al terminar la comunicación de la trama
+            try {
+                if (clienteSocket != null && !clienteSocket.isClosed()) {
+                    clienteSocket.close();
+                }
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        }
+
     }
 
     public String leerCampo(String solicitud_llamada, String campo)
@@ -80,7 +93,7 @@ public class ManejoCliente extends Thread
         {
             int posClave = solicitud_llamada.indexOf("\"" + campo + "\":");
 
-            if (posClave != -1) return "";
+            if (posClave == -1) return "";
             
             int posDosPuntos = solicitud_llamada.indexOf(":", posClave);
             int posAbreComillas = solicitud_llamada.indexOf("\"", posDosPuntos);
