@@ -6,32 +6,39 @@ import java_proveedor.src.models.Servicio;
 public class ConsultaSaldo {
 
     private ServicioDAO servicioDAO = new ServicioDAO();
+    private String ultimoError = "";
 
-    /**
-     * Procesa la lógica de negocio para la consulta de saldo (HU1 / Fases 4 y 5 del Roadmap)
-     * @param numeroTelefono Número telefónico a consultar.
-     * @return El saldo en texto, "-1" si es postpago, o "ERROR" si la línea no es válida.
-     */
+    public String getUltimoError() {
+        return ultimoError;
+    }
+
     public String procesarConsulta(String numeroTelefono) {
-        // 1. Validación básica de entrada
+        ultimoError = "";
+
         if (numeroTelefono == null || numeroTelefono.trim().isEmpty()) {
+            ultimoError = "Numero de telefono vacio";
             return "ERROR";
         }
 
-        // 2. Consultar la capa de datos (DAO)
-        Servicio servicio = servicioDAO.obtenerDetalleParaLlamada(numeroTelefono, "LOCAL");
+        Servicio servicio = servicioDAO.obtenerDetalleParaLlamada(numeroTelefono, "NACIONAL");
 
-        // 3. Aplicar reglas de negocio del Proveedor Telefónico
-        if (servicio == null || !servicio.isActivo()) {
-            return "ERROR"; // Línea inactiva o inexistente
+        if (servicio == null) {
+            String error = servicioDAO.getUltimoError();
+            ultimoError = error != null && !error.isBlank()
+                ? "Error SQL Server: " + error
+                : "Linea no registrada en SQL Server";
+            return "ERROR";
         }
 
-        // Regla del caso de estudio: "Consulta de saldo postpago retorna -1"
+        if (!servicio.isActivo()) {
+            ultimoError = "Linea inactiva";
+            return "ERROR";
+        }
+
         if ("POSTPAGO".equalsIgnoreCase(servicio.getTipoServicio())) {
             return "-1";
         }
 
-        // Caso Prepago: Retorna el saldo disponible puro en formato String
         return servicio.getSaldoDisponible().toString();
     }
 }

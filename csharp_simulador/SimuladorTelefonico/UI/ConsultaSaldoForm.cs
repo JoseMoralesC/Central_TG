@@ -165,20 +165,10 @@ namespace SimuladorTelefonico.UI
             string mensaje =
                 _respuestaService.ObtenerMensaje(respuesta);
 
-            RespuestaSaldo? respuestaSaldo =
-                _respuestaService.ConvertirRespuestaSaldo(respuesta);
-
-            if (respuestaSaldo != null)
+            if (_respuestaService.EsRespuestaExitosa(respuesta))
             {
                 lblEstado.Text =
-                    $"Estado: {respuestaSaldo.Resultado.Estado}\n" +
-                    $"Saldo: {respuestaSaldo.Saldo.MontoDisponible} " +
-                    $"{respuestaSaldo.Saldo.Moneda}";
-            }
-            else if (_respuestaService.EsRespuestaExitosa(respuesta))
-            {
-                lblEstado.Text =
-                    "Estado: consulta exitosa.\n" +
+                    $"Estado: {_respuestaService.ObtenerCodigo(respuesta)}\n" +
                     $"Saldo: {_respuestaService.ObtenerSaldoTexto(respuesta)}";
             }
             else

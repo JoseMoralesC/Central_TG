@@ -250,11 +250,17 @@ def procesar_autorizacion_llamada(trama_json: dict) -> dict:
     )
     
     # Procesar respuesta del proveedor
-    resultado_codigo = resultado_proveedor.get("resultado", {}).get("codigo", "ERROR")
+    resultado_codigo = resultado_proveedor.get(
+        "status",
+        resultado_proveedor.get("resultado", {}).get("codigo", "ERROR")
+    )
     datos_autorizacion = resultado_proveedor.get("datos_autorizacion", {})
     
     if resultado_codigo == "OK":
-        tiempo_maximo = datos_autorizacion.get("tiempo_maximo_segundos", 1800)
+        tiempo_maximo = resultado_proveedor.get(
+            "tiempo_maximo_segundos",
+            datos_autorizacion.get("tiempo_maximo_segundos", 1800)
+        )
         return {
             "tipo_transaccion": "RESPUESTA_LLAMADA",
             "resultado": {
@@ -283,6 +289,9 @@ def procesar_autorizacion_llamada(trama_json: dict) -> dict:
             "resultado": {
                 "codigo": "ERROR",
                 "estado": "RECHAZADA",
-                "mensaje": resultado_proveedor.get("resultado", {}).get("mensaje", "Error no controlado")
+                "mensaje": resultado_proveedor.get(
+                    "mensaje",
+                    resultado_proveedor.get("resultado", {}).get("mensaje", "Error no controlado")
+                )
             }
         }

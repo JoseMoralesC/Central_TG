@@ -37,7 +37,10 @@ def enviar_registro_movimiento(telefono: str, fecha: str, hora: str,
     }
     
     respuesta = enviar_al_proveedor(trama_movimiento)
-    resultado_codigo = respuesta.get("resultado", {}).get("codigo", "ERROR")
+    resultado_codigo = respuesta.get(
+        "status",
+        respuesta.get("resultado", {}).get("codigo", "ERROR")
+    )
     return resultado_codigo == "OK"
 
 def verificar_llamadas_vencidas():
