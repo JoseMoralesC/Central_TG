@@ -31,7 +31,7 @@
 
     "motor": "SQL Server",
 
-    "host": "100.88.25.17",
+    "host": "localhost",
 
     "puerto": 49172,
 
