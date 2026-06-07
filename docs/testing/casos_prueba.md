@@ -1,162 +1,152 @@
-# Casos de Prueba
+# Casos de prueba
 
-## Proyecto
+## Alcance
 
-Central Telefónica TG
+Este documento contiene los casos minimos para preparar la demo integrada del
+proyecto y, en especial, validar el simulador C# de la rama `feature/csharp`.
 
-## Objetivo
+Fecha de preparacion: 2026-06-07.
 
-Documentar los escenarios mínimos que deben validarse durante el desarrollo e integración del sistema.
-
-Estos casos permiten comprobar el correcto funcionamiento de:
-
-- Simulador de llamadas en C#
-- Identificador en Python
-- Proveedor Telefónico en Java
-- Bases de datos MySQL y SQL Server
-- Comunicación mediante Sockets TCP
-
----
-
-# Resumen de casos
-
-| Código |    Caso                 | Resultado esperado                        |
-|---     |---                      |---                                        |
-| CP-001 | Llamada exitosa         | Llamada autorizada                        |
-| CP-002 | Saldo insuficiente      | Llamada rechazada                         |
-| CP-003 | Teléfono inactivo       | Llamada rechazada                         |
-| CP-004 | SIM inválida            | Llamada rechazada                         |
-| CP-005 | Ubicación inválida      | Llamada rechazada                         |
-| CP-006 | Consulta de saldo       | Saldo retornado correctamente             |
-| CP-007 | Finalización de llamada | Movimiento registrado y saldo actualizado |
-
----
-
-# CP-001 — Llamada exitosa
-
-## Archivo relacionado
+Configuracion esperada para C#:
 
 ```txt
-shared/examples/llamada_exitosa.json
+Identificador Python: 127.0.0.1:5000
+Encoding: UTF-8
+Trama: JSON + salto de linea
+AES: CBC / PKCS7 / Base64
+```
 
+## Matriz de casos
 
+| Codigo | Caso | Flujo | Resultado esperado | Estado |
+|---|---|---|---|---|
+| CSHARP-001 | Error de conexion | C# -> Python apagado | Mensaje claro de conexion fallida | Preparado |
+| CSHARP-002 | Consulta de saldo | C# -> Python -> Java -> Python -> C# | Se muestra saldo o error estructurado | Pendiente de Python/Java |
+| CSHARP-003 | Llamada autorizada | C# -> Python -> Java -> Python -> C# | Se abre llamada activa | Pendiente de Python/Java |
+| CSHARP-004 | Saldo insuficiente | C# -> Python -> Java -> Python -> C# | Se muestra rechazo `INSUF` | Pendiente de Python/Java |
+| CSHARP-005 | Finalizacion | C# -> Python -> Java | Se muestra estado final y se registra movimiento | Pendiente de Python/Java |
+| CSHARP-006 | Respuesta invalida | Python devuelve texto no JSON | C# muestra respuesta sin excepcion | Preparado |
+| CSHARP-007 | SIM o telefono incorrecto | C# -> Python -> MySQL | C# muestra motivo/error recibido | Pendiente de Python |
 
-Entrada
+## CSHARP-001 - Error de conexion
 
-Teléfono origen:
+Pasos:
 
-88889999
+1. Mantener apagado el Identificador Python.
+2. Ejecutar el simulador C#.
+3. Seleccionar un telefono.
+4. Presionar `Saldo` o `Marcar`.
 
-Teléfono destino:
+Resultado esperado:
 
-22223333
+- C# no se congela.
+- Muestra mensaje similar a:
+  `ERROR: No fue posible conectar con el Identificador Python...`
+- La bitacora local registra el intento.
 
-Tipo de servicio:
+## CSHARP-002 - Consulta de saldo
 
-PREPAGO
+Pasos:
 
-Condición:
+1. Levantar Python en `127.0.0.1:5000`.
+2. Levantar Java si Python consulta al proveedor.
+3. Ejecutar C#.
+4. Seleccionar telefono prepago.
+5. Presionar `Saldo`.
+6. Confirmar codigo `#9090*`.
 
-Teléfono activo con saldo disponible
-Resultado esperado
-Código: OK
-Estado: AUTORIZADA
-Mensaje: Llamada autorizada correctamente
-Componentes involucrados
-C# Simulador -> Python Identificador -> Java Proveedor -> SQL Server
-CP-002 — Saldo insuficiente
-Archivo relacionado
-shared/examples/saldo_insuficiente.json
-Entrada
+Resultado esperado:
 
-Teléfono origen:
+- C# envia `CONSULTA_SALDO` con `accion: SALDO`.
+- Incluye ubicacion.
+- `telefono_origen`, `identificador_telefono`, `identificador_dispositivo` e
+  `identificador_tarjeta` viajan cifrados.
+- Se muestra saldo disponible o mensaje de error recibido.
 
-88880000
+## CSHARP-003 - Llamada autorizada
 
-Condición:
+Pasos:
 
-Teléfono prepago activo sin saldo disponible
-Resultado esperado
-Código: INSUF
-Estado: RECHAZADA
-Mensaje: Saldo insuficiente
-Componentes involucrados
-C# Simulador -> Python Identificador -> Java Proveedor -> SQL Server
-CP-003 — Teléfono inactivo
-Archivo relacionado
-shared/examples/telefono_inactivo.json
-Entrada
+1. Levantar componentes Python y Java.
+2. Ejecutar C#.
+3. Seleccionar telefono activo.
+4. Presionar `Marcar`.
+5. Digitar numero destino activo.
+6. Enviar solicitud.
 
-Teléfono origen:
+Resultado esperado:
 
-77776666
+- C# envia `SOLICITUD_LLAMADA`.
+- Se muestra respuesta del Identificador.
+- Si la respuesta es `OK`, se abre `LlamadaActivaForm`.
+- El tiempo maximo recibido se usa para la trama de inicio.
 
-Condición:
+## CSHARP-004 - Saldo insuficiente
 
-Teléfono registrado, pero inactivo
-Resultado esperado
-Código: TEL_INACTIVO
-Estado: RECHAZADA
-Mensaje: El teléfono origen se encuentra inactivo
-Componentes involucrados
-C# Simulador -> Python Identificador -> MySQL
-CP-004 — SIM inválida
-Archivo relacionado
-shared/examples/sim_invalida.json
-Condición
-El teléfono existe, pero la SIM enviada no corresponde al teléfono registrado
-Resultado esperado
-Código: SIM_INVALIDA
-Estado: RECHAZADA
-Mensaje: La tarjeta SIM no corresponde al teléfono registrado
-Componentes involucrados
-C# Simulador -> Python Identificador -> MySQL
-CP-005 — Ubicación inválida
-Archivo relacionado
-shared/examples/ubicacion_invalida.json
-Condición
-El teléfono intenta realizar la llamada desde fuera de Costa Rica
-Resultado esperado
-Código: UBICACION_INVALIDA
-Estado: RECHAZADA
-Mensaje: La ubicación enviada no pertenece al territorio nacional permitido
-Componentes involucrados
-C# Simulador -> Python Identificador
-CP-006 — Consulta de saldo
-Archivo relacionado
-shared/examples/consulta_saldo_exitosa.json
-Entrada
+Pasos:
 
-Código especial:
+1. Seleccionar telefono prepago sin saldo segun datos de prueba.
+2. Enviar solicitud de llamada.
 
-#9090*
+Resultado esperado:
 
-Teléfono origen:
+- C# muestra `INSUF`, `ERROR` o el mensaje que retorne Python.
+- No debe abrir pantalla de llamada activa si no hay autorizacion.
 
-88889999
-Resultado esperado
-Código: OK
-Estado: CONSULTA_EXITOSA
-Saldo disponible: 5000.00 CRC
-Componentes involucrados
-C# Simulador -> Python Identificador -> Java Proveedor -> SQL Server
-CP-007 — Finalización de llamada
-Archivo relacionado
-shared/examples/finalizar_llamada_exitosa.json
-Condición
-Existe una llamada activa que finaliza correctamente
-Resultado esperado
-Código: OK
-Estado: LLAMADA_FINALIZADA
-Movimiento registrado
-Saldo actualizado
-Componentes involucrados
-C# Simulador -> Python Identificador -> Java Proveedor -> SQL Server
-Consideraciones generales
-Todos los mensajes deben enviarse en formato JSON.
-La comunicación debe realizarse mediante Socket TCP.
-Las tramas deben enviarse con codificación UTF-8.
-Cada mensaje debe finalizar con salto de línea \n.
-Los resultados deben coincidir con los contratos definidos en shared/contracts/.
-Los datos de prueba deben coincidir con los scripts seed.
-Los errores deben registrarse en la bitácora correspondiente.
+## CSHARP-005 - Finalizacion de llamada
+
+Pasos:
+
+1. Ejecutar una llamada autorizada.
+2. Esperar algunos segundos.
+3. Presionar `Finalizar llamada`.
+
+Resultado esperado:
+
+- C# envia `FINALIZAR_LLAMADA`.
+- La trama incluye duracion, destino, datos de cobro local estimado y datos
+  auditables cifrados.
+- C# muestra el estado final recibido.
+
+## CSHARP-006 - Respuesta invalida
+
+Pasos:
+
+1. Probar contra un socket Python temporal o respuesta manual no JSON.
+2. Enviar una trama desde C#.
+
+Resultado esperado:
+
+- C# no lanza excepcion visual.
+- Muestra el contenido recibido o indica formato invalido.
+
+## CSHARP-007 - Telefono o tarjeta incorrectos
+
+Pasos:
+
+1. Configurar un telefono virtual con datos no registrados o no coincidentes.
+2. Enviar solicitud.
+
+Resultado esperado:
+
+- Python devuelve motivo de rechazo.
+- C# muestra el motivo sin intentar iniciar llamada.
+
+## Checklist de demo C#
+
+- [ ] El proyecto C# compila sin errores.
+- [ ] La pantalla principal muestra varios telefonos.
+- [ ] Se puede marcar un numero.
+- [ ] Se envia solicitud de llamada.
+- [ ] Se muestra respuesta del Identificador.
+- [ ] Se puede iniciar llamada si la respuesta es `OK`.
+- [ ] Se puede finalizar llamada.
+- [ ] Se muestra duracion.
+- [ ] Se puede consultar saldo con `#9090*`.
+- [ ] La consulta de saldo incluye ubicacion.
+- [ ] Los datos sensibles viajan cifrados.
+- [ ] Host y puerto son ajustables por `.env` o variables de entorno.
+- [ ] Errores de conexion se muestran claramente.
+- [ ] Existe bitacora local del simulador.
+- [ ] Esta claro que Identificador5 oficial pertenece a Python.
+- [ ] Los contratos estan listos para probar con Python.

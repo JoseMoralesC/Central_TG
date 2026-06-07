@@ -1,69 +1,59 @@
 package java_proveedor.src.models;
 
-import java.util.Date;
+import java.time.LocalDateTime;
+import java.math.BigDecimal;
 
-public class Servicio
-{
-    //Atributos
-    private String idServicio; //Consultar ya que aparece como dato generado automáticamente en vez de uno ingresado por el usuario
-    private String idCliente; //Consultar ya que no aparece en el diagrama de clases pero es necesario para relacionar el servicio con un cliente específico
-    private String telefono; //Consultar ya que no aparece en el diagrama de clases pero es un dato comúnmente asociado a un servicio
-    private String tipo_servicio;
+public class Servicio {
+    private int servicioId;
+    private int clienteId;
+    private String numeroTelefono;
+    private String tipoServicio; // "PREPAGO" o "POSTPAGO"
     private boolean activo;
-    private Date fecha_registro; 
+    private LocalDateTime fechaRegistro;
+    private BigDecimal tarifaAplicable; 
 
-    //Constructor
-    public Servicio()
-    {
-        
+    
+    // Composición: El saldo forma parte intrínseca de la sesión de la línea telefónica
+    private BigDecimal saldoDisponible;
+    private LocalDateTime fechaActualizacionSaldo;
+
+    public Servicio() {}
+
+    // Lógica de negocio embebida: Verifica si el servicio está apto para llamadas
+    public boolean puedeRealizarLlamadas() {
+        if (!this.activo) return false;
+        if ("PREPAGO".equalsIgnoreCase(this.tipoServicio)) {
+            return this.saldoDisponible != null && this.saldoDisponible.compareTo(BigDecimal.ZERO) > 0;
+        }
+        return true; // Postpago siempre puede iniciar
     }
 
     // Getters y Setters
-    public String getIdServicio() {
-        return idServicio;
-    }
+    public int getServicioId() { return servicioId; }
+    public void setServicioId(int servicioId) { this.servicioId = servicioId; }
 
-    public void setIdServicio(String idServicio) {
-        this.idServicio = idServicio;
-    }
+    public int getClienteId() { return clienteId; }
+    public void setClienteId(int clienteId) { this.clienteId = clienteId; }
 
-    public String getIdCliente() {
-        return idCliente;
-    }
+    public String getNumeroTelefono() { return numeroTelefono; }
+    public void setNumeroTelefono(String numeroTelefono) { this.numeroTelefono = numeroTelefono; }
 
-    public void setIdCliente(String idCliente) {
-        this.idCliente = idCliente;
-    }
+    public String getTipoServicio() { return tipoServicio; }
+    public void setTipoServicio(String tipoServicio) { this.tipoServicio = tipoServicio; }
 
-    public String getTelefono() {
-        return telefono;
-    }
+    public boolean isActivo() { return activo; }
+    public void setActivo(boolean activo) { this.activo = activo; }
 
-    public void setTelefono(String telefono) {
-        this.telefono = telefono;
-    }
+    public LocalDateTime getFechaRegistro() { return fechaRegistro; }
+    public void setFechaRegistro(LocalDateTime fechaRegistro) { this.fechaRegistro = fechaRegistro; }
 
-    public String getTipo_servicio() {
-        return tipo_servicio;
-    }
+    public BigDecimal getSaldoDisponible() { return saldoDisponible; }
+    public void setSaldoDisponible(BigDecimal saldoDisponible) { this.saldoDisponible = saldoDisponible; }
 
-    public void setTipo_servicio(String tipo_servicio) {
-        this.tipo_servicio = tipo_servicio;
-    }
+    public LocalDateTime getFechaActualizacionSaldo() { return fechaActualizacionSaldo; }
+    public void setFechaActualizacionSaldo(LocalDateTime fechaActualizacionSaldo) { this.fechaActualizacionSaldo = fechaActualizacionSaldo; }
 
-    public boolean isActivo() {
-        return activo;
-    }
+    public BigDecimal getTarifaAplicable() { return tarifaAplicable;}
 
-    public void setActivo(boolean activo) {
-        this.activo = activo;
-    }
-
-    public Date getFecha_registro() {
-        return fecha_registro;
-    }
-
-    public void setFecha_registro(Date fecha_registro) {
-        this.fecha_registro = fecha_registro;
-    }
+    public void setTarifaAplicable(BigDecimal tarifaAplicable) { this.tarifaAplicable = tarifaAplicable; }
 }

@@ -1,233 +1,112 @@
-# Proveedor Telefónico - Java + SQL Server
+# Simulador Telefonico - C#
 
-## Objetivo
+Componente desarrollado por Jose Rodolfo Morales Calderon para la rama
+`feature/csharp`.
 
-Este componente representa el sistema interno del proveedor telefónico XYZ.
+## Alcance
 
-Recibe solicitudes desde el Identificador Python y determina si una operación telefónica puede realizarse.
+Este componente cubre la parte C# del proyecto:
 
----
+- SIM1: simulador de llamadas telefonicas.
+- Apoyo a Identificador4: pantalla y trama de consulta de saldo.
+- Apoyo a Identificador5: envio de datos auditables y bitacora local del simulador.
 
-# Responsabilidades
+La bitacora oficial del Identificador, su cola y su hilo independiente pertenecen al
+componente Python. C# solo registra una bitacora local para depuracion y envia la
+informacion que Python necesita auditar.
 
-- Escuchar solicitudes mediante Socket TCP.
-- Recibir tramas JSON.
-- Validar servicios telefónicos.
-- Consultar tipo de servicio.
-- Validar saldo disponible.
-- Calcular tarifas.
-- Autorizar o rechazar llamadas.
-- Registrar llamadas realizadas.
-- Registrar movimientos de saldo.
-- Registrar bitácoras del proveedor.
+## Ejecucion
 
----
+Desde la raiz del repositorio:
 
-# Base de datos
-
-Motor:
-
-```txt
-SQL Server
+```powershell
+dotnet build csharp_simulador\SimuladorTelefonico.slnx
+dotnet run --project csharp_simulador\SimuladorTelefonico\SimuladorTelefonico.csproj
 ```
 
-Base:
-
-```txt
-CentralProveedor
-```
-
-Scripts:
-
-```txt
-database/sqlserver_proveedor/schema/
-
-database/sqlserver_proveedor/seed/
-```
-
----
-
-# Socket TCP
-
-El proveedor escucha solicitudes desde Python en:
+El Identificador Python debe estar escuchando antes de probar integracion:
 
 ```txt
 Host: 127.0.0.1
-
-Puerto: 6000
+Puerto: 5000
 ```
 
----
+## Configuracion
 
-# Comunicación
+El simulador lee variables de entorno y, si existe, el archivo `.env` de la raiz.
 
-Recibe desde:
+| Variable | Uso | Valor por defecto |
+|---|---|---|
+| `IDENTIFICADOR_HOST` | Host del socket Python | `127.0.0.1` |
+| `IDENTIFICADOR_PORT` | Puerto del socket Python | `5000` |
+| `CSHARP_SOCKET_CONNECT_TIMEOUT_MS` | Timeout de conexion | `5000` |
+| `CSHARP_SOCKET_READ_TIMEOUT_MS` | Timeout de lectura | `8000` |
+| `CSHARP_SOCKET_BUFFER_BYTES` | Buffer de respuesta | `8192` |
+| `SOCKET_ENCODING` | Encoding de sockets | `UTF-8` |
+| `AES_KEY` | Llave AES compartida con Python | `ClaveSecreta1234` |
+| `AES_IV` | Vector AES compartido con Python | `VectorInicio1234` |
+| `CSHARP_AES_ACTIVO` | Activa cifrado de datos sensibles | `true` |
 
-```txt
-Python Identificador
-```
+Pendiente critico de integracion: Python debe usar la misma llave, IV, modo
+`AES-CBC`, padding `PKCS7` y salida `Base64`. El `.env` actual contiene
+`AES_SECRET_KEY`, pero Python usa `AES_KEY`/`AES_IV`; se debe unificar antes de la
+demo integrada.
 
-Responde hacia:
+## Flujo general
 
-```txt
-Python Identificador
-```
+1. El usuario selecciona un telefono virtual.
+2. Puede marcar un numero destino o consultar saldo con `#9090*`.
+3. C# arma una trama JSON.
+4. Los datos sensibles se cifran antes de serializar:
+   - `telefono_origen`
+   - `identificador_telefono`
+   - `identificador_dispositivo`
+   - `identificador_tarjeta`
+5. La trama se envia por TCP al Identificador Python.
+6. C# muestra la respuesta y la registra en bitacora local.
+7. Si la llamada es autorizada, se abre la pantalla de llamada activa.
+8. Al finalizar, C# envia la trama de finalizacion.
 
----
+## Formularios principales
 
-# Contratos utilizados
+- `Form1.cs`: pantalla principal con telefonos virtuales.
+- `MarcarNumeroForm.cs`: captura numero destino y solicita llamada.
+- `ConsultaSaldoForm.cs`: valida `#9090*` y consulta saldo.
+- `LlamadaActivaForm.cs`: muestra duracion, envia inicio y finalizacion.
 
-Entrada:
+## Servicios principales
 
-```txt
-shared/contracts/consulta_proveedor.json
+- `TramaService.cs`: serializa JSON, registra bitacora local y envia al socket.
+- `TcpSocketClient.cs`: comunicacion TCP con timeouts.
+- `CryptoService.cs`: AES-CBC/PKCS7/Base64 para datos sensibles.
+- `RespuestaService.cs`: interpreta respuestas `OK`, `INSUF`, `ERROR`, errores de
+  conexion, respuestas simples y contratos estructurados.
+- `BitacoraService.cs`: bitacora local del simulador en `bin/.../logs`.
 
-shared/contracts/finalizar_llamada.json
-```
+## Contratos enviados a Python
 
-Salida:
+Los contratos usan JSON UTF-8 terminado en salto de linea.
 
-```txt
-shared/contracts/respuesta_proveedor.json
-```
+Tipos actuales:
 
----
+- `SOLICITUD_LLAMADA`
+- `INICIO_LLAMADA`
+- `FINALIZAR_LLAMADA`
+- `CONSULTA_SALDO` con `accion: SALDO`
 
-# Configuración local
+Pendiente de coordinacion: confirmar con Python si la consulta debe llegar como
+`CONSULTA_SALDO` o como `SALDO`. Se mantiene `CONSULTA_SALDO` porque existe en
+`shared/contracts/consulta_saldo.json`.
 
-Cada integrante debe crear su archivo:
+## Bitacora local
 
-```bash
-cp ../.env.example ../.env
-```
+La bitacora local guarda tramas enviadas, respuestas recibidas y errores de envio.
+Ayuda a presentar y depurar, pero no sustituye la bitacora oficial del
+Identificador en Python.
 
-Configurar:
+## Pendientes conocidos
 
-```env
-SQLSERVER_HOST=100.88.25.17
-
-SQLSERVER_PORT=49172
-
-SQLSERVER_DATABASE=CentralProveedor
-
-SQLSERVER_USER=usuario_sqlserver
-
-SQLSERVER_PASSWORD=tu_password
-```
-
----
-
-# Tipos de respuesta
-
-## Operación correcta
-
-```json
-{
-  "codigo": "OK",
-  "mensaje": "Servicio autorizado"
-}
-```
-
----
-
-## Saldo insuficiente
-
-```json
-{
-  "codigo": "INSUF",
-  "mensaje": "Saldo insuficiente"
-}
-```
-
----
-
-## Error
-
-```json
-{
-  "codigo": "ERROR",
-  "mensaje": "Servicio no disponible"
-}
-```
-
----
-
-# Flujo verificar saldo
-
-```txt
-Python
- |
- | consulta_proveedor.json
- ↓
-
-Java
-
- ↓
-
-SQL Server
-
- ↓
-
-Java
-
- |
- | respuesta_proveedor.json
- ↓
-
-Python
-```
-
----
-
-# Servicios soportados
-
-## Prepago
-
-Debe validar:
-
-- Servicio activo.
-- Saldo disponible.
-- Tarifa.
-- Tiempo máximo permitido.
-
----
-
-## Postpago
-
-Debe validar:
-
-- Servicio activo.
-- Registrar consumo.
-
-Retorna:
-
-```txt
-saldo = -1
-```
-
----
-
-# Casos de prueba relacionados
-
-```txt
-shared/examples/llamada_exitosa.json
-
-shared/examples/saldo_insuficiente.json
-
-shared/examples/finalizar_llamada_exitosa.json
-```
-
----
-
-# Estado inicial
-
-Pendiente de implementación.
-
-Antes de programar verificar:
-
-- SQL Server accesible.
-- Base creada.
-- Seed ejecutado.
-- `.env` configurado.
-- Puerto 6000 disponible.
-- Contratos revisados.
+- Confirmar contrato final de respuesta con Python.
+- Confirmar nombres definitivos de `INICIO_LLAMADA` y `FINALIZAR_LLAMADA`.
+- Alinear datos seed de MySQL con los valores cifrados por C#.
+- Realizar prueba integrada C# -> Python -> Java.

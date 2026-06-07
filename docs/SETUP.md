@@ -48,6 +48,29 @@ git checkout feature/java
 git checkout feature/csharp
 ```
 
+Para compilar y ejecutar el simulador:
+
+```powershell
+dotnet build csharp_simulador\SimuladorTelefonico.slnx
+dotnet run --project csharp_simulador\SimuladorTelefonico\SimuladorTelefonico.csproj
+```
+
+Variables relevantes para el simulador C#:
+
+```env
+IDENTIFICADOR_HOST=127.0.0.1
+IDENTIFICADOR_PORT=5000
+CSHARP_SOCKET_CONNECT_TIMEOUT_MS=5000
+CSHARP_SOCKET_READ_TIMEOUT_MS=8000
+AES_KEY=ClaveSecreta1234
+AES_IV=VectorInicio1234
+CSHARP_AES_ACTIVO=true
+```
+
+El simulador cifra telefono, identificador del telefono, dispositivo y tarjeta
+antes de enviarlos al Identificador. Python debe usar la misma llave, IV, modo
+AES-CBC, padding PKCS7 y Base64 para poder descifrar.
+
 ---
 
 # 3. Crear archivo de entorno

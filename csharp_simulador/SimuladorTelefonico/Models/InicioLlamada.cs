@@ -22,8 +22,20 @@ namespace SimuladorTelefonico.Models
         [JsonPropertyName("telefono_origen")]
         public string TelefonoOrigen { get; set; } = string.Empty;
 
+        [JsonPropertyName("identificador_telefono")]
+        public string IdentificadorTelefono { get; set; } = string.Empty;
+
+        [JsonPropertyName("identificador_dispositivo")]
+        public string IdentificadorDispositivo { get; set; } = string.Empty;
+
+        [JsonPropertyName("identificador_tarjeta")]
+        public string IdentificadorTarjeta { get; set; } = string.Empty;
+
         [JsonPropertyName("telefono_destino")]
         public string TelefonoDestino { get; set; } = string.Empty;
+
+        [JsonPropertyName("ubicacion")]
+        public UbicacionTelefono Ubicacion { get; set; } = new();
 
         [JsonPropertyName("fecha_inicio")]
         public string FechaInicio { get; set; } = string.Empty;

@@ -13,6 +13,7 @@ namespace SimuladorTelefonico.UI
         private readonly string _numeroDestino;
         private readonly DateTime _inicioLlamada;
         private readonly string _idLlamada;
+        private readonly int _tiempoMaximoSegundos;
 
         private Label lblNumeroDestino = null!;
         private Label lblDuracion = null!;
@@ -22,12 +23,18 @@ namespace SimuladorTelefonico.UI
 
         private readonly TramaService _tramaService = new();
         private readonly RespuestaService _respuestaService = new();
+        private readonly CryptoService _cryptoService = new();
 
-        public LlamadaActivaForm(string numeroDestino)
+        public LlamadaActivaForm(
+            string numeroDestino,
+            string idLlamada,
+            int tiempoMaximoSegundos
+        )
         {
             _numeroDestino = numeroDestino;
             _inicioLlamada = DateTime.Now;
-            _idLlamada = $"CALL-{DateTime.Now:yyyyMMddHHmmss}";
+            _idLlamada = idLlamada;
+            _tiempoMaximoSegundos = tiempoMaximoSegundos;
 
             ConfigurarVentana();
             ConstruirFormulario();
@@ -93,7 +100,7 @@ namespace SimuladorTelefonico.UI
 
             lblEstado = new Label
             {
-                Text = "Estado: preparando inicio de llamada.",
+                Text = $"Estado: preparando inicio. Tiempo maximo: {_tiempoMaximoSegundos}s.",
                 Font = new Font("Segoe UI", 10),
                 AutoSize = false,
                 TextAlign = ContentAlignment.MiddleCenter,
@@ -135,8 +142,22 @@ namespace SimuladorTelefonico.UI
                 DatosLlamada = new DatosInicioLlamada
                 {
                     IdLlamada = _idLlamada,
-                    TelefonoOrigen = AppConfig.NumeroOrigen,
+                    TelefonoOrigen =
+                        _cryptoService.CifrarDatoSensible(AppConfig.NumeroOrigen),
+                    IdentificadorTelefono =
+                        _cryptoService.CifrarDatoSensible(AppConfig.IdentificadorTelefono),
+                    IdentificadorDispositivo =
+                        _cryptoService.CifrarDatoSensible(AppConfig.IdentificadorDispositivo),
+                    IdentificadorTarjeta =
+                        _cryptoService.CifrarDatoSensible(AppConfig.IdentificadorTarjeta),
                     TelefonoDestino = _numeroDestino,
+                    Ubicacion = new UbicacionTelefono
+                    {
+                        Pais = AppConfig.Pais,
+                        Provincia = AppConfig.Provincia,
+                        Latitud = AppConfig.Latitud,
+                        Longitud = AppConfig.Longitud
+                    },
                     FechaInicio = _inicioLlamada.ToString("yyyy-MM-ddTHH:mm:ss"),
                     Estado = "ACTIVA"
                 },
@@ -144,7 +165,7 @@ namespace SimuladorTelefonico.UI
                 Control = new ControlInicioLlamada
                 {
                     TipoServicio = AppConfig.TipoServicio,
-                    TiempoMaximoSegundos = 1800,
+                    TiempoMaximoSegundos = _tiempoMaximoSegundos,
                     ValidarSaldo = true,
                     MonitoreoActivo = true
                 }
@@ -202,8 +223,22 @@ namespace SimuladorTelefonico.UI
                 DatosLlamada = new DatosFinalizarLlamada
                 {
                     IdLlamada = _idLlamada,
-                    TelefonoOrigen = AppConfig.NumeroOrigen,
+                    TelefonoOrigen =
+                        _cryptoService.CifrarDatoSensible(AppConfig.NumeroOrigen),
+                    IdentificadorTelefono =
+                        _cryptoService.CifrarDatoSensible(AppConfig.IdentificadorTelefono),
+                    IdentificadorDispositivo =
+                        _cryptoService.CifrarDatoSensible(AppConfig.IdentificadorDispositivo),
+                    IdentificadorTarjeta =
+                        _cryptoService.CifrarDatoSensible(AppConfig.IdentificadorTarjeta),
                     TelefonoDestino = _numeroDestino,
+                    Ubicacion = new UbicacionTelefono
+                    {
+                        Pais = AppConfig.Pais,
+                        Provincia = AppConfig.Provincia,
+                        Latitud = AppConfig.Latitud,
+                        Longitud = AppConfig.Longitud
+                    },
                     FechaInicio = _inicioLlamada.ToString("yyyy-MM-ddTHH:mm:ss"),
                     FechaFin = fechaFin.ToString("yyyy-MM-ddTHH:mm:ss"),
                     DuracionSegundos = duracionSegundos,

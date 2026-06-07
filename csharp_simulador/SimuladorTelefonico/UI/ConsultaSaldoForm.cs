@@ -18,6 +18,7 @@ namespace SimuladorTelefonico.UI
 
         private readonly TramaService _tramaService = new();
         private readonly RespuestaService _respuestaService = new();
+        private readonly CryptoService _cryptoService = new();
 
         public ConsultaSaldoForm()
         {
@@ -131,13 +132,25 @@ namespace SimuladorTelefonico.UI
 
             ConsultaSaldo consulta = new ConsultaSaldo
             {
-                TelefonoOrigen = AppConfig.NumeroOrigen,
+                TelefonoOrigen =
+                    _cryptoService.CifrarDatoSensible(AppConfig.NumeroOrigen),
+
+                IdentificadorTelefono =
+                    _cryptoService.CifrarDatoSensible(AppConfig.IdentificadorTelefono),
 
                 IdentificadorDispositivo =
-                    AppConfig.IdentificadorDispositivo,
+                    _cryptoService.CifrarDatoSensible(AppConfig.IdentificadorDispositivo),
 
                 IdentificadorTarjeta =
-                    AppConfig.IdentificadorTarjeta,
+                    _cryptoService.CifrarDatoSensible(AppConfig.IdentificadorTarjeta),
+
+                Ubicacion = new UbicacionTelefono
+                {
+                    Pais = AppConfig.Pais,
+                    Provincia = AppConfig.Provincia,
+                    Latitud = AppConfig.Latitud,
+                    Longitud = AppConfig.Longitud
+                },
 
                 FechaHora =
                     DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss")
@@ -161,6 +174,12 @@ namespace SimuladorTelefonico.UI
                     $"Estado: {respuestaSaldo.Resultado.Estado}\n" +
                     $"Saldo: {respuestaSaldo.Saldo.MontoDisponible} " +
                     $"{respuestaSaldo.Saldo.Moneda}";
+            }
+            else if (_respuestaService.EsRespuestaExitosa(respuesta))
+            {
+                lblEstado.Text =
+                    "Estado: consulta exitosa.\n" +
+                    $"Saldo: {_respuestaService.ObtenerSaldoTexto(respuesta)}";
             }
             else
             {
