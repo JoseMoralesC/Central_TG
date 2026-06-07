@@ -18,6 +18,7 @@ namespace SimuladorTelefonico.UI
 
         private readonly TramaService _tramaService = new();
         private readonly RespuestaService _respuestaService = new();
+        private readonly CryptoService _cryptoService = new();
 
         public MarcarNumeroForm()
         {
@@ -69,7 +70,7 @@ namespace SimuladorTelefonico.UI
                 Top = 145,
                 Left = 60,
                 Width = 280,
-                MaxLength = 8
+                MaxLength = 16
             };
 
 
@@ -138,6 +139,12 @@ namespace SimuladorTelefonico.UI
             string numeroDestino =
                 txtNumeroDestino.Text.Trim();
 
+            if (ValidacionTelefono.EsCodigoConsultaSaldo(numeroDestino))
+            {
+                using ConsultaSaldoForm consultaSaldo = new ConsultaSaldoForm();
+                consultaSaldo.ShowDialog(this);
+                return;
+            }
 
             if (!ValidacionTelefono.EsNumeroValido(numeroDestino))
             {
@@ -160,19 +167,21 @@ namespace SimuladorTelefonico.UI
             SolicitudLlamada solicitud = new SolicitudLlamada
             {
                 TelefonoOrigen =
-                    AppConfig.NumeroOrigen,
+                    _cryptoService.CifrarDatoSensible(AppConfig.NumeroOrigen),
 
 
                 TelefonoDestino =
                     numeroDestino,
 
+                IdentificadorTelefono =
+                    _cryptoService.CifrarDatoSensible(AppConfig.IdentificadorTelefono),
 
                 IdentificadorDispositivo =
-                    AppConfig.IdentificadorDispositivo,
+                    _cryptoService.CifrarDatoSensible(AppConfig.IdentificadorDispositivo),
 
 
                 IdentificadorTarjeta =
-                    AppConfig.IdentificadorTarjeta,
+                    _cryptoService.CifrarDatoSensible(AppConfig.IdentificadorTarjeta),
 
 
                 TipoLlamada =
@@ -224,8 +233,21 @@ namespace SimuladorTelefonico.UI
 
             if (_respuestaService.EsRespuestaExitosa(respuesta))
             {
+                int tiempoMaximoSegundos =
+                    _respuestaService.ObtenerTiempoMaximoSegundos(respuesta, 1800);
+
+                string idLlamada =
+                    _respuestaService.ObtenerIdLlamada(
+                        respuesta,
+                        $"CALL-{DateTime.Now:yyyyMMddHHmmss}"
+                    );
+
                 using LlamadaActivaForm llamada =
-                    new LlamadaActivaForm(numeroDestino);
+                    new LlamadaActivaForm(
+                        numeroDestino,
+                        idLlamada,
+                        tiempoMaximoSegundos
+                    );
 
 
                 llamada.ShowDialog(this);
