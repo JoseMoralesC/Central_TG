@@ -92,7 +92,7 @@ public class ManejoCliente extends Thread
 
     }
 
-    //LA SOLICITUD DE LA LLAMADA EN FORMATO JSON nativo, sin usar librerias externas, para extraer el valor de un campo específico (como "accion") de la solicitud JSON recibida del cliente.
+    //Se lee el JSON en forma nativa, sin usar librerias externas.
     public String leerCampo(String solicitud_llamada, String campo)
     {
 
