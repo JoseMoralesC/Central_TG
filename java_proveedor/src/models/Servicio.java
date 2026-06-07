@@ -10,7 +10,9 @@ public class Servicio {
     private String tipoServicio; // "PREPAGO" o "POSTPAGO"
     private boolean activo;
     private LocalDateTime fechaRegistro;
+    private BigDecimal tarifaAplicable; 
 
+    
     // Composición: El saldo forma parte intrínseca de la sesión de la línea telefónica
     private BigDecimal saldoDisponible;
     private LocalDateTime fechaActualizacionSaldo;
@@ -50,4 +52,8 @@ public class Servicio {
 
     public LocalDateTime getFechaActualizacionSaldo() { return fechaActualizacionSaldo; }
     public void setFechaActualizacionSaldo(LocalDateTime fechaActualizacionSaldo) { this.fechaActualizacionSaldo = fechaActualizacionSaldo; }
+
+    public BigDecimal getTarifaAplicable() { return tarifaAplicable;}
+
+    public void setTarifaAplicable(BigDecimal tarifaAplicable) { this.tarifaAplicable = tarifaAplicable; }
 }

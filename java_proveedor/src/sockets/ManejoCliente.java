@@ -17,7 +17,7 @@ public class ManejoCliente extends Thread
     private Socket clienteSocket;
 
     //Clases instanciadas desde la carpeta de servicios
-    ConsultaSaldo calculoSaldo = new ConsultaSaldo();
+    ConsultaSaldo consultaSaldo = new ConsultaSaldo();
     CalculoTarifa calculoTarifa = new CalculoTarifa();
     RegistrarMovimiento registrarMovimiento = new RegistrarMovimiento();
     VerificarSaldo verificarSaldo = new VerificarSaldo();
@@ -53,9 +53,15 @@ public class ManejoCliente extends Thread
             switch (accion)
             {
                 case "INICIAR_LLAMADA":
-                    // Aquí llamarás a tus servicios/DAOs para verificar si la línea está activa (HU1)
-                    // y si cuenta con saldo suficiente (HU2).
-                    writer.println("{\"status\": \"OK\", \"mensaje\": \"Llamada autorizada\"}");
+                    // Extraemos los campos que Python enviará en la solicitud de inicio
+                    String origen = leerCampo(solicitud_llamada, "origen");
+                    String destinoTipo = leerCampo(solicitud_llamada, "tipo_destino"); // Ej: LOCAL
+                    
+                    // Ejecutamos la lógica de negocio de las Fases 4 y 5
+                    String respuestaVerificacion = verificarSaldo.procesarVerificacionLlamada(origen, destinoTipo);
+                    
+                    // Respondemos el JSON estructurado directo a la red de Tailscale
+                    writer.println(respuestaVerificacion);
                     break;
 
                 case "FINALIZAR_LLAMADA":
@@ -65,6 +71,18 @@ public class ManejoCliente extends Thread
                     break;
 
                 case "CONSULTAR_SALDO":
+                    // Extraemos el número de teléfono para la consulta informativa
+                    String numero = leerCampo(solicitud_llamada, "numero");
+                    
+                    // Usamos tu variable oficial 'consultaSaldo'
+                    // Para una consulta de saldo pura (HU1), asumimos una tarifa por defecto mandando "LOCAL"
+                    String resultadoSaldo = consultaSaldo.procesarConsulta(numero);
+                    
+                    if ("ERROR".equals(resultadoSaldo)) {
+                        writer.println("{\"status\": \"ERROR\", \"mensaje\": \"Línea inválida\"}");
+                    } else {
+                        writer.println("{\"status\": \"OK\", \"saldo\": \"" + resultadoSaldo + "\"}");
+                    }
                     break;
                     
                 default:
