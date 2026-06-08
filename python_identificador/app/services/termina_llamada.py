@@ -134,6 +134,40 @@ def procesar_finalizacion_llamada(trama_json: dict) -> dict:
         if not llamada_activa:
             print(f"[-] Llamada {id_llamada} no encontrada en lista de activas")
         
+        # Persistir historial en MySQL y limpiar llamada activa
+        try:
+            from app.database.repositorio import (
+                insertar_historial_llamada,
+                eliminar_llamada_activa_por_telefono_id,
+                buscar_telefono_por_numero_cifrado
+            )
+            
+            # Buscar telefono_id para las operaciones de BD
+            telefono = buscar_telefono_por_numero_cifrado(telefono_origen)
+            telefono_id = telefono["telefono_id"] if telefono else None
+            
+            fecha_inicio_dt = datetime.fromisoformat(fecha_inicio) if fecha_inicio else datetime.now()
+            
+            # Convertir duración a formato HH:MM:SS
+            horas = duracion_segundos // 3600
+            minutos = (duracion_segundos % 3600) // 60
+            segundos = duracion_segundos % 60
+            duracion_formateada = f"{horas:02d}:{minutos:02d}:{segundos:02d}"
+            
+            if telefono_id:
+                insertar_historial_llamada(
+                    telefono_id=telefono_id,
+                    telefono_destino=telefono_destino,
+                    fecha_inicio=fecha_inicio_dt,
+                    fecha_fin=datetime.now(),
+                    duracion=duracion_formateada,
+                    motivo=motivo_finalizacion
+                )
+                
+                eliminar_llamada_activa_por_telefono_id(telefono_id)
+        except Exception as db_err:
+            print(f"[-] Error persistiendo historial en MySQL: {db_err}")
+        
         # Enviar al proveedor para procesar el cobro usando el contrato estándar
         respuesta_proveedor = enviar_procesar_cobro(
             telefono_origen=telefono_origen,
