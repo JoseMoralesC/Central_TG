@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -11,16 +12,34 @@ namespace SimuladorTelefonico
 {
     public partial class Form1 : Form
     {
+        private readonly List<TelefonoVirtual> _telefonosSeleccionados;
+        private const int AnchoTarjetaTelefono = 252;
+        private const int AltoTarjetaTelefono = 500;
+        private const int SeparacionTarjeta = 10;
+
         public Form1()
+            : this(AppConfig.TelefonosVirtuales.Where(t => t.Activo).Take(1))
         {
+        }
+
+        public Form1(IEnumerable<TelefonoVirtual> telefonosSeleccionados)
+        {
+            _telefonosSeleccionados = telefonosSeleccionados
+                .Where(t => t.Activo)
+                .ToList();
+
+            if (_telefonosSeleccionados.Count == 0)
+            {
+                _telefonosSeleccionados.Add(AppConfig.TelefonosVirtuales.First(t => t.Activo));
+            }
+
             InitializeComponent();
 
-            Text = "Simulador Telefónico - Central TG";
-            Size = new Size(1000, 780);
+            Text = "Simulador Telefonico - Central TG";
+            Size = new Size(1180, 720);
+            MinimumSize = new Size(920, 620);
             StartPosition = FormStartPosition.CenterScreen;
-            BackColor = Color.FromArgb(12, 12, 16);
-            FormBorderStyle = FormBorderStyle.FixedSingle;
-            MaximizeBox = false;
+            BackColor = Color.FromArgb(12, 14, 18);
 
             Controls.Clear();
 
@@ -29,176 +48,302 @@ namespace SimuladorTelefonico
 
         private void CrearInterfaz()
         {
+            Panel encabezado = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 112,
+                BackColor = Color.FromArgb(18, 21, 26)
+            };
+
+            Button btnVolver = new Button
+            {
+                Text = "Volver al selector",
+                Location = new Point(24, 36),
+                Size = new Size(190, 40),
+                BackColor = Color.FromArgb(52, 58, 68),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Cursor = Cursors.Hand
+            };
+            btnVolver.FlatAppearance.BorderSize = 0;
+            btnVolver.Click += (sender, e) => Close();
+
             Label lblTitulo = new Label
             {
-                Text = "Central TG - Simulador de Teléfonos Virtuales",
+                Text = "Telefonos en uso",
                 ForeColor = Color.White,
-                Font = new Font("Segoe UI", 22, FontStyle.Bold),
-                Location = new Point(40, 20),
-                Size = new Size(900, 45),
-                TextAlign = ContentAlignment.MiddleCenter
+                Font = new Font("Segoe UI", 18, FontStyle.Bold),
+                Location = new Point(238, 14),
+                Size = new Size(600, 40),
+                TextAlign = ContentAlignment.MiddleLeft
             };
 
             Label lblSubtitulo = new Label
             {
-                Text = $"Identificador Python: {AppConfig.HostIdentificador}:{AppConfig.PuertoIdentificador}",
+                Text =
+                    $"Identificador: {AppConfig.HostIdentificador}:{AppConfig.PuertoIdentificador}  |  " +
+                    $"Seleccionados: {_telefonosSeleccionados.Count}",
                 ForeColor = Color.LightGray,
-                Font = new Font("Segoe UI", 11),
-                Location = new Point(40, 68),
-                Size = new Size(900, 25),
-                TextAlign = ContentAlignment.MiddleCenter
+                Font = new Font("Segoe UI", 10),
+                Location = new Point(240, 54),
+                Size = new Size(680, 24),
+                TextAlign = ContentAlignment.MiddleLeft
             };
 
-            Controls.Add(lblTitulo);
-            Controls.Add(lblSubtitulo);
-
-            TelefonoVirtual[] telefonos = AppConfig.TelefonosVirtuales
-                .Where(t => t.Maquina == AppConfig.TelefonoActual.Maquina)
-                .ToArray();
-
-            int x = 115;
-
-            foreach (TelefonoVirtual telefono in telefonos)
+            Label lblFuente = new Label
             {
-                Panel celular = CrearCelular(telefono, x, 120);
-                Controls.Add(celular);
-                x += 390;
+                Text = AppConfig.FuenteDatosTelefonos,
+                ForeColor = Color.FromArgb(255, 192, 88),
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Location = new Point(240, 80),
+                Size = new Size(680, 22),
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+
+            encabezado.Controls.Add(btnVolver);
+            encabezado.Controls.Add(lblTitulo);
+            encabezado.Controls.Add(lblSubtitulo);
+            encabezado.Controls.Add(lblFuente);
+            FlowLayoutPanel contenedorTelefonos = CrearContenedorTelefonos();
+
+            foreach (TelefonoVirtual telefono in _telefonosSeleccionados)
+            {
+                contenedorTelefonos.Controls.Add(CrearCelular(telefono));
             }
+
+            Controls.Add(contenedorTelefonos);
+            Controls.Add(encabezado);
+
+            encabezado.BringToFront();
+
+            CentrarTarjetas(contenedorTelefonos);
         }
 
-        private Panel CrearCelular(TelefonoVirtual telefono, int x, int y)
+        private FlowLayoutPanel CrearContenedorTelefonos()
         {
-            Panel carcasa = new Panel
+            FlowLayoutPanel contenedor = new FlowLayoutPanel
             {
-                Location = new Point(x, y),
-                Size = new Size(330, 600),
-                BackColor = Color.FromArgb(32, 32, 36)
+                Dock = DockStyle.Fill,
+                AutoScroll = true,
+                BackColor = Color.FromArgb(12, 14, 18),
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = true,
+                Padding = new Padding(24, 55, 24, 18)
             };
 
-            Panel pantalla = new Panel
+            contenedor.Resize += (sender, e) => CentrarTarjetas(contenedor);
+
+            return contenedor;
+        }
+
+        private void CentrarTarjetas(FlowLayoutPanel contenedor)
+        {
+            int anchoDisponible = contenedor.ClientSize.Width
+                - SystemInformation.VerticalScrollBarWidth;
+            int anchoConMargen = AnchoTarjetaTelefono + (SeparacionTarjeta * 2);
+            int tarjetasPorFila = Math.Max(1, anchoDisponible / anchoConMargen);
+            int tarjetasEnFila = Math.Min(tarjetasPorFila, _telefonosSeleccionados.Count);
+            int anchoFila = tarjetasEnFila * anchoConMargen;
+            int margenIzquierdo = Math.Max(24, (anchoDisponible - anchoFila) / 2);
+
+            contenedor.Padding = new Padding(margenIzquierdo, 55, 24, 18);
+        }
+
+        private Panel CrearCelular(TelefonoVirtual telefono)
+        {
+            Panel tarjeta = new Panel
             {
-                Location = new Point(18, 18),
-                Size = new Size(294, 540),
-                BackColor = Color.FromArgb(5, 10, 18)
+                Size = new Size(AnchoTarjetaTelefono, AltoTarjetaTelefono),
+                Margin = new Padding(SeparacionTarjeta),
+                BackColor = Color.FromArgb(24, 28, 34),
+                MinimumSize = new Size(AnchoTarjetaTelefono, AltoTarjetaTelefono)
             };
 
-            Label lblBarra = new Label
+            Panel franja = new Panel
             {
-                Text = "📶  Central TG                  🔋",
-                ForeColor = Color.White,
-                Font = new Font("Segoe UI", 9),
-                Location = new Point(12, 10),
-                Size = new Size(270, 22)
+                Dock = DockStyle.Top,
+                Height = 5,
+                BackColor = telefono.TipoServicio == "PREPAGO"
+                    ? Color.FromArgb(37, 167, 218)
+                    : Color.FromArgb(129, 205, 124)
             };
 
-            Label lblHora = new Label
+            Label lblServicio = new Label
             {
-                Text = DateTime.Now.ToString("HH:mm"),
-                ForeColor = Color.White,
-                Font = new Font("Segoe UI", 9, FontStyle.Bold),
-                Location = new Point(116, 35),
-                Size = new Size(60, 20),
-                TextAlign = ContentAlignment.MiddleCenter
+                Text = telefono.TipoServicio,
+                ForeColor = Color.FromArgb(218, 224, 232),
+                Font = new Font("Segoe UI", 8, FontStyle.Bold),
+                Location = new Point(18, 20),
+                Size = new Size(92, 20),
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+
+            Label lblEstado = new Label
+            {
+                Text = "Disponible",
+                ForeColor = Color.FromArgb(76, 220, 130),
+                Font = new Font("Segoe UI", 8, FontStyle.Bold),
+                Location = new Point(126, 20),
+                Size = new Size(112, 20),
+                TextAlign = ContentAlignment.MiddleRight
             };
 
             Label lblNombre = new Label
             {
-                Text = telefono.Nombre,
+                Text = FormatearNombreCliente(telefono.Cliente),
                 ForeColor = Color.White,
-                Font = new Font("Segoe UI", 18, FontStyle.Bold),
-                Location = new Point(20, 80),
-                Size = new Size(250, 38),
-                TextAlign = ContentAlignment.MiddleCenter
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                Location = new Point(18, 50),
+                Size = new Size(224, 54),
+                TextAlign = ContentAlignment.MiddleCenter,
+                AutoEllipsis = false
             };
 
             Label lblNumero = new Label
             {
                 Text = telefono.Numero,
-                ForeColor = Color.FromArgb(0, 200, 255),
-                Font = new Font("Segoe UI", 20, FontStyle.Bold),
-                Location = new Point(20, 122),
-                Size = new Size(250, 42),
+                ForeColor = Color.FromArgb(67, 198, 255),
+                Font = new Font("Segoe UI", 21, FontStyle.Bold),
+                Location = new Point(18, 112),
+                Size = new Size(224, 42),
                 TextAlign = ContentAlignment.MiddleCenter
             };
 
-            Label lblDetalle = new Label
+            Label lblResumen = new Label
             {
-                Text =
-                    $"{telefono.Maquina}\n" +
-                    $"{telefono.TipoServicio}\n" +
-                    $"ID: {telefono.Id}",
-                ForeColor = Color.LightGray,
-                Font = new Font("Segoe UI", 9),
-                Location = new Point(20, 170),
-                Size = new Size(250, 65),
+                Text = $"{telefono.Proveedor} | {telefono.TipoLlamada}",
+                ForeColor = Color.FromArgb(172, 182, 194),
+                Font = new Font("Segoe UI", 8),
+                Location = new Point(18, 158),
+                Size = new Size(224, 20),
+                TextAlign = ContentAlignment.MiddleCenter,
+                AutoEllipsis = true
+            };
+
+            Panel datos = new Panel
+            {
+                Location = new Point(18, 190),
+                Size = new Size(224, 108),
+                BackColor = Color.FromArgb(18, 22, 28)
+            };
+
+            datos.Controls.Add(CrearDato("Saldo", $"{telefono.SaldoDisponible:N2} CRC", 8));
+            datos.Controls.Add(CrearDato("SIM", telefono.IdentificadorTarjeta, 39));
+            datos.Controls.Add(CrearDato("IMEI", telefono.IdentificadorDispositivo, 70));
+
+            Label lblAcciones = new Label
+            {
+                Text = "Acciones",
+                Location = new Point(18, 316),
+                Size = new Size(224, 20),
+                ForeColor = Color.FromArgb(156, 166, 178),
+                Font = new Font("Segoe UI", 8, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleCenter
             };
 
-            Button btnMarcar = CrearBoton("📞  Marcar", 260);
+            Button btnMarcar = CrearBoton("Marcar", 342, Color.FromArgb(0, 122, 204), true);
             btnMarcar.Click += (sender, e) =>
             {
                 AppConfig.SeleccionarTelefono(telefono.Id);
-                MarcarNumeroForm form = new MarcarNumeroForm();
-                form.ShowDialog();
+                CambiarEstadoTelefono(lblEstado, true);
+                using MarcarNumeroForm form = new MarcarNumeroForm();
+                form.ShowDialog(this);
+                CambiarEstadoTelefono(lblEstado, false);
             };
 
-            Button btnSaldo = CrearBoton("💰  Saldo", 320);
+            Button btnSaldo = CrearBoton("Saldo", 390, Color.FromArgb(49, 58, 70), true);
             btnSaldo.Click += (sender, e) =>
             {
                 AppConfig.SeleccionarTelefono(telefono.Id);
-                ConsultaSaldoForm form = new ConsultaSaldoForm();
-                form.ShowDialog();
+                using ConsultaSaldoForm form = new ConsultaSaldoForm();
+                form.ShowDialog(this);
             };
 
-            Button btnBitacora = CrearBoton("📄  Bitácora", 380);
+            Label lblHistorial = new Label
+            {
+                Text = "Historial",
+                Location = new Point(18, 438),
+                Size = new Size(224, 18),
+                ForeColor = Color.FromArgb(156, 166, 178),
+                Font = new Font("Segoe UI", 8, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleCenter
+            };
+
+            Button btnBitacora = CrearBoton("Bitacora", 460, Color.FromArgb(49, 58, 70), true);
             btnBitacora.Click += (sender, e) =>
             {
                 AppConfig.SeleccionarTelefono(telefono.Id);
                 MostrarBitacora();
             };
 
-            Label lblActivo = new Label
-            {
-                Text = "Disponible",
-                ForeColor = Color.FromArgb(0, 255, 120),
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                Location = new Point(20, 455),
-                Size = new Size(250, 25),
-                TextAlign = ContentAlignment.MiddleCenter
-            };
+            tarjeta.Controls.Add(franja);
+            tarjeta.Controls.Add(lblServicio);
+            tarjeta.Controls.Add(lblEstado);
+            tarjeta.Controls.Add(lblNombre);
+            tarjeta.Controls.Add(lblNumero);
+            tarjeta.Controls.Add(lblResumen);
+            tarjeta.Controls.Add(datos);
+            tarjeta.Controls.Add(lblAcciones);
+            tarjeta.Controls.Add(btnMarcar);
+            tarjeta.Controls.Add(btnSaldo);
+            tarjeta.Controls.Add(lblHistorial);
+            tarjeta.Controls.Add(btnBitacora);
 
-            pantalla.Controls.Add(lblBarra);
-            pantalla.Controls.Add(lblHora);
-            pantalla.Controls.Add(lblNombre);
-            pantalla.Controls.Add(lblNumero);
-            pantalla.Controls.Add(lblDetalle);
-            pantalla.Controls.Add(btnMarcar);
-            pantalla.Controls.Add(btnSaldo);
-            pantalla.Controls.Add(btnBitacora);
-            pantalla.Controls.Add(lblActivo);
-
-            carcasa.Controls.Add(pantalla);
-
-            return carcasa;
+            return tarjeta;
         }
 
-        private Button CrearBoton(string texto, int y)
+        private Label CrearDato(string etiqueta, string valor, int y)
+        {
+            return new Label
+            {
+                Text = $"{etiqueta}: {valor}",
+                Location = new Point(10, y),
+                Size = new Size(204, 22),
+                ForeColor = Color.FromArgb(218, 224, 232),
+                Font = new Font("Segoe UI", 8),
+                AutoEllipsis = true,
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+        }
+
+        private Button CrearBoton(string texto, int y, Color color, bool principal)
         {
             Button boton = new Button
             {
                 Text = texto,
-                Location = new Point(47, y),
-                Size = new Size(200, 44),
-                BackColor = Color.FromArgb(0, 130, 200),
+                Location = new Point(18, y),
+                Size = new Size(224, principal ? 36 : 34),
+                BackColor = color,
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
                 Cursor = Cursors.Hand
             };
 
             boton.FlatAppearance.BorderSize = 0;
 
             return boton;
+        }
+
+        private static string FormatearNombreCliente(string nombre)
+        {
+            const string prefijo = "Cliente ";
+
+            if (nombre.StartsWith(prefijo, StringComparison.OrdinalIgnoreCase))
+            {
+                return $"Cliente:{Environment.NewLine}{nombre[prefijo.Length..]}";
+            }
+
+            return nombre;
+        }
+
+        private void CambiarEstadoTelefono(Label lblEstado, bool enLlamada)
+        {
+            lblEstado.Text = enLlamada ? "En llamada" : "Disponible";
+            lblEstado.ForeColor = enLlamada
+                ? Color.FromArgb(255, 192, 88)
+                : Color.FromArgb(76, 220, 130);
         }
 
         private void MostrarBitacora()
@@ -212,8 +357,8 @@ namespace SimuladorTelefonico
             if (!File.Exists(rutaBitacora))
             {
                 MessageBox.Show(
-                    "Todavía no existen registros en la bitácora local.",
-                    "Bitácora",
+                    "Todavia no existen registros en la bitacora local.",
+                    "Bitacora",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information
                 );
@@ -225,7 +370,7 @@ namespace SimuladorTelefonico
 
             MessageBox.Show(
                 contenido,
-                "Bitácora local del simulador",
+                "Bitacora local del simulador",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information
             );
