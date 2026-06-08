@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using SimuladorTelefonico.Models;
+using SimuladorTelefonico.Services;
 
 namespace SimuladorTelefonico.Config
 {
@@ -37,53 +38,11 @@ namespace SimuladorTelefonico.Config
         public static bool CifradoSensiblesActivo { get; } =
             ObtenerBooleano("CSHARP_AES_ACTIVO", true);
 
-        public static List<TelefonoVirtual> TelefonosVirtuales { get; } = new()
-        {
-            new TelefonoVirtual
-            {
-                Id = "TEL-001",
-                Nombre = "Telefono #1",
-                Numero = "88889999",
-                Maquina = "Maquina #1",
-                IdentificadorDispositivo = "1234567891234567",
-                IdentificadorTarjeta = "1234567891234567891",
-                TipoServicio = "PREPAGO",
-                TipoLlamada = "NACIONAL"
-            },
-            new TelefonoVirtual
-            {
-                Id = "TEL-002",
-                Nombre = "Telefono #2",
-                Numero = "22223333",
-                Maquina = "Maquina #1",
-                IdentificadorDispositivo = "1234567891234567",
-                IdentificadorTarjeta = "1234567891234567891",
-                TipoServicio = "POSTPAGO",
-                TipoLlamada = "NACIONAL"
-            },
-            new TelefonoVirtual
-            {
-                Id = "TEL-003",
-                Nombre = "Telefono #3",
-                Numero = "60001111",
-                Maquina = "Maquina #2",
-                IdentificadorDispositivo = "DISP-CSHARP-003",
-                IdentificadorTarjeta = "SIM-CR-000000000000003",
-                TipoServicio = "POSTPAGO",
-                TipoLlamada = "NACIONAL"
-            },
-            new TelefonoVirtual
-            {
-                Id = "TEL-004",
-                Nombre = "Telefono #4",
-                Numero = "60002222",
-                Maquina = "Maquina #2",
-                IdentificadorDispositivo = "DISP-CSHARP-004",
-                IdentificadorTarjeta = "SIM-CR-000000000000004",
-                TipoServicio = "POSTPAGO",
-                TipoLlamada = "NACIONAL"
-            }
-        };
+        public static List<TelefonoVirtual> TelefonosVirtuales { get; } =
+            TelefonoCatalogoService.CargarTelefonos();
+
+        public static string FuenteDatosTelefonos =>
+            TelefonoCatalogoService.FuenteDatos;
 
         public static TelefonoVirtual TelefonoActual { get; private set; } =
             TelefonosVirtuales.First();
