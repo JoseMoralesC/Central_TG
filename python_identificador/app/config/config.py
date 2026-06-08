@@ -24,7 +24,7 @@ class Settings:
     ENV: str = os.getenv("APP_ENV", "development")
     
     # Cifrado AES
-    AES_KEY: bytes = os.getenv("AES_KEY", "ClaveSecreta12345").encode('utf-8')
+    AES_KEY: bytes = os.getenv("AES_KEY", "ClaveSecreta1234").encode('utf-8')
     AES_IV: bytes = os.getenv("AES_IV", "VectorInicio1234").encode('utf-8')
     
 settings = Settings()
