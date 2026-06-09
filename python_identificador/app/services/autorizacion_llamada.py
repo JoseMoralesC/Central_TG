@@ -226,7 +226,7 @@ def procesar_autorizacion_llamada(trama_json: dict) -> dict:
             return {
                 "tipo_transaccion": "RESPUESTA_LLAMADA",
                 "resultado": {
-                    "codigo": "ERROR",
+                    "codigo": "DISPOSITIVO_INVALIDO",
                     "estado": "RECHAZADA",
                     "mensaje": "El dispositivo no corresponde al teléfono registrado"
                 }

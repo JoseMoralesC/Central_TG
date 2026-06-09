@@ -160,6 +160,9 @@ def procesar_consulta_saldo(trama_json: dict) -> dict:
             "saldo",
             datos_autorizacion.get("saldo_disponible", 0)
         )
+        # Usar el tipo de servicio real desde la BD
+        tipo_servicio_real = registro_origen.get("tipo_servicio", "PREPAGO")
+        
         return {
             "tipo_transaccion": "RESPUESTA_SALDO",
             "telefono_origen": telefono_origen,
@@ -169,7 +172,7 @@ def procesar_consulta_saldo(trama_json: dict) -> dict:
                 "mensaje": "Consulta realizada correctamente"
             },
             "datos_saldo": {
-                "tipo_servicio": "PREPAGO",
+                "tipo_servicio": tipo_servicio_real,
                 "saldo_disponible": saldo_disponible,
                 "moneda": datos_autorizacion.get("moneda", "CRC"),
                 "fecha_consulta": trama_json.get("fecha_hora", datetime.now().isoformat())

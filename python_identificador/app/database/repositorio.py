@@ -92,6 +92,56 @@ def buscar_dispositivo_por_telefono_id(telefono_id: int, dispositivo_cifrado: st
     finally:
         cerrar_conexion(conn)
 
+def eliminar_llamada_activa_por_telefono_id(telefono_id: int) -> bool:
+    """
+    Elimina todas las llamadas activas de un teléfono específico.
+    Útil al finalizar una llamada para limpiar la BD.
+    """
+    conn = obtener_conexion()
+    if not conn:
+        return False
+    
+    try:
+        cursor = conn.cursor()
+        query = "DELETE FROM llamadas_activas WHERE telefono_id = %s"
+        cursor.execute(query, (telefono_id,))
+        conn.commit()
+        eliminado = cursor.rowcount > 0
+        cursor.close()
+        return eliminado
+    except Exception as e:
+        print(f"[DB Error] eliminar_llamada_activa_por_telefono_id: {e}")
+        return False
+    finally:
+        cerrar_conexion(conn)
+
+def insertar_bitacora(telefono_id: Optional[int], tipo_transaccion: str,
+                      tipo_trama: str, contenido_json: str) -> Optional[int]:
+    """
+    Inserta un registro en la tabla bitacora_identificador.
+    """
+    conn = obtener_conexion()
+    if not conn:
+        return None
+    
+    try:
+        cursor = conn.cursor()
+        query = """
+            INSERT INTO bitacora_identificador
+                (telefono_id, tipo_transaccion, tipo_trama, contenido_json, fecha_registro)
+            VALUES (%s, %s, %s, %s, NOW())
+        """
+        cursor.execute(query, (telefono_id, tipo_transaccion, tipo_trama, contenido_json))
+        conn.commit()
+        id_insertado = cursor.lastrowid
+        cursor.close()
+        return id_insertado
+    except Exception as e:
+        print(f"[DB Error] insertar_bitacora: {e}")
+        return None
+    finally:
+        cerrar_conexion(conn)
+
 def insertar_llamada_activa(telefono_id: int, telefono_destino: str,
                             fecha_inicio, fecha_fin_maxima,
                             tiempo_maximo: str, estado: str = "ACTIVA") -> Optional[int]:

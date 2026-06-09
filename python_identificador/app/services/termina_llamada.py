@@ -8,40 +8,48 @@ from app.services.iniciar_llamada import (
     llamadas_activas, lock_llamadas, eliminar_llamada_activa
 )
 
-def enviar_registro_movimiento(telefono: str, fecha: str, hora: str,
-                                telefono_destino: str, costo: float, 
-                                duracion_segundos: int, tipo_servicio: str) -> bool:
+def enviar_procesar_cobro(telefono_origen: str, telefono_destino: str,
+                           duracion_segundos: int, monto_total: float,
+                           tipo_servicio: str, tipo_llamada: str,
+                           motivo_finalizacion: str) -> dict:
     """
-    Envía registro de movimiento al Proveedor (HU PROVEEDOR2).
-    TODO: Pendiente de definir contrato JSON exacto con el equipo de Java.
+    Envía solicitud de cobro al Proveedor Java usando el contrato consulta_proveedor.json
+    con acción "PROCESAR_COBRO".
     
-    Por ahora envía estructura genérica que será ajustada cuando el compañero
-    de Java defina el contrato específico para registro de movimientos.
-    """
-    horas = duracion_segundos // 3600
-    minutos = (duracion_segundos % 3600) // 60
-    segundos = duracion_segundos % 60
-    duracion_formateada = f"{horas:02d}:{minutos:02d}:{segundos:02d}"
-    
-    trama_movimiento = {
-        "tipo_transaccion": "REGISTRO_MOVIMIENTO",
-        "accion": "REBAJAR_SALDO",
-        "telefono_origen": telefono,
-        "telefono_destino": telefono_destino,
-        "tipo_servicio": tipo_servicio,
-        "fecha": fecha,
-        "hora": hora,
-        "duracion": duracion_formateada,
-        "monto": costo,
-        "moneda": "CRC"
+    Envía:
+    {
+        "tipo_transaccion": "CONSULTA_PROVEEDOR",
+        "accion": "PROCESAR_COBRO",
+        "telefono_origen": "...",
+        "telefono_destino": "...",
+        "datos_llamada": { "duracion_segundos": 600, "motivo_finalizacion": "..." },
+        "datos_cobro": { "tipo_servicio": "PREPAGO", "tipo_llamada": "NACIONAL",
+                         "monto_total": 100.00, "moneda": "CRC" },
+        "fecha_hora": "..."
     }
     
-    respuesta = enviar_al_proveedor(trama_movimiento)
-    resultado_codigo = respuesta.get(
-        "status",
-        respuesta.get("resultado", {}).get("codigo", "ERROR")
-    )
-    return resultado_codigo == "OK"
+    Retorna el resultado de enviar_al_proveedor().
+    """
+    trama_cobro = {
+        "tipo_transaccion": "CONSULTA_PROVEEDOR",
+        "accion": "REBAJAR_SALDO",
+        "telefono_origen": telefono_origen,
+        "telefono_destino": telefono_destino,
+        "datos_llamada": {
+            "duracion_segundos": duracion_segundos,
+            "motivo_finalizacion": motivo_finalizacion
+        },
+        "datos_cobro": {
+            "tipo_servicio": tipo_servicio,
+            "tipo_llamada": tipo_llamada,
+            "monto_total": monto_total,
+            "moneda": "CRC"
+        },
+        "fecha_hora": datetime.now().isoformat()
+    }
+    
+    respuesta = enviar_al_proveedor(trama_cobro)
+    return respuesta
 
 def verificar_llamadas_vencidas():
     """
@@ -64,18 +72,21 @@ def verificar_llamadas_vencidas():
                     
                     # Enviar rebajo al proveedor si es prepago
                     if llamada["tipo_servicio"] == "PREPAGO":
-                        fecha = llamada["fecha_inicio"][:10].replace("-", "")
-                        hora_inicio = llamada["fecha_inicio"][11:19].replace(":", "")
                         duracion = (llamada["hora_fin_maxima"] - datetime.fromisoformat(llamada["fecha_inicio"])).total_seconds()
                         
-                        enviar_registro_movimiento(
-                            telefono=llamada["telefono_origen"],
-                            fecha=fecha,
-                            hora=hora_inicio,
+                        # Calcular monto estimado basado en duración y tarifa base
+                        # (costo_por_minuto se obtendría del proveedor idealmente)
+                        costo_por_minuto = 10.00
+                        monto_estimado = (duracion / 60) * costo_por_minuto
+                        
+                        enviar_procesar_cobro(
+                            telefono_origen=llamada["telefono_origen"],
                             telefono_destino=llamada["telefono_destino"],
-                            costo=0.0,
                             duracion_segundos=int(duracion),
-                            tipo_servicio="PREPAGO"
+                            monto_total=round(monto_estimado, 2),
+                            tipo_servicio="PREPAGO",
+                            tipo_llamada="NACIONAL",
+                            motivo_finalizacion="SALDO_AGOTADO"
                         )
             
             # Dormir 5 segundos antes de la próxima verificación
@@ -110,10 +121,11 @@ def procesar_finalizacion_llamada(trama_json: dict) -> dict:
         id_llamada = datos_llamada.get("id_llamada", "")
         telefono_origen = datos_llamada.get("telefono_origen", "")
         telefono_destino = datos_llamada.get("telefono_destino", "")
-        fecha_inicio = datos_llamada.get("fecha_inicio", "")
         duracion_segundos = datos_llamada.get("duracion_segundos", 0)
+        motivo_finalizacion = datos_llamada.get("motivo_finalizacion", "FINALIZACION_MANUAL")
         
         tipo_servicio = datos_cobro.get("tipo_servicio", "PREPAGO")
+        tipo_llamada = datos_cobro.get("tipo_llamada", "NACIONAL")
         monto_total = datos_cobro.get("monto_total", 0)
         
         # Buscar y eliminar la llamada de la lista de activas
@@ -122,22 +134,60 @@ def procesar_finalizacion_llamada(trama_json: dict) -> dict:
         if not llamada_activa:
             print(f"[-] Llamada {id_llamada} no encontrada en lista de activas")
         
-        # Formatear datos para el proveedor
-        fecha_formateada = fecha_inicio[:10].replace("-", "") if fecha_inicio else datetime.now().strftime("%Y%m%d")
-        hora_formateada = fecha_inicio[11:19].replace(":", "") if len(fecha_inicio) > 10 else datetime.now().strftime("%H%M%S")
+        # Persistir historial en MySQL y limpiar llamada activa
+        try:
+            from app.database.repositorio import (
+                insertar_historial_llamada,
+                eliminar_llamada_activa_por_telefono_id,
+                buscar_telefono_por_numero_cifrado
+            )
+            
+            # Buscar telefono_id para las operaciones de BD
+            telefono = buscar_telefono_por_numero_cifrado(telefono_origen)
+            telefono_id = telefono["telefono_id"] if telefono else None
+            
+            fecha_inicio_dt = datetime.fromisoformat(fecha_inicio) if fecha_inicio else datetime.now()
+            
+            # Convertir duración a formato HH:MM:SS
+            horas = duracion_segundos // 3600
+            minutos = (duracion_segundos % 3600) // 60
+            segundos = duracion_segundos % 60
+            duracion_formateada = f"{horas:02d}:{minutos:02d}:{segundos:02d}"
+            
+            if telefono_id:
+                insertar_historial_llamada(
+                    telefono_id=telefono_id,
+                    telefono_destino=telefono_destino,
+                    fecha_inicio=fecha_inicio_dt,
+                    fecha_fin=datetime.now(),
+                    duracion=duracion_formateada,
+                    motivo=motivo_finalizacion
+                )
+                
+                eliminar_llamada_activa_por_telefono_id(telefono_id)
+        except Exception as db_err:
+            print(f"[-] Error persistiendo historial en MySQL: {db_err}")
         
-        # Enviar al proveedor para registrar el movimiento (HU PROVEEDOR2)
-        exito = enviar_registro_movimiento(
-            telefono=telefono_origen,
-            fecha=fecha_formateada,
-            hora=hora_formateada,
+        # Enviar al proveedor para procesar el cobro usando el contrato estándar
+        respuesta_proveedor = enviar_procesar_cobro(
+            telefono_origen=telefono_origen,
             telefono_destino=telefono_destino,
-            costo=float(monto_total),
             duracion_segundos=duracion_segundos,
-            tipo_servicio=tipo_servicio
+            monto_total=float(monto_total),
+            tipo_servicio=tipo_servicio,
+            tipo_llamada=tipo_llamada,
+            motivo_finalizacion=motivo_finalizacion
         )
         
-        if exito:
+        # Verificar respuesta del proveedor
+        # Java responde con {"status":"OK",...} o {"resultado":{"codigo":"OK",...}}
+        resultado_codigo = (
+            respuesta_proveedor.get("resultado", {}).get("codigo") or
+            respuesta_proveedor.get("status") or
+            "ERROR"
+        )
+        
+        if resultado_codigo == "OK":
             return {
                 "tipo_transaccion": "RESPUESTA_FINALIZACION",
                 "resultado": {
@@ -146,9 +196,9 @@ def procesar_finalizacion_llamada(trama_json: dict) -> dict:
                     "mensaje": "La llamada fue finalizada y registrada correctamente"
                 },
                 "movimiento": {
-                    "saldo_anterior": 5000.00,
+                    "saldo_anterior": respuesta_proveedor.get("datos_autorizacion", {}).get("saldo_anterior", 0),
                     "monto_rebajado": float(monto_total),
-                    "saldo_actual": 5000.00 - float(monto_total)
+                    "saldo_actual": respuesta_proveedor.get("datos_autorizacion", {}).get("saldo_actual", 0)
                 }
             }
         else:
@@ -157,7 +207,7 @@ def procesar_finalizacion_llamada(trama_json: dict) -> dict:
                 "resultado": {
                     "codigo": "ERROR",
                     "estado": "FALLIDO",
-                    "mensaje": "Error al registrar el movimiento en el proveedor"
+                    "mensaje": respuesta_proveedor.get("resultado", {}).get("mensaje", "Error al registrar el movimiento en el proveedor")
                 }
             }
             
