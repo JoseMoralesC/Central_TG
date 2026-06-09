@@ -1,17 +1,21 @@
 USE central_identificador;
 
-UPDATE proveedores
-SET nombre = 'Proveedor Telefonico XYZ',
-    codigo = 'XYZ',
-    activo = TRUE
-WHERE proveedor_id = 1;
+INSERT INTO proveedores (nombre, codigo, activo)
+VALUES
+    ('Kolbi', 'KOLBI', TRUE),
+    ('Claro', 'CLARO', TRUE),
+    ('Liberty', 'LIBERTY', TRUE),
+    ('Movistar', 'MOVISTAR', TRUE)
+ON DUPLICATE KEY UPDATE
+    nombre = VALUES(nombre),
+    activo = VALUES(activo);
 
 UPDATE telefonos
 SET numero_cifrado = CASE telefono_id
-    WHEN 1 THEN 'zn6cw4R7L5kvgOADpNE+Cw=='
-    WHEN 2 THEN 'MYRdFog+97grrtD/Vt+sig=='
-    WHEN 3 THEN 'l7kyqYzTB0DRFHGSZ9TFdQ=='
-    WHEN 4 THEN 'jXrauYSymvM+ZNDtqzqleQ=='
+    WHEN 1 THEN 'Ssy0wADM0R8i4alx8T1aHg=='
+    WHEN 2 THEN '8rdtdFHBFJKlmaAFgVLhZA=='
+    WHEN 3 THEN 'hr6q8rF6+HGpYj9AW2+Y6g=='
+    WHEN 4 THEN 'M2xnYxuwGO9DlT1MKVNhxA=='
     ELSE numero_cifrado
 END
 WHERE telefono_id IN (1, 2, 3, 4);

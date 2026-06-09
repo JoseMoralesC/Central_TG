@@ -18,6 +18,7 @@ CREATE TABLE servicios (
     cliente_id INT NOT NULL,
     numero_telefono NVARCHAR(30) NOT NULL UNIQUE,
     tipo_servicio NVARCHAR(20) NOT NULL,
+    proveedor_codigo NVARCHAR(20) NULL,
     activo BIT NOT NULL DEFAULT 1,
     fecha_registro DATETIME NOT NULL DEFAULT GETDATE(),
 

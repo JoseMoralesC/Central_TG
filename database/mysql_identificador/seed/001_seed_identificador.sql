@@ -1,18 +1,22 @@
 USE central_identificador;
 
 INSERT INTO proveedores (nombre, codigo, activo) VALUES
-('Proveedor Telefónico XYZ', 'XYZ', TRUE);
+('Kolbi', 'KOLBI', TRUE),
+('Claro', 'CLARO', TRUE),
+('Liberty', 'LIBERTY', TRUE),
+('Movistar', 'MOVISTAR', TRUE);
 
 INSERT INTO telefonos (
     numero_cifrado,
     proveedor_id,
     tipo_servicio,
+    pais,
     activo
 ) VALUES
-('ENC_88889999', 1, 'PREPAGO', TRUE),
-('ENC_88880000', 1, 'PREPAGO', TRUE),
-('ENC_22223333', 1, 'POSTPAGO', TRUE),
-('ENC_77776666', 1, 'PREPAGO', FALSE);
+('ENC_61925420', 1, 'PREPAGO', 'Costa Rica', TRUE),
+('ENC_83447172', 2, 'PREPAGO', 'Costa Rica', TRUE),
+('ENC_60302145', 3, 'POSTPAGO', 'Panama', TRUE),
+('ENC_71268439', 1, 'PREPAGO', 'Costa Rica', FALSE);
 
 INSERT INTO tarjetas_telefonicas (
     telefono_id,

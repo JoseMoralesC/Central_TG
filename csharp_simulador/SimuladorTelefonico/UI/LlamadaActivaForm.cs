@@ -15,9 +15,9 @@ namespace SimuladorTelefonico.UI
         private readonly string _idLlamada;
         private readonly int _tiempoMaximoSegundos;
 
-        private Label lblNumeroDestino = null!;
         private Label lblDuracion = null!;
         private Label lblEstado = null!;
+        private Label lblCosto = null!;
         private Button btnFinalizar = null!;
         private System.Windows.Forms.Timer timer = null!;
 
@@ -28,8 +28,7 @@ namespace SimuladorTelefonico.UI
         public LlamadaActivaForm(
             string numeroDestino,
             string idLlamada,
-            int tiempoMaximoSegundos
-        )
+            int tiempoMaximoSegundos)
         {
             _numeroDestino = numeroDestino;
             _inicioLlamada = DateTime.Now;
@@ -46,10 +45,7 @@ namespace SimuladorTelefonico.UI
         private void ConfigurarVentana()
         {
             Text = "Llamada activa";
-            StartPosition = FormStartPosition.CenterParent;
-            Size = new Size(420, 520);
-            MinimumSize = new Size(420, 520);
-            MaximizeBox = false;
+            UiTheme.ConfigurarVentana(this, new Size(460, 540));
         }
 
         private void ConstruirFormulario()
@@ -58,63 +54,83 @@ namespace SimuladorTelefonico.UI
             {
                 Text = "Llamada activa",
                 Font = new Font("Segoe UI", 20, FontStyle.Bold),
+                ForeColor = UiTheme.Texto,
                 AutoSize = false,
                 TextAlign = ContentAlignment.MiddleCenter,
                 Dock = DockStyle.Top,
-                Height = 80
+                Height = 76
             };
 
-            lblNumeroDestino = new Label
-            {
-                Text = $"Destino: {_numeroDestino}",
-                Font = new Font("Segoe UI", 13),
-                AutoSize = false,
-                TextAlign = ContentAlignment.MiddleCenter,
-                Top = 120,
-                Left = 30,
-                Width = 340,
-                Height = 40
-            };
+            Label lblOrigen = UiTheme.CrearEtiqueta(
+                $"Origen: {AppConfig.NumeroOrigen}",
+                48,
+                88,
+                364,
+                24,
+                9.5f,
+                FontStyle.Bold,
+                UiTheme.TextoSecundario,
+                ContentAlignment.MiddleCenter);
 
-            lblDuracion = new Label
-            {
-                Text = "00:00:00",
-                Font = new Font("Segoe UI", 28, FontStyle.Bold),
-                AutoSize = false,
-                TextAlign = ContentAlignment.MiddleCenter,
-                Top = 190,
-                Left = 30,
-                Width = 340,
-                Height = 70
-            };
+            Label lblNumeroDestino = UiTheme.CrearEtiqueta(
+                $"Destino: {_numeroDestino}",
+                48,
+                122,
+                364,
+                34,
+                13,
+                FontStyle.Bold,
+                UiTheme.Texto,
+                ContentAlignment.MiddleCenter);
 
-            btnFinalizar = new Button
-            {
-                Text = "Finalizar llamada",
-                Font = new Font("Segoe UI", 12, FontStyle.Bold),
-                Width = 260,
-                Height = 48,
-                Left = 75,
-                Top = 300
-            };
+            lblDuracion = UiTheme.CrearEtiqueta(
+                "00:00:00",
+                48,
+                184,
+                364,
+                78,
+                34,
+                FontStyle.Bold,
+                Color.FromArgb(68, 199, 255),
+                ContentAlignment.MiddleCenter);
 
-            lblEstado = new Label
-            {
-                Text = $"Estado: preparando inicio. Tiempo maximo: {_tiempoMaximoSegundos}s.",
-                Font = new Font("Segoe UI", 10),
-                AutoSize = false,
-                TextAlign = ContentAlignment.MiddleCenter,
-                Top = 380,
-                Left = 30,
-                Width = 340,
-                Height = 60
-            };
+            lblCosto = UiTheme.CrearEtiqueta(
+                $"Costo estimado: {AppConfig.CostoPorMinuto:N2} {AppConfig.Moneda} por minuto",
+                48,
+                270,
+                364,
+                26,
+                9.5f,
+                FontStyle.Regular,
+                UiTheme.TextoSecundario,
+                ContentAlignment.MiddleCenter);
+
+            btnFinalizar = UiTheme.CrearBoton(
+                "Finalizar llamada",
+                86,
+                326,
+                288,
+                44,
+                UiTheme.Error);
+
+            lblEstado = UiTheme.CrearEtiqueta(
+                $"Preparando inicio. Limite: {_tiempoMaximoSegundos}s.",
+                48,
+                404,
+                364,
+                56,
+                9.5f,
+                FontStyle.Regular,
+                UiTheme.TextoSecundario,
+                ContentAlignment.MiddleCenter);
 
             btnFinalizar.Click += async (s, e) => await FinalizarLlamadaAsync();
 
             Controls.Add(titulo);
+            Controls.Add(lblOrigen);
             Controls.Add(lblNumeroDestino);
             Controls.Add(lblDuracion);
+            Controls.Add(lblCosto);
             Controls.Add(btnFinalizar);
             Controls.Add(lblEstado);
         }
@@ -171,9 +187,7 @@ namespace SimuladorTelefonico.UI
                 }
             };
 
-            string json = _tramaService.ConvertirAJson(inicio);
-
-            lblEstado.Text = "Estado: enviando inicio de llamada a Python...";
+            lblEstado.Text = "Registrando inicio de llamada...";
 
             string respuesta = await _tramaService.EnviarTramaAsync(inicio);
             string mensaje = _respuestaService.ObtenerMensaje(respuesta);
@@ -182,23 +196,20 @@ namespace SimuladorTelefonico.UI
             {
                 timer.Stop();
                 btnFinalizar.Enabled = false;
-
-                lblEstado.Text = $"Estado: error al iniciar.\n{mensaje}";
+                lblEstado.Text = $"No fue posible iniciar. {mensaje}";
+                lblEstado.ForeColor = UiTheme.Error;
 
                 MessageBox.Show(
-                    $"No fue posible iniciar la llamada.\n\nTrama:\n{json}\n\nRespuesta:\n{respuesta}",
-                    "Error al iniciar llamada"
-                );
+                    mensaje,
+                    "Error al iniciar llamada",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
 
                 return;
             }
 
-            lblEstado.Text = $"Estado: llamada activa.\n{mensaje}";
-
-            MessageBox.Show(
-                $"Inicio enviado:\n\n{json}\n\nRespuesta:\n\n{respuesta}",
-                "Inicio de llamada"
-            );
+            lblEstado.Text = mensaje;
+            lblEstado.ForeColor = UiTheme.Exito;
         }
 
         private async Task FinalizarLlamadaAsync()
@@ -212,11 +223,9 @@ namespace SimuladorTelefonico.UI
             int duracionSegundos = (int)duracion.TotalSeconds;
             int duracionMinutos = Math.Max(
                 1,
-                (int)Math.Ceiling(duracion.TotalMinutes)
-            );
+                (int)Math.Ceiling(duracion.TotalMinutes));
 
-            decimal montoTotal =
-                duracionMinutos * AppConfig.CostoPorMinuto;
+            decimal montoTotal = duracionMinutos * AppConfig.CostoPorMinuto;
 
             FinalizarLlamada finalizar = new FinalizarLlamada
             {
@@ -256,32 +265,36 @@ namespace SimuladorTelefonico.UI
                 }
             };
 
-            string json = _tramaService.ConvertirAJson(finalizar);
-
-            lblEstado.Text = "Estado: enviando finalización a Python...";
+            lblEstado.Text = "Registrando finalizacion y cobro...";
 
             string respuesta = await _tramaService.EnviarTramaAsync(finalizar);
             string mensaje = _respuestaService.ObtenerMensaje(respuesta);
 
             if (!_respuestaService.EsRespuestaExitosa(respuesta))
             {
-                lblEstado.Text = $"Estado: error al finalizar.\n{mensaje}";
+                lblEstado.Text = mensaje;
+                lblEstado.ForeColor = UiTheme.Error;
 
                 MessageBox.Show(
-                    $"La llamada fue detenida localmente, pero Python respondió con error.\n\nTrama:\n{json}\n\nRespuesta:\n{respuesta}",
-                    "Error al finalizar llamada"
-                );
+                    "La llamada se detuvo localmente, pero el registro remoto respondio con error.\n\n" + mensaje,
+                    "Error al finalizar llamada",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
 
                 Close();
                 return;
             }
 
-            lblEstado.Text = $"Estado: llamada finalizada.\n{mensaje}";
+            if (_respuestaService.TryObtenerSaldoDecimal(respuesta, out decimal saldoActualizado))
+            {
+                AppConfig.ActualizarSaldoTelefonoActual(saldoActualizado);
+            }
 
             MessageBox.Show(
-                $"Finalización enviada:\n\n{json}\n\nRespuesta:\n\n{respuesta}",
-                "Finalizar llamada"
-            );
+                $"Llamada finalizada correctamente.\nDuracion cobrada: {duracionMinutos} minuto(s).\nMonto: {montoTotal:N2} {AppConfig.Moneda}.\nSaldo actual: {UiTheme.FormatearSaldo(AppConfig.TipoServicio, AppConfig.TelefonoActual.SaldoDisponible)}",
+                "Llamada finalizada",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
 
             Close();
         }

@@ -11,6 +11,9 @@ namespace SimuladorTelefonico.Models
         public string TipoServicio { get; set; } = string.Empty;
         public string TipoLlamada { get; set; } = string.Empty;
         public string Proveedor { get; set; } = string.Empty;
+        public string ProveedorCodigo { get; set; } = string.Empty;
+        public string Pais { get; set; } = "Costa Rica";
+        public string Nacionalidad { get; set; } = "NACIONAL";
         public string Cliente { get; set; } = string.Empty;
         public decimal SaldoDisponible { get; set; }
         public bool Activo { get; set; } = true;

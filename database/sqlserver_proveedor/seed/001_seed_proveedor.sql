@@ -40,13 +40,14 @@ INSERT INTO servicios (
     cliente_id,
     numero_telefono,
     tipo_servicio,
+    proveedor_codigo,
     activo
 )
 VALUES
-(1,'88889999','PREPAGO',1),
-(2,'88880000','PREPAGO',1),
-(3,'22223333','POSTPAGO',1),
-(4,'77776666','PREPAGO',0);
+(1,'61925420','PREPAGO','KOLBI',1),
+(2,'83447172','PREPAGO','CLARO',1),
+(3,'60302145','POSTPAGO','LIBERTY',1),
+(4,'71268439','PREPAGO','KOLBI',0);
 GO
 
 

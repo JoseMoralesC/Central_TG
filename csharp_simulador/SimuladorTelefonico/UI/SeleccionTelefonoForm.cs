@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using SimuladorTelefonico.Config;
 using SimuladorTelefonico.Models;
@@ -12,17 +13,21 @@ namespace SimuladorTelefonico.UI
     {
         private readonly List<CheckBox> _opcionesTelefono = new();
         private Label _lblEstado = null!;
+        private Label _lblFuente = null!;
+        private FlowLayoutPanel _listaTelefonos = null!;
 
         public SeleccionTelefonoForm()
         {
             Text = "Seleccionar telefonos virtuales";
-            Size = new Size(760, 650);
+            UiTheme.ConfigurarVentana(this, new Size(920, 720), new Size(860, 680));
             StartPosition = FormStartPosition.CenterScreen;
-            BackColor = Color.FromArgb(16, 18, 22);
             FormBorderStyle = FormBorderStyle.FixedSingle;
-            MaximizeBox = false;
+            ShowInTaskbar = true;
+            WindowState = FormWindowState.Normal;
+            DoubleBuffered = true;
 
             CrearInterfaz();
+            Shown += SeleccionTelefonoForm_Shown;
         }
 
         private void CrearInterfaz()
@@ -30,77 +35,88 @@ namespace SimuladorTelefonico.UI
             Label lblTitulo = new Label
             {
                 Text = "Simulador Telefonico",
-                ForeColor = Color.White,
-                Font = new Font("Segoe UI", 18, FontStyle.Bold),
+                ForeColor = UiTheme.Texto,
+                Font = new Font("Segoe UI", 20, FontStyle.Bold),
                 AutoSize = false,
                 TextAlign = ContentAlignment.MiddleCenter,
-                Location = new Point(40, 22),
-                Size = new Size(680, 40)
+                Location = new Point(40, 24),
+                Size = new Size(780, 42)
             };
 
-            Label lblSubtitulo = new Label
-            {
-                Text = "Seleccione manualmente uno o varios telefonos activos para usar.",
-                ForeColor = Color.LightGray,
-                Font = new Font("Segoe UI", 10),
-                AutoSize = false,
-                TextAlign = ContentAlignment.MiddleCenter,
-                Location = new Point(40, 68),
-                Size = new Size(680, 25)
-            };
+            Label lblSubtitulo = UiTheme.CrearEtiqueta(
+                "Seleccione los telefonos activos que desea usar en la prueba.",
+                40,
+                70,
+                780,
+                24,
+                10,
+                FontStyle.Regular,
+                UiTheme.TextoSecundario,
+                ContentAlignment.MiddleCenter);
 
-            Label lblFuente = new Label
-            {
-                Text = AppConfig.FuenteDatosTelefonos,
-                ForeColor = Color.FromArgb(255, 192, 88),
-                Font = new Font("Segoe UI", 9, FontStyle.Bold),
-                AutoSize = false,
-                TextAlign = ContentAlignment.MiddleCenter,
-                Location = new Point(40, 94),
-                Size = new Size(680, 22)
-            };
+            Label lblFuente = UiTheme.CrearEtiqueta(
+                "Preparando catalogo de telefonos...",
+                40,
+                96,
+                780,
+                24,
+                9,
+                FontStyle.Bold,
+                UiTheme.Exito,
+                ContentAlignment.MiddleCenter);
+            _lblFuente = lblFuente;
 
             FlowLayoutPanel listaTelefonos = new FlowLayoutPanel
             {
-                Location = new Point(40, 130),
-                Size = new Size(680, 375),
+                Location = new Point(40, 138),
+                Size = new Size(780, 390),
                 AutoScroll = true,
                 FlowDirection = FlowDirection.TopDown,
                 WrapContents = false,
-                BackColor = Color.FromArgb(22, 25, 30),
-                Padding = new Padding(10)
+                BackColor = UiTheme.Superficie,
+                Padding = new Padding(12)
             };
+            _listaTelefonos = listaTelefonos;
 
-            foreach (TelefonoVirtual telefono in AppConfig.TelefonosVirtuales)
-            {
-                CheckBox opcion = CrearOpcionTelefono(telefono);
-                _opcionesTelefono.Add(opcion);
-                listaTelefonos.Controls.Add(opcion);
-            }
+            listaTelefonos.Controls.Add(UiTheme.CrearEtiqueta(
+                "Cargando telefonos disponibles...",
+                0,
+                0,
+                720,
+                48,
+                10,
+                FontStyle.Regular,
+                UiTheme.TextoSecundario,
+                ContentAlignment.MiddleCenter));
 
-            _lblEstado = new Label
-            {
-                Text = "Listo para seleccionar.",
-                ForeColor = Color.LightGray,
-                Font = new Font("Segoe UI", 10),
-                Location = new Point(40, 515),
-                Size = new Size(680, 25),
-                TextAlign = ContentAlignment.MiddleCenter
-            };
+            _lblEstado = UiTheme.CrearEtiqueta(
+                "Listo para seleccionar.",
+                40,
+                546,
+                780,
+                28,
+                10,
+                FontStyle.Regular,
+                UiTheme.TextoSecundario,
+                ContentAlignment.MiddleCenter);
 
-            Button btnAbrir = new Button
-            {
-                Text = "Abrir telefonos seleccionados",
-                Location = new Point(200, 550),
-                Size = new Size(360, 44),
-                BackColor = Color.FromArgb(0, 122, 204),
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                Cursor = Cursors.Hand
-            };
-            btnAbrir.FlatAppearance.BorderSize = 0;
+            Button btnAbrir = UiTheme.CrearBoton(
+                "Abrir telefonos seleccionados",
+                180,
+                588,
+                260,
+                44,
+                UiTheme.Primario);
             btnAbrir.Click += AbrirTelefonosSeleccionados_Click;
+
+            Button btnAdministracion = UiTheme.CrearBoton(
+                "Administracion telefonica",
+                460,
+                588,
+                260,
+                44,
+                Color.FromArgb(52, 60, 72));
+            btnAdministracion.Click += async (_, _) => await AdministracionTelefonicaAsync();
 
             Controls.Add(lblTitulo);
             Controls.Add(lblSubtitulo);
@@ -108,36 +124,53 @@ namespace SimuladorTelefonico.UI
             Controls.Add(listaTelefonos);
             Controls.Add(_lblEstado);
             Controls.Add(btnAbrir);
+            Controls.Add(btnAdministracion);
         }
 
         private CheckBox CrearOpcionTelefono(TelefonoVirtual telefono)
         {
+            string estado = telefono.Activo ? "Activo" : "Inactivo";
+            string saldo = UiTheme.FormatearSaldo(telefono.TipoServicio, telefono.SaldoDisponible);
+
             CheckBox opcion = new CheckBox
             {
                 Text =
-                    $"{telefono.Numero}  |  {telefono.Cliente}\n" +
-                    $"{telefono.TipoServicio}  |  Saldo: {telefono.SaldoDisponible:N2} CRC  |  {telefono.Proveedor}\n" +
-                    $"SIM: {telefono.IdentificadorTarjeta}  |  IMEI: {telefono.IdentificadorDispositivo}",
+                    $"{telefono.Numero}   {FormatearNombreCliente(telefono.Cliente)}\n" +
+                    $"{telefono.TipoServicio} | {estado} | {telefono.Proveedor} | {telefono.Pais} | {telefono.Nacionalidad}\n" +
+                    $"Saldo: {saldo} | " +
+                    $"SIM: {UiTheme.ResumirIdentificador(telefono.IdentificadorTarjeta, 22)} | IMEI: {UiTheme.ResumirIdentificador(telefono.IdentificadorDispositivo, 22)}",
                 Tag = telefono,
-                Size = new Size(640, 82),
+                Size = new Size(736, 88),
                 Margin = new Padding(0, 0, 0, 10),
-                Padding = new Padding(12, 8, 8, 8),
+                Padding = new Padding(14, 8, 8, 8),
                 BackColor = telefono.Activo
-                    ? Color.FromArgb(30, 34, 40)
-                    : Color.FromArgb(42, 34, 34),
-                ForeColor = telefono.Activo ? Color.White : Color.FromArgb(190, 170, 170),
-                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                    ? UiTheme.SuperficieElevada
+                    : Color.FromArgb(43, 32, 34),
+                ForeColor = telefono.Activo ? UiTheme.Texto : Color.FromArgb(205, 172, 172),
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
                 Enabled = telefono.Activo,
                 AutoSize = false,
-                Cursor = Cursors.Hand
+                Cursor = telefono.Activo ? Cursors.Hand : Cursors.No
             };
 
             if (!telefono.Activo)
             {
-                opcion.Text += "\nNo disponible: servicio inactivo en database.";
+                opcion.Text += "\nNo disponible: servicio inactivo.";
             }
 
             return opcion;
+        }
+
+        private static string FormatearNombreCliente(string nombre)
+        {
+            const string prefijo = "Cliente ";
+
+            if (nombre.StartsWith(prefijo, StringComparison.OrdinalIgnoreCase))
+            {
+                return nombre[prefijo.Length..];
+            }
+
+            return nombre;
         }
 
         private void AbrirTelefonosSeleccionados_Click(object? sender, EventArgs e)
@@ -151,6 +184,7 @@ namespace SimuladorTelefonico.UI
             if (seleccionados.Count == 0)
             {
                 _lblEstado.Text = "Seleccione al menos un telefono activo.";
+                _lblEstado.ForeColor = UiTheme.Advertencia;
                 return;
             }
 
@@ -161,6 +195,66 @@ namespace SimuladorTelefonico.UI
             pantallaPrincipal.Show();
 
             Hide();
+        }
+
+        private async Task AdministracionTelefonicaAsync()
+        {
+            using AdministracionTelefonicaForm form = new AdministracionTelefonicaForm();
+            form.ShowDialog(this);
+
+            _lblEstado.Text = "Actualizando catalogo despues de administracion...";
+            _lblEstado.ForeColor = UiTheme.TextoSecundario;
+
+            await Task.Run(AppConfig.RecargarCatalogoTelefonos);
+            RecargarOpciones();
+
+            _lblFuente.Text = AppConfig.FuenteDatosTelefonos;
+            _lblFuente.ForeColor = AppConfig.FuenteDatosTelefonos.Contains("reales", StringComparison.OrdinalIgnoreCase)
+                ? UiTheme.Exito
+                : UiTheme.Advertencia;
+            _lblEstado.Text = "Catalogo listo para seleccionar.";
+            _lblEstado.ForeColor = UiTheme.TextoSecundario;
+        }
+
+        private async void SeleccionTelefonoForm_Shown(object? sender, EventArgs e)
+        {
+            BeginInvoke(new Action(() =>
+            {
+                WindowState = FormWindowState.Normal;
+                BringToFront();
+                Activate();
+            }));
+
+            _lblEstado.Text = "Cargando catalogo real desde Identificador...";
+            _lblEstado.ForeColor = UiTheme.TextoSecundario;
+
+            await Task.Run(AppConfig.RecargarCatalogoTelefonos);
+
+            RecargarOpciones();
+            _lblFuente.Text = AppConfig.FuenteDatosTelefonos;
+            _lblFuente.ForeColor = AppConfig.FuenteDatosTelefonos.Contains("reales", StringComparison.OrdinalIgnoreCase)
+                ? UiTheme.Exito
+                : UiTheme.Advertencia;
+            _lblEstado.Text = "Catalogo listo para seleccionar.";
+            _lblEstado.ForeColor = UiTheme.TextoSecundario;
+        }
+
+        private void RecargarOpciones()
+        {
+            SuspendLayout();
+            _listaTelefonos.SuspendLayout();
+            _listaTelefonos.Controls.Clear();
+            _opcionesTelefono.Clear();
+
+            foreach (TelefonoVirtual telefono in AppConfig.TelefonosVirtuales)
+            {
+                CheckBox opcion = CrearOpcionTelefono(telefono);
+                _opcionesTelefono.Add(opcion);
+                _listaTelefonos.Controls.Add(opcion);
+            }
+
+            _listaTelefonos.ResumeLayout(true);
+            ResumeLayout(true);
         }
     }
 }

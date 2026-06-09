@@ -1,0 +1,8 @@
+{
+  "tipo_transaccion": "RESPUESTA_RECARGA_SALDO",
+  "resultado": {
+    "codigo": "OK",
+    "estado": "RECARGA_EXITOSA",
+    "mensaje": "Saldo recargado correctamente"
+  }
+}

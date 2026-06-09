@@ -1,0 +1,12 @@
+{
+  "tipo_transaccion": "REGISTRAR_TELEFONO",
+  "telefono": "60001111",
+  "sim": "5555555555555555555",
+  "imei": "555555555555555",
+  "tipo_servicio": "PREPAGO",
+  "proveedor_codigo": "CLARO",
+  "pais": "Nicaragua",
+  "saldo_inicial": 2500.00,
+  "activo": true,
+  "fecha_hora": "2026-06-09T10:10:00"
+}

@@ -16,6 +16,7 @@ CREATE TABLE telefonos (
     numero_cifrado VARCHAR(255) NOT NULL,
     proveedor_id INT NOT NULL,
     tipo_servicio VARCHAR(20) NOT NULL,
+    pais VARCHAR(80) NOT NULL DEFAULT 'Costa Rica',
     activo BOOLEAN NOT NULL DEFAULT TRUE,
     fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

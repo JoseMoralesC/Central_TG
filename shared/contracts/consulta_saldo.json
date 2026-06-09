@@ -5,6 +5,12 @@
 
   "identificador_dispositivo": "1234567891234567",
   "identificador_tarjeta": "1234567891234567891",
+  "ubicacion": {
+    "pais": "Costa Rica",
+    "provincia": "San Jose",
+    "latitud": 9.9281,
+    "longitud": -84.0907
+  },
 
   "fecha_hora": "2026-06-01T09:30:00"
 }

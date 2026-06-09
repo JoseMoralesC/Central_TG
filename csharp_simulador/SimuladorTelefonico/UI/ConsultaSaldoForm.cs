@@ -13,6 +13,7 @@ namespace SimuladorTelefonico.UI
     {
         private TextBox txtCodigoConsulta = null!;
         private Label lblEstado = null!;
+        private Label lblSaldo = null!;
         private Button btnConsultar = null!;
         private Button btnVolver = null!;
 
@@ -29,86 +30,97 @@ namespace SimuladorTelefonico.UI
         private void ConfigurarVentana()
         {
             Text = "Consultar saldo";
-            StartPosition = FormStartPosition.CenterParent;
-            Size = new Size(420, 520);
-            MinimumSize = new Size(420, 520);
-            MaximizeBox = false;
+            UiTheme.ConfigurarVentana(this, new Size(430, 500));
         }
 
         private void ConstruirFormulario()
         {
             Label titulo = new Label
             {
-                Text = "Consulta saldo",
-                Font = new Font("Segoe UI", 20, FontStyle.Bold),
+                Text = "Consulta de saldo",
+                Font = new Font("Segoe UI", 19, FontStyle.Bold),
+                ForeColor = UiTheme.Texto,
                 AutoSize = false,
                 TextAlign = ContentAlignment.MiddleCenter,
                 Dock = DockStyle.Top,
-                Height = 80
+                Height = 76
             };
 
-            Label lblCodigo = new Label
-            {
-                Text = "Ingrese el código de consulta:",
-                Font = new Font("Segoe UI", 11),
-                AutoSize = false,
-                TextAlign = ContentAlignment.MiddleCenter,
-                Top = 120,
-                Left = 30,
-                Width = 340,
-                Height = 30
-            };
+            Label lblTelefono = UiTheme.CrearEtiqueta(
+                $"Telefono: {AppConfig.NumeroOrigen}",
+                40,
+                82,
+                350,
+                24,
+                9.5f,
+                FontStyle.Bold,
+                UiTheme.TextoSecundario,
+                ContentAlignment.MiddleCenter);
+
+            Label lblCodigo = UiTheme.CrearEtiqueta(
+                "Codigo de consulta",
+                40,
+                128,
+                350,
+                24,
+                10.5f,
+                FontStyle.Regular,
+                UiTheme.TextoSecundario,
+                ContentAlignment.MiddleCenter);
 
             txtCodigoConsulta = new TextBox
             {
                 Font = new Font("Segoe UI", 18),
                 TextAlign = HorizontalAlignment.Center,
-                Top = 165,
-                Left = 60,
-                Width = 280,
+                Top = 158,
+                Left = 70,
+                Width = 290,
+                Height = 40,
                 Text = "#9090*",
                 MaxLength = 6
             };
 
-            btnConsultar = CrearBoton("Consultar saldo", 245);
-            btnVolver = CrearBoton("Volver", 310);
+            lblSaldo = UiTheme.CrearEtiqueta(
+                "Saldo pendiente de consulta",
+                40,
+                220,
+                350,
+                42,
+                15,
+                FontStyle.Bold,
+                UiTheme.Texto,
+                ContentAlignment.MiddleCenter);
 
-            lblEstado = new Label
-            {
-                Text = "Estado: esperando consulta.",
-                Font = new Font("Segoe UI", 10),
-                AutoSize = false,
-                TextAlign = ContentAlignment.MiddleCenter,
-                Top = 385,
-                Left = 30,
-                Width = 340,
-                Height = 60
-            };
+            btnConsultar = CrearBoton("Consultar saldo", 286, UiTheme.Primario);
+            btnVolver = CrearBoton("Volver", 338, Color.FromArgb(52, 60, 72));
 
-            btnConsultar.Click += async (s, e) =>
-                await ConsultarSaldoAsync();
+            lblEstado = UiTheme.CrearEtiqueta(
+                "Listo para consultar.",
+                40,
+                402,
+                350,
+                38,
+                9.5f,
+                FontStyle.Regular,
+                UiTheme.TextoSecundario,
+                ContentAlignment.MiddleCenter);
 
+            btnConsultar.Click += async (s, e) => await ConsultarSaldoAsync();
             btnVolver.Click += (s, e) => Close();
 
             Controls.Add(titulo);
+            Controls.Add(lblTelefono);
             Controls.Add(lblCodigo);
             Controls.Add(txtCodigoConsulta);
+            Controls.Add(lblSaldo);
             Controls.Add(btnConsultar);
             Controls.Add(btnVolver);
             Controls.Add(lblEstado);
         }
 
-        private Button CrearBoton(string texto, int top)
+        private Button CrearBoton(string texto, int top, Color color)
         {
-            return new Button
-            {
-                Text = texto,
-                Font = new Font("Segoe UI", 12, FontStyle.Bold),
-                Width = 260,
-                Height = 48,
-                Left = 75,
-                Top = top
-            };
+            return UiTheme.CrearBoton(texto, 70, top, 290, 42, color);
         }
 
         private async Task ConsultarSaldoAsync()
@@ -118,17 +130,18 @@ namespace SimuladorTelefonico.UI
             if (!ValidacionTelefono.EsCodigoConsultaSaldo(codigoConsulta))
             {
                 MessageBox.Show(
-                    "Para consultar saldo debe ingresar exactamente el código #9090*.",
-                    "Código inválido"
-                );
+                    "Para consultar saldo debe ingresar exactamente el codigo #9090*.",
+                    "Codigo invalido",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
 
                 return;
             }
 
             btnConsultar.Enabled = false;
-
-            lblEstado.Text =
-                "Estado: enviando consulta al Identificador Python...";
+            lblEstado.Text = "Consultando saldo con el Identificador...";
+            lblSaldo.Text = "Procesando...";
+            lblSaldo.ForeColor = UiTheme.Texto;
 
             ConsultaSaldo consulta = new ConsultaSaldo
             {
@@ -156,31 +169,26 @@ namespace SimuladorTelefonico.UI
                     DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss")
             };
 
-            string json =
-                _tramaService.ConvertirAJson(consulta);
-
-            string respuesta =
-                await _tramaService.EnviarTramaAsync(consulta);
-
-            string mensaje =
-                _respuestaService.ObtenerMensaje(respuesta);
+            string respuesta = await _tramaService.EnviarTramaAsync(consulta);
+            string mensaje = _respuestaService.ObtenerMensaje(respuesta);
 
             if (_respuestaService.EsRespuestaExitosa(respuesta))
             {
-                lblEstado.Text =
-                    $"Estado: {_respuestaService.ObtenerCodigo(respuesta)}\n" +
-                    $"Saldo: {_respuestaService.ObtenerSaldoTexto(respuesta)}";
+                if (_respuestaService.TryObtenerSaldoDecimal(respuesta, out decimal saldoActualizado))
+                {
+                    AppConfig.ActualizarSaldoTelefonoActual(saldoActualizado);
+                }
+
+                lblEstado.Text = $"{_respuestaService.ObtenerCodigo(respuesta)} - {mensaje}";
+                lblSaldo.Text = _respuestaService.ObtenerSaldoTexto(respuesta);
+                lblSaldo.ForeColor = UiTheme.Exito;
             }
             else
             {
-                lblEstado.Text =
-                    $"Estado: respuesta recibida.\n{mensaje}";
+                lblEstado.Text = mensaje;
+                lblSaldo.Text = "No disponible";
+                lblSaldo.ForeColor = UiTheme.Advertencia;
             }
-
-            MessageBox.Show(
-                $"Consulta enviada:\n\n{json}\n\nRespuesta:\n\n{respuesta}",
-                "Saldo"
-            );
 
             btnConsultar.Enabled = true;
         }

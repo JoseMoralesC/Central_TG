@@ -2,6 +2,7 @@
 from datetime import datetime
 from app.utils.crypto import desencriptar_aes
 from app.services.proveedor_cliente import enviar_al_proveedor
+from app.services.autorizacion_llamada import validar_coordenadas_costa_rica
 
 def consultar_saldo_proveedor(telefono_origen: str) -> dict:
     """
@@ -53,7 +54,7 @@ def procesar_consulta_saldo(trama_json: dict) -> dict:
     # Validar campos requeridos
     campos_requeridos = [
         "telefono_origen", "identificador_dispositivo", 
-        "identificador_tarjeta", "tipo_transaccion"
+        "identificador_tarjeta", "ubicacion", "tipo_transaccion"
     ]
     if not all(k in trama_json and trama_json[k] for k in campos_requeridos):
         return {
@@ -65,16 +66,20 @@ def procesar_consulta_saldo(trama_json: dict) -> dict:
             }
         }
 
-    # Desencriptar campos sensibles
-    try:
-        telefono_origen = desencriptar_aes(trama_json["telefono_origen"])
-        id_dispositivo = desencriptar_aes(trama_json["identificador_dispositivo"])
-        id_tarjeta = desencriptar_aes(trama_json["identificador_tarjeta"])
-    except Exception:
-        telefono_origen = trama_json["telefono_origen"]
-        id_dispositivo = trama_json["identificador_dispositivo"]
-        id_tarjeta = trama_json["identificador_tarjeta"]
-        print("[!] Advertencia: Usando datos en plano (sin desencriptar)")
+    # Desencriptar campos sensibles. Si AES falla, se rechaza la consulta.
+    telefono_origen = desencriptar_aes(trama_json["telefono_origen"])
+    id_dispositivo = desencriptar_aes(trama_json["identificador_dispositivo"])
+    id_tarjeta = desencriptar_aes(trama_json["identificador_tarjeta"])
+
+    if not telefono_origen or not id_dispositivo or not id_tarjeta:
+        return {
+            "tipo_transaccion": "RESPUESTA_SALDO",
+            "resultado": {
+                "codigo": "ERROR",
+                "estado": "CONSULTA_FALLIDA",
+                "mensaje": "Error de seguridad: no fue posible descifrar los datos sensibles"
+            }
+        }
 
     # Validar tipo de transacción
     tipo_tx = trama_json.get("tipo_transaccion")
@@ -88,12 +93,23 @@ def procesar_consulta_saldo(trama_json: dict) -> dict:
             }
         }
 
+    if not validar_coordenadas_costa_rica(trama_json.get("ubicacion", {})):
+        return {
+            "tipo_transaccion": "RESPUESTA_SALDO",
+            "resultado": {
+                "codigo": "UBICACION_INVALIDA",
+                "estado": "CONSULTA_FALLIDA",
+                "mensaje": "La ubicacion enviada no pertenece al territorio nacional permitido"
+            }
+        }
+
     # Validaciones contra MySQL (base de datos real)
     # NOTA: La BD almacena datos cifrados, se compara el valor cifrado directamente
     try:
         from app.database.repositorio import (
             buscar_telefono_por_numero_cifrado,
-            buscar_tarjeta_por_telefono_id
+            buscar_tarjeta_por_telefono_id,
+            buscar_dispositivo_por_telefono_id
         )
         
         # Buscar teléfono por su valor cifrado
@@ -132,6 +148,39 @@ def procesar_consulta_saldo(trama_json: dict) -> dict:
                     "codigo": "SIM_INVALIDA",
                     "estado": "CONSULTA_FALLIDA",
                     "mensaje": "La tarjeta SIM no corresponde al teléfono"
+                }
+            }
+
+        if not tarjeta.get("activa", True):
+            return {
+                "tipo_transaccion": "RESPUESTA_SALDO",
+                "resultado": {
+                    "codigo": "SIM_INVALIDA",
+                    "estado": "CONSULTA_FALLIDA",
+                    "mensaje": "La tarjeta SIM se encuentra inactiva"
+                }
+            }
+
+        dispositivo_cifrado = trama_json["identificador_dispositivo"]
+        dispositivo = buscar_dispositivo_por_telefono_id(telefono_id, dispositivo_cifrado)
+
+        if not dispositivo:
+            return {
+                "tipo_transaccion": "RESPUESTA_SALDO",
+                "resultado": {
+                    "codigo": "DISPOSITIVO_INVALIDO",
+                    "estado": "CONSULTA_FALLIDA",
+                    "mensaje": "El dispositivo no corresponde al telefono"
+                }
+            }
+
+        if not dispositivo.get("activo", True):
+            return {
+                "tipo_transaccion": "RESPUESTA_SALDO",
+                "resultado": {
+                    "codigo": "DISPOSITIVO_INVALIDO",
+                    "estado": "CONSULTA_FALLIDA",
+                    "mensaje": "El dispositivo se encuentra inactivo"
                 }
             }
 

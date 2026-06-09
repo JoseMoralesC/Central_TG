@@ -3,6 +3,9 @@
   "accion": "VERIFICAR_SALDO",
 
   "telefono_origen": "88889999",
+  "status": "OK",
+  "estado": "OK",
+  "mensaje": "Servicio autorizado por el proveedor",
 
   "resultado": {
     "codigo": "OK",

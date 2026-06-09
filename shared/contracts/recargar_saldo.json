@@ -1,0 +1,7 @@
+{
+  "tipo_transaccion": "RECARGAR_SALDO",
+  "accion": "RECARGAR_SALDO",
+  "telefono": "88889999",
+  "monto": 1000.00,
+  "fecha_hora": "2026-06-09T10:05:00"
+}

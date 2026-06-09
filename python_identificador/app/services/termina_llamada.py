@@ -3,6 +3,7 @@ import threading
 import time
 from datetime import datetime
 from app.config.config import settings
+from app.utils.crypto import desencriptar_aes
 from app.services.proveedor_cliente import enviar_al_proveedor
 from app.services.iniciar_llamada import (
     llamadas_activas, lock_llamadas, eliminar_llamada_activa
@@ -78,9 +79,14 @@ def verificar_llamadas_vencidas():
                         # (costo_por_minuto se obtendría del proveedor idealmente)
                         costo_por_minuto = 10.00
                         monto_estimado = (duracion / 60) * costo_por_minuto
+                        telefono_origen_plano = desencriptar_aes(llamada["telefono_origen"])
+
+                        if not telefono_origen_plano:
+                            print(f"[-] No se pudo descifrar telefono_origen para llamada vencida {llamada['id_llamada']}")
+                            continue
                         
                         enviar_procesar_cobro(
-                            telefono_origen=llamada["telefono_origen"],
+                            telefono_origen=telefono_origen_plano,
                             telefono_destino=llamada["telefono_destino"],
                             duracion_segundos=int(duracion),
                             monto_total=round(monto_estimado, 2),
@@ -120,9 +126,21 @@ def procesar_finalizacion_llamada(trama_json: dict) -> dict:
         
         id_llamada = datos_llamada.get("id_llamada", "")
         telefono_origen = datos_llamada.get("telefono_origen", "")
+        telefono_origen_plano = desencriptar_aes(telefono_origen)
         telefono_destino = datos_llamada.get("telefono_destino", "")
+        fecha_inicio = datos_llamada.get("fecha_inicio", "")
         duracion_segundos = datos_llamada.get("duracion_segundos", 0)
         motivo_finalizacion = datos_llamada.get("motivo_finalizacion", "FINALIZACION_MANUAL")
+
+        if not telefono_origen_plano:
+            return {
+                "tipo_transaccion": "RESPUESTA_FINALIZACION",
+                "resultado": {
+                    "codigo": "ERROR",
+                    "estado": "FALLIDO",
+                    "mensaje": "Error de seguridad: no fue posible descifrar los datos sensibles"
+                }
+            }
         
         tipo_servicio = datos_cobro.get("tipo_servicio", "PREPAGO")
         tipo_llamada = datos_cobro.get("tipo_llamada", "NACIONAL")
@@ -170,7 +188,7 @@ def procesar_finalizacion_llamada(trama_json: dict) -> dict:
         
         # Enviar al proveedor para procesar el cobro usando el contrato estándar
         respuesta_proveedor = enviar_procesar_cobro(
-            telefono_origen=telefono_origen,
+            telefono_origen=telefono_origen_plano,
             telefono_destino=telefono_destino,
             duracion_segundos=duracion_segundos,
             monto_total=float(monto_total),

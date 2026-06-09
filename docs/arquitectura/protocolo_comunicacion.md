@@ -113,6 +113,12 @@ Todas las tramas deben enviarse como texto JSON usando:
 UTF-8
 ```
 
+El contrato JSON integrado vigente del equipo se detalla en:
+
+```txt
+docs/arquitectura/contrato_json_integrado.md
+```
+
 ---
 
 ## Regla de cierre de mensaje

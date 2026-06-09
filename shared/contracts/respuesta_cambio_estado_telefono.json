@@ -1,0 +1,8 @@
+{
+  "tipo_transaccion": "RESPUESTA_CAMBIO_ESTADO_TELEFONO",
+  "resultado": {
+    "codigo": "OK",
+    "estado": "OK",
+    "mensaje": "Telefono desactivado correctamente"
+  }
+}

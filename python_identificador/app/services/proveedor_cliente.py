@@ -3,6 +3,19 @@ import socket
 import json
 from app.config.config import settings
 
+def _respuesta_error(mensaje: str) -> dict:
+    return {
+        "tipo_transaccion": "RESPUESTA_PROVEEDOR",
+        "status": "ERROR",
+        "estado": "ERROR",
+        "mensaje": mensaje,
+        "resultado": {
+            "codigo": "ERROR",
+            "estado": "ERROR",
+            "mensaje": mensaje
+        }
+    }
+
 def enviar_al_proveedor(trama_json: dict) -> dict:
     """
     Envía una trama JSON al Proveedor Java y espera su respuesta JSON.
@@ -37,19 +50,19 @@ def enviar_al_proveedor(trama_json: dict) -> dict:
         
         respuesta_str = respuesta.decode('utf-8').strip()
         if not respuesta_str:
-            return {"resultado": {"codigo": "ERROR", "mensaje": "Respuesta vacía del proveedor"}}
+            return _respuesta_error("Respuesta vacia del proveedor")
         
         return json.loads(respuesta_str)
         
     except socket.timeout:
         print("[-] Timeout conectando con el proveedor Java")
-        return {"resultado": {"codigo": "ERROR", "mensaje": "Timeout de conexión con el proveedor"}}
+        return _respuesta_error("Timeout de conexion con el proveedor")
     except json.JSONDecodeError:
         print(f"[-] Respuesta JSON inválida del proveedor: {respuesta_str}")
-        return {"resultado": {"codigo": "ERROR", "mensaje": "Respuesta inválida del proveedor"}}
+        return _respuesta_error("Respuesta invalida del proveedor")
     except ConnectionRefusedError:
         print("[-] Conexión rechazada por el proveedor Java")
-        return {"resultado": {"codigo": "ERROR", "mensaje": "Proveedor no disponible"}}
+        return _respuesta_error("Proveedor no disponible")
     except Exception as e:
         print(f"[-] Error de conexión con el proveedor: {e}")
-        return {"resultado": {"codigo": "ERROR", "mensaje": f"Error de conexión: {str(e)}"}}
+        return _respuesta_error(f"Error de conexion: {str(e)}")

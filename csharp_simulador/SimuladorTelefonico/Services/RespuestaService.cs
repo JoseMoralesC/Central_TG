@@ -186,6 +186,11 @@ namespace SimuladorTelefonico.Services
 
         public string ObtenerSaldoTexto(string respuesta)
         {
+            if (TryObtenerSaldoDecimal(respuesta, out decimal saldoDecimal))
+            {
+                return saldoDecimal.ToString("N2", CultureInfo.InvariantCulture) + " CRC";
+            }
+
             try
             {
                 using JsonDocument documento = JsonDocument.Parse(respuesta);
@@ -226,6 +231,51 @@ namespace SimuladorTelefonico.Services
             }
 
             return "No disponible";
+        }
+
+        public bool TryObtenerSaldoDecimal(string respuesta, out decimal saldo)
+        {
+            saldo = 0m;
+
+            if (string.IsNullOrWhiteSpace(respuesta) || EsErrorConexion(respuesta))
+            {
+                return false;
+            }
+
+            try
+            {
+                using JsonDocument documento = JsonDocument.Parse(respuesta);
+                JsonElement raiz = documento.RootElement;
+
+                if (raiz.TryGetProperty("datos_saldo", out JsonElement datosSaldo)
+                    && datosSaldo.TryGetProperty("saldo_disponible", out JsonElement saldoDisponible))
+                {
+                    return TryLeerDecimal(saldoDisponible, out saldo);
+                }
+
+                if (raiz.TryGetProperty("movimiento", out JsonElement movimiento)
+                    && movimiento.TryGetProperty("saldo_actual", out JsonElement saldoActual))
+                {
+                    return TryLeerDecimal(saldoActual, out saldo);
+                }
+
+                if (raiz.TryGetProperty("datos_autorizacion", out JsonElement datosAutorizacion)
+                    && datosAutorizacion.TryGetProperty("saldo_actual", out JsonElement saldoAutorizacion))
+                {
+                    return TryLeerDecimal(saldoAutorizacion, out saldo);
+                }
+
+                if (raiz.TryGetProperty("saldo", out JsonElement saldoRaiz))
+                {
+                    return TryLeerDecimal(saldoRaiz, out saldo);
+                }
+            }
+            catch
+            {
+                return false;
+            }
+
+            return false;
         }
 
         public RespuestaLlamada? ConvertirRespuestaLlamada(string respuestaJson)
@@ -277,6 +327,30 @@ namespace SimuladorTelefonico.Services
             }
 
             return monto.ToString();
+        }
+
+        private static bool TryLeerDecimal(JsonElement elemento, out decimal valor)
+        {
+            valor = 0m;
+
+            if (elemento.ValueKind == JsonValueKind.Number)
+            {
+                return elemento.TryGetDecimal(out valor);
+            }
+
+            if (elemento.ValueKind == JsonValueKind.String)
+            {
+                string? texto = elemento.GetString();
+
+                return decimal.TryParse(
+                    texto,
+                    NumberStyles.Number,
+                    CultureInfo.InvariantCulture,
+                    out valor
+                );
+            }
+
+            return false;
         }
     }
 }

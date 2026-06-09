@@ -38,7 +38,7 @@ namespace SimuladorTelefonico.Config
         public static bool CifradoSensiblesActivo { get; } =
             ObtenerBooleano("CSHARP_AES_ACTIVO", true);
 
-        public static List<TelefonoVirtual> TelefonosVirtuales { get; } =
+        public static List<TelefonoVirtual> TelefonosVirtuales { get; private set; } =
             TelefonoCatalogoService.CargarTelefonos();
 
         public static string FuenteDatosTelefonos =>
@@ -51,6 +51,32 @@ namespace SimuladorTelefonico.Config
         {
             TelefonoActual = TelefonosVirtuales.FirstOrDefault(t => t.Id == id)
                 ?? TelefonosVirtuales.First();
+        }
+
+        public static void RecargarCatalogoTelefonos()
+        {
+            List<TelefonoVirtual> telefonos = TelefonoCatalogoService.CargarTelefonos(
+                consultarBackend: true);
+
+            ActualizarCatalogoTelefonos(telefonos);
+        }
+
+        public static void ActualizarCatalogoTelefonos(List<TelefonoVirtual> telefonos)
+        {
+            if (telefonos.Count == 0)
+            {
+                return;
+            }
+
+            string idActual = TelefonoActual.Id;
+            TelefonosVirtuales = telefonos;
+            TelefonoActual = TelefonosVirtuales.FirstOrDefault(t => t.Id == idActual)
+                ?? TelefonosVirtuales.First();
+        }
+
+        public static void ActualizarSaldoTelefonoActual(decimal saldoDisponible)
+        {
+            TelefonoActual.SaldoDisponible = saldoDisponible;
         }
 
         public static string NumeroOrigen => TelefonoActual.Numero;

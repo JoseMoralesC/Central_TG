@@ -1,0 +1,8 @@
+{
+  "tipo_transaccion": "RESPUESTA_REGISTRO_TELEFONO",
+  "resultado": {
+    "codigo": "OK",
+    "estado": "TELEFONO_REGISTRADO",
+    "mensaje": "Telefono registrado correctamente"
+  }
+}

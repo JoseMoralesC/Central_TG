@@ -2,7 +2,7 @@
 import json
 import re
 from datetime import datetime
-from app.utils.crypto import desencriptar_aes
+from app.utils.crypto import desencriptar_aes, encriptar_aes
 from app.services.proveedor_cliente import enviar_al_proveedor
 
 def validar_coordenadas_costa_rica(ubicacion: dict) -> bool:
@@ -94,17 +94,20 @@ def procesar_autorizacion_llamada(trama_json: dict) -> dict:
             }
         }
 
-    # Desencriptar campos sensibles
-    try:
-        telefono_origen = desencriptar_aes(trama_json["telefono_origen"])
-        id_dispositivo = desencriptar_aes(trama_json["identificador_dispositivo"])
-        id_tarjeta = desencriptar_aes(trama_json["identificador_tarjeta"])
-    except Exception:
-        # Si falla desencriptación, usar valores planos (modo depuración)
-        telefono_origen = trama_json["telefono_origen"]
-        id_dispositivo = trama_json["identificador_dispositivo"]
-        id_tarjeta = trama_json["identificador_tarjeta"]
-        print("[!] Advertencia: Usando datos en plano (sin desencriptar)")
+    # Desencriptar campos sensibles. Si AES falla, se rechaza la solicitud.
+    telefono_origen = desencriptar_aes(trama_json["telefono_origen"])
+    id_dispositivo = desencriptar_aes(trama_json["identificador_dispositivo"])
+    id_tarjeta = desencriptar_aes(trama_json["identificador_tarjeta"])
+
+    if not telefono_origen or not id_dispositivo or not id_tarjeta:
+        return {
+            "tipo_transaccion": "RESPUESTA_LLAMADA",
+            "resultado": {
+                "codigo": "ERROR",
+                "estado": "RECHAZADA",
+                "mensaje": "Error de seguridad: no fue posible descifrar los datos sensibles"
+            }
+        }
 
     ubicacion = trama_json["ubicacion"]
     tipo_tx = trama_json["tipo_transaccion"]
@@ -231,6 +234,20 @@ def procesar_autorizacion_llamada(trama_json: dict) -> dict:
                     "mensaje": "El dispositivo no corresponde al teléfono registrado"
                 }
             }
+
+        if tipo_llamada != "INTERNACIONAL":
+            destino_cifrado = encriptar_aes(telefono_destino)
+            registro_destino = buscar_telefono_por_numero_cifrado(destino_cifrado)
+
+            if not registro_destino or not registro_destino.get("activo"):
+                return {
+                    "tipo_transaccion": "RESPUESTA_LLAMADA",
+                    "resultado": {
+                        "codigo": "ERROR",
+                        "estado": "RECHAZADA",
+                        "mensaje": "Telefono destino invalido o inactivo"
+                    }
+                }
 
     except Exception as db_err:
         print(f"[-] Error en consultas MySQL: {db_err}")

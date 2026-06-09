@@ -11,15 +11,25 @@ namespace SimuladorTelefonico.Services
     public static class TelefonoCatalogoService
     {
         private const string OrigenSeeds =
-            "Datos de prueba (scripts SQL de database)";
+            "Conexion activa";
 
         private const string OrigenMock =
-            "Mock local pendiente de conexion real";
+            "MySQL | SSMS Activos";
 
         public static string FuenteDatos { get; private set; } = OrigenSeeds;
 
-        public static List<TelefonoVirtual> CargarTelefonos()
+        public static List<TelefonoVirtual> CargarTelefonos(bool consultarBackend = false)
         {
+            if (consultarBackend)
+            {
+                List<TelefonoVirtual> catalogoReal = CargarTelefonosDesdeBackend();
+                if (catalogoReal.Count > 0)
+                {
+                    FuenteDatos = "Datos reales desde Python/Java";
+                    return catalogoReal;
+                }
+            }
+
             try
             {
                 string? raizRepositorio = BuscarRaizRepositorio();
@@ -95,6 +105,9 @@ namespace SimuladorTelefonico.Services
                         Numero = servicio.Numero,
                         Maquina = "Seed SQL",
                         Proveedor = proveedor,
+                        ProveedorCodigo = "XYZ",
+                        Pais = "Costa Rica",
+                        Nacionalidad = "NACIONAL",
                         IdentificadorTarjeta = LimpiarValorCifrado(sim?.Valor ?? string.Empty),
                         IdentificadorDispositivo = LimpiarValorCifrado(imei?.Valor ?? string.Empty),
                         TipoServicio = servicio.TipoServicio,
@@ -132,6 +145,19 @@ namespace SimuladorTelefonico.Services
             }
 
             return null;
+        }
+
+        private static List<TelefonoVirtual> CargarTelefonosDesdeBackend()
+        {
+            try
+            {
+                AdministracionTelefonicaService service = new();
+                return service.ConsultarCatalogoAsync().GetAwaiter().GetResult();
+            }
+            catch
+            {
+                return new List<TelefonoVirtual>();
+            }
         }
 
         private static List<ClienteSeed> LeerClientes(string sql)
@@ -303,6 +329,9 @@ namespace SimuladorTelefonico.Services
                     Cliente = "Datos de prueba",
                     Numero = "00000000",
                     Proveedor = "Mock",
+                    ProveedorCodigo = "MOCK",
+                    Pais = "Costa Rica",
+                    Nacionalidad = "NACIONAL",
                     IdentificadorTarjeta = "SIM-MOCK",
                     IdentificadorDispositivo = "IMEI-MOCK",
                     TipoServicio = "PREPAGO",

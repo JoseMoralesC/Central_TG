@@ -1,0 +1,24 @@
+{
+  "tipo_transaccion": "RESPUESTA_CATALOGO_TELEFONOS",
+  "resultado": {
+    "codigo": "OK",
+    "estado": "CATALOGO_OBTENIDO",
+    "mensaje": "Catalogo obtenido correctamente"
+  },
+  "telefonos": [
+    {
+      "id": "1",
+      "numero": "88889999",
+      "cliente": "Cliente Prepago Activo",
+      "proveedor": "Kolbi",
+      "proveedor_codigo": "KOLBI",
+      "pais": "Costa Rica",
+      "nacionalidad": "NACIONAL",
+      "tipo_servicio": "PREPAGO",
+      "saldo": "4900.00",
+      "sim": "1234567891234567891",
+      "imei": "1234567891234567",
+      "activo": true
+    }
+  ]
+}

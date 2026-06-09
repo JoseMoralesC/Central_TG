@@ -89,13 +89,36 @@ def procesar_inicio_llamada(trama_json: dict) -> dict:
         control = trama_json.get("control", {})
         
         # Validar campos requeridos
-        if not datos_llamada.get("id_llamada") or not datos_llamada.get("telefono_origen"):
+        campos_requeridos = [
+            "id_llamada",
+            "telefono_origen",
+            "identificador_dispositivo",
+            "identificador_tarjeta",
+            "telefono_destino",
+            "ubicacion"
+        ]
+
+        if not all(datos_llamada.get(campo) for campo in campos_requeridos):
             return {
                 "tipo_transaccion": "RESPUESTA_ERROR",
                 "resultado": {
                     "codigo": "ERROR",
                     "estado": "RECHAZADA",
                     "mensaje": "Datos de llamada incompletos"
+                }
+            }
+
+        telefono_plano = desencriptar_aes(datos_llamada["telefono_origen"])
+        dispositivo_plano = desencriptar_aes(datos_llamada["identificador_dispositivo"])
+        tarjeta_plano = desencriptar_aes(datos_llamada["identificador_tarjeta"])
+
+        if not telefono_plano or not dispositivo_plano or not tarjeta_plano:
+            return {
+                "tipo_transaccion": "RESPUESTA_ERROR",
+                "resultado": {
+                    "codigo": "ERROR",
+                    "estado": "RECHAZADA",
+                    "mensaje": "Error de seguridad: no fue posible descifrar los datos sensibles"
                 }
             }
         
