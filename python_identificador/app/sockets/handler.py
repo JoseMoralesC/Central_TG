@@ -23,6 +23,44 @@ def registrar_en_bitacora(trama, tipo="ENTRADA"):
             "trama": trama
         }
         cola_bitacora.put(registro)
+        
+        # También persistir en tabla bitacora_identificador (best-effort)
+        try:
+            from app.database.repositorio import (
+                insertar_bitacora,
+                buscar_telefono_por_numero_cifrado
+            )
+            import json as json_mod
+            
+            # Extraer telefono_origen para buscar telefono_id
+            telefono_origen = None
+            if isinstance(trama, dict):
+                telefono_origen = trama.get("telefono_origen")
+                # Para tramas anidadas (FINALIZAR_LLAMADA)
+                if not telefono_origen:
+                    datos_llamada = trama.get("datos_llamada", {})
+                    telefono_origen = datos_llamada.get("telefono_origen")
+            
+            telefono_id = None
+            if telefono_origen:
+                tel = buscar_telefono_por_numero_cifrado(telefono_origen)
+                if tel:
+                    telefono_id = tel["telefono_id"]
+            
+            tipo_tx = ""
+            if isinstance(trama, dict):
+                tipo_tx = trama.get("tipo_transaccion", "")
+            
+            contenido = json_mod.dumps(trama) if isinstance(trama, dict) else str(trama)
+            
+            insertar_bitacora(
+                telefono_id=telefono_id,
+                tipo_transaccion=tipo_tx,
+                tipo_trama=tipo,
+                contenido_json=contenido
+            )
+        except Exception:
+            pass  # El archivo de texto es la fuente primaria
     except Exception as e:
         print(f"[Bitácora] Error encolando registro: {e}")
 
