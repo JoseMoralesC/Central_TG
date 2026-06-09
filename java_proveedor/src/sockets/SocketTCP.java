@@ -18,6 +18,7 @@ public class SocketTCP
         //Cada que entre un nuevo cliente, va a ser atendido por un nuevo hilo
         try (ServerSocket serverSocket = new ServerSocket(puerto);)
         {
+            System.out.println("[Proveedor] Escuchando en 127.0.0.1:" + puerto);
             while (true)
             {
                 Socket clienteSocket = serverSocket.accept();
