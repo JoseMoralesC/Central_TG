@@ -110,19 +110,29 @@ namespace SimuladorTelefonico.Services
 
                 foreach (JsonElement item in items.EnumerateArray())
                 {
-                    string numero = LeerTexto(item, "numero");
+                    string pais = LeerTexto(item, "pais", "Costa Rica");
+                    string numero = TelefonoCatalogoService.NormalizarNumeroVisible(
+                        LeerTexto(item, "numero"),
+                        pais);
                     if (string.IsNullOrWhiteSpace(numero))
                     {
                         continue;
                     }
 
-                    string pais = LeerTexto(item, "pais", "Costa Rica");
                     string nacionalidad = LeerTexto(
                         item,
                         "nacionalidad",
                         pais.Equals("Costa Rica", StringComparison.OrdinalIgnoreCase)
                             ? "NACIONAL"
                             : "EXTRANJERO");
+                    string codigoArea = LeerTexto(
+                        item,
+                        "codigo_area",
+                        TelefonoCatalogoService.ObtenerCodigoArea(pais));
+                    string tipoLlamada = LeerTexto(
+                        item,
+                        "tipo_llamada",
+                        TelefonoCatalogoService.ObtenerTipoLlamada(pais, nacionalidad));
 
                     telefonos.Add(new TelefonoVirtual
                     {
@@ -133,11 +143,12 @@ namespace SimuladorTelefonico.Services
                         Proveedor = LeerTexto(item, "proveedor", "Proveedor no disponible"),
                         ProveedorCodigo = LeerTexto(item, "proveedor_codigo", ""),
                         Pais = pais,
+                        CodigoArea = codigoArea,
                         Nacionalidad = nacionalidad,
                         IdentificadorTarjeta = LeerTexto(item, "sim", ""),
                         IdentificadorDispositivo = LeerTexto(item, "imei", ""),
                         TipoServicio = LeerTexto(item, "tipo_servicio", "PREPAGO"),
-                        TipoLlamada = nacionalidad,
+                        TipoLlamada = tipoLlamada,
                         SaldoDisponible = LeerDecimal(item, "saldo"),
                         Activo = LeerBooleano(item, "activo", true),
                         OrigenDatos = "Socket C# -> Python -> Java"

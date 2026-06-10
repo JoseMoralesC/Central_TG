@@ -21,6 +21,7 @@ def listar_telefonos_catalogo() -> list[dict]:
             SELECT
                 t.telefono_id,
                 t.numero_cifrado,
+                t.proveedor_id,
                 t.tipo_servicio,
                 t.activo,
                 COALESCE(t.pais, 'Costa Rica') AS pais,
@@ -181,7 +182,8 @@ def existe_telefono_catalogo(numero_plano: str) -> bool:
     from app.utils.crypto import desencriptar_aes
 
     for item in listar_telefonos_catalogo():
-        if desencriptar_aes(item.get("numero_cifrado", "")) == numero_plano:
+        numero_catalogo = desencriptar_aes(item.get("numero_cifrado", ""))
+        if _normalizar_numero(numero_catalogo) == _normalizar_numero(numero_plano):
             return True
 
     return False
@@ -216,12 +218,37 @@ def buscar_telefono_por_numero_cifrado(numero_cifrado: str) -> Optional[dict]:
         cursor.execute(query, (numero_cifrado,))
         resultado = cursor.fetchone()
         cursor.close()
-        return resultado
+        return resultado or buscar_telefono_por_numero_limpio(numero_cifrado)
     except Exception as e:
         print(f"[DB Error] buscar_telefono_por_numero_cifrado: {e}")
-        return None
+        return buscar_telefono_por_numero_limpio(numero_cifrado)
     finally:
         cerrar_conexion(conn)
+
+def buscar_telefono_por_numero_limpio(numero_cifrado_o_plano: str) -> Optional[dict]:
+    """
+    Resuelve telefonos por numero visible limpio. Esto cubre filas historicas
+    que hayan quedado cifradas con codigo de area, sin exigir ese prefijo en UI.
+    """
+    from app.utils.crypto import desencriptar_aes
+
+    numero_plano = desencriptar_aes(numero_cifrado_o_plano) or numero_cifrado_o_plano
+    numero_limpio = _normalizar_numero(numero_plano)
+
+    if not numero_limpio:
+        return None
+
+    for item in listar_telefonos_catalogo():
+        numero_catalogo = desencriptar_aes(item.get("numero_cifrado", ""))
+
+        if _normalizar_numero(numero_catalogo) == numero_limpio:
+            return item
+
+    return None
+
+def _normalizar_numero(numero: str) -> str:
+    solo_digitos = "".join(ch for ch in str(numero or "") if ch.isdigit())
+    return solo_digitos[-8:] if len(solo_digitos) > 8 else solo_digitos
 
 def buscar_tarjeta_por_telefono_id(telefono_id: int, identificador_cifrado: str) -> Optional[dict]:
     """

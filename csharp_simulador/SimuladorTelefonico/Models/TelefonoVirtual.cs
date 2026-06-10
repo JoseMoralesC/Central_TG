@@ -13,6 +13,7 @@ namespace SimuladorTelefonico.Models
         public string Proveedor { get; set; } = string.Empty;
         public string ProveedorCodigo { get; set; } = string.Empty;
         public string Pais { get; set; } = "Costa Rica";
+        public string CodigoArea { get; set; } = string.Empty;
         public string Nacionalidad { get; set; } = "NACIONAL";
         public string Cliente { get; set; } = string.Empty;
         public decimal SaldoDisponible { get; set; }

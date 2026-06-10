@@ -184,6 +184,40 @@ namespace SimuladorTelefonico.Services
             return valorPorDefecto;
         }
 
+        public decimal ObtenerCostoPorMinuto(string respuesta, decimal valorPorDefecto)
+        {
+            if (string.IsNullOrWhiteSpace(respuesta) || EsErrorConexion(respuesta))
+            {
+                return valorPorDefecto;
+            }
+
+            try
+            {
+                using JsonDocument documento = JsonDocument.Parse(respuesta);
+                JsonElement raiz = documento.RootElement;
+
+                if (raiz.TryGetProperty("datos_llamada", out JsonElement datosLlamada)
+                    && datosLlamada.TryGetProperty("costo_por_minuto", out JsonElement costoLlamada)
+                    && TryLeerDecimal(costoLlamada, out decimal costoDesdeLlamada))
+                {
+                    return costoDesdeLlamada;
+                }
+
+                if (raiz.TryGetProperty("datos_autorizacion", out JsonElement datosAutorizacion)
+                    && datosAutorizacion.TryGetProperty("costo_por_minuto", out JsonElement costoAutorizacion)
+                    && TryLeerDecimal(costoAutorizacion, out decimal costoDesdeAutorizacion))
+                {
+                    return costoDesdeAutorizacion;
+                }
+            }
+            catch
+            {
+                return valorPorDefecto;
+            }
+
+            return valorPorDefecto;
+        }
+
         public string ObtenerSaldoTexto(string respuesta)
         {
             if (TryObtenerSaldoDecimal(respuesta, out decimal saldoDecimal))

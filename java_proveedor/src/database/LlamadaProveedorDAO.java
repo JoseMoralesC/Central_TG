@@ -38,8 +38,12 @@ public class LlamadaProveedorDAO
 
                 if (esPrepago(servicio)) {
                     if (saldoAnterior.compareTo(montoTotal) < 0) {
-                        conn.rollback();
-                        return ResultadoRegistro.error("Saldo insuficiente para registrar el rebajo");
+                        if (esCierrePorSaldoAgotado(motivoFinalizacion)) {
+                            montoTotal = saldoAnterior;
+                        } else {
+                            conn.rollback();
+                            return ResultadoRegistro.error("Saldo insuficiente para registrar el rebajo");
+                        }
                     }
 
                     saldoPosterior = saldoAnterior.subtract(montoTotal);
@@ -184,6 +188,11 @@ public class LlamadaProveedorDAO
     private boolean esPrepago(Servicio servicio)
     {
         return "PREPAGO".equalsIgnoreCase(servicio.getTipoServicio());
+    }
+
+    private boolean esCierrePorSaldoAgotado(String motivoFinalizacion)
+    {
+        return "SALDO_AGOTADO".equalsIgnoreCase(motivoFinalizacion);
     }
 
     private String formatearDuracion(int duracionSegundos)

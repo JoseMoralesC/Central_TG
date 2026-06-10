@@ -14,12 +14,15 @@ namespace SimuladorTelefonico.UI
         private readonly DateTime _inicioLlamada;
         private readonly string _idLlamada;
         private readonly int _tiempoMaximoSegundos;
+        private readonly string _tipoLlamadaDestino;
+        private readonly decimal _costoPorMinuto;
 
         private Label lblDuracion = null!;
         private Label lblEstado = null!;
         private Label lblCosto = null!;
         private Button btnFinalizar = null!;
         private System.Windows.Forms.Timer timer = null!;
+        private bool _finalizacionEnCurso;
 
         private readonly TramaService _tramaService = new();
         private readonly RespuestaService _respuestaService = new();
@@ -28,18 +31,27 @@ namespace SimuladorTelefonico.UI
         public LlamadaActivaForm(
             string numeroDestino,
             string idLlamada,
-            int tiempoMaximoSegundos)
+            int tiempoMaximoSegundos,
+            string tipoLlamadaDestino,
+            decimal costoPorMinuto)
         {
             _numeroDestino = numeroDestino;
             _inicioLlamada = DateTime.Now;
             _idLlamada = idLlamada;
             _tiempoMaximoSegundos = tiempoMaximoSegundos;
+            _tipoLlamadaDestino = string.IsNullOrWhiteSpace(tipoLlamadaDestino)
+                ? AppConfig.TipoLlamada
+                : tipoLlamadaDestino;
+            _costoPorMinuto = costoPorMinuto > 0
+                ? costoPorMinuto
+                : AppConfig.CostoPorMinuto;
 
             ConfigurarVentana();
             ConstruirFormulario();
             IniciarTemporizador();
 
             Shown += async (s, e) => await EnviarInicioLlamadaAsync();
+            FormClosed += (s, e) => LiberarTemporizador();
         }
 
         private void ConfigurarVentana()
@@ -95,7 +107,7 @@ namespace SimuladorTelefonico.UI
                 ContentAlignment.MiddleCenter);
 
             lblCosto = UiTheme.CrearEtiqueta(
-                $"Costo estimado: {AppConfig.CostoPorMinuto:N2} {AppConfig.Moneda} por minuto",
+                $"Costo estimado: {_costoPorMinuto:N2} {AppConfig.Moneda} por minuto",
                 48,
                 270,
                 364,
@@ -142,10 +154,17 @@ namespace SimuladorTelefonico.UI
                 Interval = 1000
             };
 
-            timer.Tick += (s, e) =>
+            timer.Tick += async (s, e) =>
             {
                 TimeSpan duracion = DateTime.Now - _inicioLlamada;
                 lblDuracion.Text = duracion.ToString(@"hh\:mm\:ss");
+
+                if (_tiempoMaximoSegundos > 0
+                    && duracion.TotalSeconds >= _tiempoMaximoSegundos
+                    && !_finalizacionEnCurso)
+                {
+                    await FinalizarLlamadaAsync("SALDO_AGOTADO");
+                }
             };
 
             timer.Start();
@@ -212,20 +231,28 @@ namespace SimuladorTelefonico.UI
             lblEstado.ForeColor = UiTheme.Exito;
         }
 
-        private async Task FinalizarLlamadaAsync()
+        private async Task FinalizarLlamadaAsync(string motivoFinalizacion = "FINALIZACION_MANUAL")
         {
+            if (_finalizacionEnCurso)
+            {
+                return;
+            }
+
+            _finalizacionEnCurso = true;
             btnFinalizar.Enabled = false;
             timer.Stop();
 
             DateTime fechaFin = DateTime.Now;
             TimeSpan duracion = fechaFin - _inicioLlamada;
+            bool cierrePorSaldoAgotado =
+                motivoFinalizacion.Equals("SALDO_AGOTADO", StringComparison.OrdinalIgnoreCase);
 
-            int duracionSegundos = (int)duracion.TotalSeconds;
+            int duracionSegundos = CalcularDuracionSegundos(duracion, cierrePorSaldoAgotado);
             int duracionMinutos = Math.Max(
                 1,
-                (int)Math.Ceiling(duracion.TotalMinutes));
+                (int)Math.Ceiling(duracionSegundos / 60.0));
 
-            decimal montoTotal = duracionMinutos * AppConfig.CostoPorMinuto;
+            decimal montoTotal = CalcularMontoTotal(duracionMinutos, cierrePorSaldoAgotado);
 
             FinalizarLlamada finalizar = new FinalizarLlamada
             {
@@ -252,14 +279,14 @@ namespace SimuladorTelefonico.UI
                     FechaFin = fechaFin.ToString("yyyy-MM-ddTHH:mm:ss"),
                     DuracionSegundos = duracionSegundos,
                     DuracionMinutos = duracionMinutos,
-                    MotivoFinalizacion = "FINALIZACION_MANUAL"
+                    MotivoFinalizacion = motivoFinalizacion
                 },
 
                 DatosCobro = new DatosCobroLlamada
                 {
                     TipoServicio = AppConfig.TipoServicio,
-                    TipoLlamada = AppConfig.TipoLlamada,
-                    CostoPorMinuto = AppConfig.CostoPorMinuto,
+                    TipoLlamada = _tipoLlamadaDestino,
+                    CostoPorMinuto = _costoPorMinuto,
                     MontoTotal = montoTotal,
                     Moneda = AppConfig.Moneda
                 }
@@ -290,13 +317,54 @@ namespace SimuladorTelefonico.UI
                 AppConfig.ActualizarSaldoTelefonoActual(saldoActualizado);
             }
 
+            string motivoMensaje = cierrePorSaldoAgotado
+                ? "La llamada finalizo porque se agoto el saldo disponible."
+                : "Llamada finalizada correctamente.";
+
             MessageBox.Show(
-                $"Llamada finalizada correctamente.\nDuracion cobrada: {duracionMinutos} minuto(s).\nMonto: {montoTotal:N2} {AppConfig.Moneda}.\nSaldo actual: {UiTheme.FormatearSaldo(AppConfig.TipoServicio, AppConfig.TelefonoActual.SaldoDisponible)}",
+                $"{motivoMensaje}\nDuracion cobrada: {duracionMinutos} minuto(s).\nMonto: {montoTotal:N2} {AppConfig.Moneda}.\nSaldo actual: {UiTheme.FormatearSaldo(AppConfig.TipoServicio, AppConfig.TelefonoActual.SaldoDisponible)}",
                 "Llamada finalizada",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
 
             Close();
+        }
+
+        private decimal CalcularMontoTotal(int duracionMinutos, bool cierrePorSaldoAgotado)
+        {
+            decimal montoCalculado = duracionMinutos * _costoPorMinuto;
+
+            if (!cierrePorSaldoAgotado
+                || !AppConfig.TipoServicio.Equals("PREPAGO", StringComparison.OrdinalIgnoreCase))
+            {
+                return montoCalculado;
+            }
+
+            decimal saldoDisponible = Math.Max(0, AppConfig.TelefonoActual.SaldoDisponible);
+            return Math.Min(montoCalculado, saldoDisponible);
+        }
+
+        private int CalcularDuracionSegundos(TimeSpan duracion, bool cierrePorSaldoAgotado)
+        {
+            int segundosReales = Math.Max(0, (int)Math.Ceiling(duracion.TotalSeconds));
+
+            if (!cierrePorSaldoAgotado || _tiempoMaximoSegundos <= 0)
+            {
+                return segundosReales;
+            }
+
+            return Math.Min(segundosReales, _tiempoMaximoSegundos);
+        }
+
+        private void LiberarTemporizador()
+        {
+            if (timer == null)
+            {
+                return;
+            }
+
+            timer.Stop();
+            timer.Dispose();
         }
     }
 }

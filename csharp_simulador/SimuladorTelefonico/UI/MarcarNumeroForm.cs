@@ -15,13 +15,26 @@ namespace SimuladorTelefonico.UI
         private Button btnSolicitarLlamada = null!;
         private Button btnVolver = null!;
         private Label lblEstado = null!;
+        private readonly string _numeroDestinoInicial;
+        private readonly string _paisDestinoInicial;
+        private readonly string _tipoLlamadaDestinoInicial;
 
         private readonly TramaService _tramaService = new();
         private readonly RespuestaService _respuestaService = new();
         private readonly CryptoService _cryptoService = new();
 
-        public MarcarNumeroForm()
+        public MarcarNumeroForm(
+            string numeroDestinoInicial = "",
+            string paisDestinoInicial = "",
+            string tipoLlamadaDestinoInicial = "")
         {
+            _numeroDestinoInicial = TelefonoCatalogoService.NormalizarNumeroVisible(
+                numeroDestinoInicial,
+                paisDestinoInicial);
+            _paisDestinoInicial = paisDestinoInicial;
+            _tipoLlamadaDestinoInicial = string.IsNullOrWhiteSpace(tipoLlamadaDestinoInicial)
+                ? TelefonoCatalogoService.ObtenerTipoLlamada(paisDestinoInicial, "")
+                : tipoLlamadaDestinoInicial;
             ConfigurarVentana();
             ConstruirFormulario();
         }
@@ -48,7 +61,18 @@ namespace SimuladorTelefonico.UI
             Label lblOrigen = UiTheme.CrearEtiqueta(
                 $"Origen: {AppConfig.NumeroOrigen}",
                 40,
-                82,
+                78,
+                350,
+                24,
+                9.5f,
+                FontStyle.Bold,
+                UiTheme.TextoSecundario,
+                ContentAlignment.MiddleCenter);
+
+            Label lblPaisDestino = UiTheme.CrearEtiqueta(
+                ObtenerTextoPaisDestino(),
+                40,
+                104,
                 350,
                 24,
                 9.5f,
@@ -59,7 +83,7 @@ namespace SimuladorTelefonico.UI
             Label instruccion = UiTheme.CrearEtiqueta(
                 "Numero destino",
                 40,
-                128,
+                130,
                 350,
                 24,
                 10.5f,
@@ -71,7 +95,7 @@ namespace SimuladorTelefonico.UI
             {
                 Font = new Font("Segoe UI", 18),
                 TextAlign = HorizontalAlignment.Center,
-                Top = 158,
+                Top = 160,
                 Left = 70,
                 Width = 290,
                 Height = 40,
@@ -108,17 +132,35 @@ namespace SimuladorTelefonico.UI
 
             Controls.Add(titulo);
             Controls.Add(lblOrigen);
+            Controls.Add(lblPaisDestino);
             Controls.Add(instruccion);
             Controls.Add(txtNumeroDestino);
             Controls.Add(lblAyuda);
             Controls.Add(btnSolicitarLlamada);
             Controls.Add(btnVolver);
             Controls.Add(lblEstado);
+
+            if (!string.IsNullOrWhiteSpace(_numeroDestinoInicial))
+            {
+                txtNumeroDestino.Text = _numeroDestinoInicial;
+                txtNumeroDestino.SelectAll();
+                lblEstado.Text = "Numero destino cargado desde contactos.";
+            }
         }
 
         private Button CrearBoton(string texto, int top, Color color)
         {
             return UiTheme.CrearBoton(texto, 70, top, 290, 42, color);
+        }
+
+        private string ObtenerTextoPaisDestino()
+        {
+            if (string.IsNullOrWhiteSpace(_paisDestinoInicial))
+            {
+                return "Pais destino: pendiente";
+            }
+
+            return $"Pais destino: {_paisDestinoInicial}";
         }
 
         private async Task SolicitarLlamadaAsync()
@@ -162,7 +204,7 @@ namespace SimuladorTelefonico.UI
                 IdentificadorTarjeta =
                     _cryptoService.CifrarDatoSensible(AppConfig.IdentificadorTarjeta),
 
-                TipoLlamada = AppConfig.TipoLlamada,
+                TipoLlamada = ObtenerTipoLlamadaDestino(),
 
                 FechaHora = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss"),
 
@@ -184,6 +226,8 @@ namespace SimuladorTelefonico.UI
             {
                 int tiempoMaximoSegundos =
                     _respuestaService.ObtenerTiempoMaximoSegundos(respuesta, 1800);
+                decimal costoPorMinuto =
+                    _respuestaService.ObtenerCostoPorMinuto(respuesta, AppConfig.CostoPorMinuto);
 
                 string idLlamada =
                     _respuestaService.ObtenerIdLlamada(
@@ -194,7 +238,9 @@ namespace SimuladorTelefonico.UI
                     new LlamadaActivaForm(
                         numeroDestino,
                         idLlamada,
-                        tiempoMaximoSegundos);
+                        tiempoMaximoSegundos,
+                        ObtenerTipoLlamadaDestino(),
+                        costoPorMinuto);
 
                 llamada.ShowDialog(this);
                 Close();
@@ -208,6 +254,13 @@ namespace SimuladorTelefonico.UI
                 MessageBoxIcon.Warning);
 
             btnSolicitarLlamada.Enabled = true;
+        }
+
+        private string ObtenerTipoLlamadaDestino()
+        {
+            return string.IsNullOrWhiteSpace(_tipoLlamadaDestinoInicial)
+                ? AppConfig.TipoLlamada
+                : _tipoLlamadaDestinoInicial;
         }
     }
 }

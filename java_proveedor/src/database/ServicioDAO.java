@@ -24,7 +24,8 @@ public class ServicioDAO {
             "FROM servicios s " +
             "LEFT JOIN saldos sa ON s.servicio_id = sa.servicio_id " +
             "LEFT JOIN tarifas t ON t.tipo_llamada = ? " +
-            "WHERE s.numero_telefono = ?";
+            "WHERE s.numero_telefono = ? " +
+            "OR RIGHT(REPLACE(s.numero_telefono, '+', ''), 8) = ?";
 
         try (
             Connection conn = ConexionSQL.getConexion();
@@ -32,6 +33,7 @@ public class ServicioDAO {
         ) {
             ps.setString(1, tipoDestino);
             ps.setString(2, numeroTelefono);
+            ps.setString(3, ultimosOchoDigitos(numeroTelefono));
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -72,17 +74,25 @@ public class ServicioDAO {
             "SELECT s.servicio_id, s.cliente_id, c.nombre AS cliente_nombre, " +
             "s.numero_telefono, s.tipo_servicio, s.activo, " +
             "COALESCE(s.proveedor_codigo, 'KOLBI') AS proveedor_codigo, " +
-            "COALESCE(sa.saldo_disponible, 0) AS saldo_disponible " +
+            "COALESCE(sa.saldo_disponible, 0) AS saldo_disponible, " +
+            "COALESCE(p.nombre, 'Costa Rica') AS pais, " +
+            "COALESCE(p.codigo_area, '+506') AS codigo_area, " +
+            "COALESCE(p.clasificacion, 'NACIONAL') AS nacionalidad, " +
+            "COALESCE(t.tipo_llamada, CASE WHEN COALESCE(p.clasificacion, 'NACIONAL') = 'NACIONAL' THEN 'NACIONAL' ELSE 'INTERNACIONAL' END) AS tipo_llamada " +
             "FROM servicios s " +
             "JOIN clientes c ON c.cliente_id = s.cliente_id " +
             "LEFT JOIN saldos sa ON s.servicio_id = sa.servicio_id " +
-            "WHERE s.numero_telefono = ?";
+            "LEFT JOIN paises p ON p.pais_id = s.pais_id " +
+            "LEFT JOIN tarifas t ON t.pais_id = p.pais_id AND t.activa = 1 " +
+            "WHERE s.numero_telefono = ? " +
+            "OR RIGHT(REPLACE(s.numero_telefono, '+', ''), 8) = ?";
 
         try (
             Connection conn = ConexionSQL.getConexion();
             PreparedStatement ps = conn.prepareStatement(sql)
         ) {
             ps.setString(1, numeroTelefono);
+            ps.setString(2, ultimosOchoDigitos(numeroTelefono));
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -95,6 +105,10 @@ public class ServicioDAO {
                         + "\"activo\":" + rs.getBoolean("activo") + ","
                         + "\"proveedor_codigo\":\"" + sanitizar(codigo) + "\","
                         + "\"proveedor\":\"" + sanitizar(nombreProveedor(codigo)) + "\","
+                        + "\"pais\":\"" + sanitizar(rs.getString("pais")) + "\","
+                        + "\"codigo_area\":\"" + sanitizar(rs.getString("codigo_area")) + "\","
+                        + "\"nacionalidad\":\"" + sanitizar(rs.getString("nacionalidad")) + "\","
+                        + "\"tipo_llamada\":\"" + sanitizar(rs.getString("tipo_llamada")) + "\","
                         + "\"saldo\":\"" + rs.getBigDecimal("saldo_disponible").toString() + "\""
                         + "}";
                 }
@@ -115,7 +129,8 @@ public class ServicioDAO {
             "sa.fecha_actualizacion = GETDATE() " +
             "FROM saldos sa " +
             "JOIN servicios s ON s.servicio_id = sa.servicio_id " +
-            "WHERE s.numero_telefono = ?";
+            "WHERE s.numero_telefono = ? " +
+            "OR RIGHT(REPLACE(s.numero_telefono, '+', ''), 8) = ?";
 
         try (
             Connection conn = ConexionSQL.getConexion();
@@ -123,6 +138,7 @@ public class ServicioDAO {
         ) {
             ps.setBigDecimal(1, monto);
             ps.setString(2, numeroTelefono);
+            ps.setString(3, ultimosOchoDigitos(numeroTelefono));
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
             ultimoError = e.getMessage();
@@ -135,7 +151,9 @@ public class ServicioDAO {
         ultimoError = "";
 
         String sql =
-            "UPDATE servicios SET activo = ? WHERE numero_telefono = ?";
+            "UPDATE servicios SET activo = ? " +
+            "WHERE numero_telefono = ? " +
+            "OR RIGHT(REPLACE(numero_telefono, '+', ''), 8) = ?";
 
         try (
             Connection conn = ConexionSQL.getConexion();
@@ -143,6 +161,7 @@ public class ServicioDAO {
         ) {
             ps.setBoolean(1, activo);
             ps.setString(2, numeroTelefono);
+            ps.setString(3, ultimosOchoDigitos(numeroTelefono));
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
             ultimoError = e.getMessage();
@@ -252,13 +271,17 @@ public class ServicioDAO {
     }
 
     private boolean existeTelefono(String numeroTelefono) {
-        String sql = "SELECT COUNT(1) AS total FROM servicios WHERE numero_telefono = ?";
+        String sql =
+            "SELECT COUNT(1) AS total FROM servicios " +
+            "WHERE numero_telefono = ? " +
+            "OR RIGHT(REPLACE(numero_telefono, '+', ''), 8) = ?";
 
         try (
             Connection conn = ConexionSQL.getConexion();
             PreparedStatement ps = conn.prepareStatement(sql)
         ) {
             ps.setString(1, numeroTelefono);
+            ps.setString(2, ultimosOchoDigitos(numeroTelefono));
 
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next() && rs.getInt("total") > 0;
@@ -289,6 +312,20 @@ public class ServicioDAO {
             default:
                 return codigo;
         }
+    }
+
+    private String ultimosOchoDigitos(String numeroTelefono) {
+        if (numeroTelefono == null) {
+            return "";
+        }
+
+        String soloDigitos = numeroTelefono.replaceAll("\\D", "");
+
+        if (soloDigitos.length() <= 8) {
+            return soloDigitos;
+        }
+
+        return soloDigitos.substring(soloDigitos.length() - 8);
     }
 
     private String sanitizar(String texto) {

@@ -7,6 +7,13 @@ from app.database.repositorio import (
 from app.services.proveedor_cliente import enviar_al_proveedor
 from app.utils.crypto import desencriptar_aes, encriptar_aes
 
+PAISES = {
+    "costa rica": ("+506", "NACIONAL"),
+    "panama": ("+507", "INTERNACIONAL_PA"),
+    "mexico": ("+52", "INTERNACIONAL_MX"),
+    "francia": ("+33", "INTERNACIONAL_FR"),
+}
+
 def procesar_catalogo_telefonos(_: dict) -> dict:
     telefonos = []
 
@@ -27,15 +34,18 @@ def procesar_catalogo_telefonos(_: dict) -> dict:
         detalle_tel = detalle.get("telefono", {})
         pais = item.get("pais") or "Costa Rica"
         nacionalidad = "NACIONAL" if pais.lower() == "costa rica" else "EXTRANJERO"
+        codigo_area, tipo_llamada = _datos_pais(pais)
 
         telefonos.append({
             "id": f"TEL-{item.get('telefono_id')}",
-            "numero": numero,
+            "numero": _normalizar_numero_visible(numero, pais),
             "cliente": detalle_tel.get("cliente", f"Telefono {numero}"),
             "proveedor": detalle_tel.get("proveedor", item.get("proveedor_nombre", "")),
             "proveedor_codigo": detalle_tel.get("proveedor_codigo", item.get("proveedor_codigo", "")),
             "pais": pais,
+            "codigo_area": detalle_tel.get("codigo_area", codigo_area),
             "nacionalidad": nacionalidad,
+            "tipo_llamada": detalle_tel.get("tipo_llamada", tipo_llamada),
             "tipo_servicio": detalle_tel.get("tipo_servicio", item.get("tipo_servicio", "PREPAGO")),
             "saldo": detalle_tel.get("saldo", 0),
             "sim": sim or item.get("identificador_tarjeta_cifrado", ""),
@@ -175,3 +185,16 @@ def _respuesta(tipo: str, codigo: str, mensaje: str, datos: dict | None = None) 
         },
         "datos": datos or {}
     }
+
+def _datos_pais(pais: str) -> tuple[str, str]:
+    return PAISES.get((pais or "").strip().lower(), ("", "INTERNACIONAL"))
+
+def _normalizar_numero_visible(numero: str, pais: str) -> str:
+    texto = str(numero or "").strip()
+    codigo_area, _ = _datos_pais(pais)
+
+    if codigo_area and texto.startswith(codigo_area):
+        texto = texto[len(codigo_area):]
+
+    solo_digitos = "".join(ch for ch in texto if ch.isdigit())
+    return solo_digitos[-8:] if len(solo_digitos) > 8 else solo_digitos

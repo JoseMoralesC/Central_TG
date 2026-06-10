@@ -135,7 +135,7 @@ namespace SimuladorTelefonico.UI
             CheckBox opcion = new CheckBox
             {
                 Text =
-                    $"{telefono.Numero}   {FormatearNombreCliente(telefono.Cliente)}\n" +
+                    $"{telefono.Numero}\n" +
                     $"{telefono.TipoServicio} | {estado} | {telefono.Proveedor} | {telefono.Pais} | {telefono.Nacionalidad}\n" +
                     $"Saldo: {saldo} | " +
                     $"SIM: {UiTheme.ResumirIdentificador(telefono.IdentificadorTarjeta, 22)} | IMEI: {UiTheme.ResumirIdentificador(telefono.IdentificadorDispositivo, 22)}",
@@ -159,18 +159,6 @@ namespace SimuladorTelefonico.UI
             }
 
             return opcion;
-        }
-
-        private static string FormatearNombreCliente(string nombre)
-        {
-            const string prefijo = "Cliente ";
-
-            if (nombre.StartsWith(prefijo, StringComparison.OrdinalIgnoreCase))
-            {
-                return nombre[prefijo.Length..];
-            }
-
-            return nombre;
         }
 
         private void AbrirTelefonosSeleccionados_Click(object? sender, EventArgs e)

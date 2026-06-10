@@ -30,5 +30,5 @@ def cerrar_conexion(conexion):
     Cerramos la conexion de forma segura, para que no quede activa
     """
     if conexion and conexion.is_connected():
-        conexion.close()
+       # conexion.close()
         print("[Database] Conexion a MySQL cerrada correctamente.")

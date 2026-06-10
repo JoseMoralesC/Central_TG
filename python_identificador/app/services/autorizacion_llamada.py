@@ -137,7 +137,8 @@ def procesar_autorizacion_llamada(trama_json: dict) -> dict:
         }
 
     # Criterio 2.f: Validar teléfono destino según tipo de llamada
-    if tipo_llamada == "INTERNACIONAL":
+    # Compatibilidad legacy: C# ya no envia el codigo de area en telefono_destino.
+    if tipo_llamada == "INTERNACIONAL" and telefono_destino.startswith(("+", "00")):
         # Validar que el código de país internacional sea válido
         # Formatos esperados: +506 (con código), 00506 (con prefijo internacional)
         if not re.match(r"^(\+|00)\d{1,3}", telefono_destino):
@@ -235,7 +236,7 @@ def procesar_autorizacion_llamada(trama_json: dict) -> dict:
                 }
             }
 
-        if tipo_llamada != "INTERNACIONAL":
+        if tipo_llamada == "NACIONAL":
             destino_cifrado = encriptar_aes(telefono_destino)
             registro_destino = buscar_telefono_por_numero_cifrado(destino_cifrado)
 

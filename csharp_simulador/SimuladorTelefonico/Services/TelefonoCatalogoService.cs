@@ -10,6 +10,15 @@ namespace SimuladorTelefonico.Services
 {
     public static class TelefonoCatalogoService
     {
+        private static readonly Dictionary<string, (string CodigoArea, string TipoLlamada)> Paises =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Costa Rica"] = ("+506", "NACIONAL"),
+                ["Panama"] = ("+507", "INTERNACIONAL_PA"),
+                ["Mexico"] = ("+52", "INTERNACIONAL_MX"),
+                ["Francia"] = ("+33", "INTERNACIONAL_FR")
+            };
+
         private const string OrigenSeeds =
             "Conexion activa";
 
@@ -107,6 +116,7 @@ namespace SimuladorTelefonico.Services
                         Proveedor = proveedor,
                         ProveedorCodigo = "XYZ",
                         Pais = "Costa Rica",
+                        CodigoArea = "+506",
                         Nacionalidad = "NACIONAL",
                         IdentificadorTarjeta = LimpiarValorCifrado(sim?.Valor ?? string.Empty),
                         IdentificadorDispositivo = LimpiarValorCifrado(imei?.Valor ?? string.Empty),
@@ -177,11 +187,59 @@ namespace SimuladorTelefonico.Services
                 .Select((valores, indice) => new ServicioSeed(
                     indice + 1,
                     LeerEntero(valores.ElementAtOrDefault(0), indice + 1),
-                    valores.ElementAtOrDefault(1) ?? string.Empty,
+                    // Normalizar: si el seed trae numero en formato internacional (+NNN...),
+                    // remover el prefijo conocido de codigo de area para mantener el campo `Numero`
+                    // exactamente como lo espera la aplicación (sólo el número local).
+                    NormalizarNumeroVisible(valores.ElementAtOrDefault(1) ?? string.Empty, "Costa Rica"),
                     valores.ElementAtOrDefault(2) ?? string.Empty,
                     EsVerdadero(valores.ElementAtOrDefault(3))
                 ))
                 .ToList();
+        }
+
+        private static string RemoverPrefijoPaisSiAplica(string posibleNumero)
+        {
+            if (string.IsNullOrWhiteSpace(posibleNumero)) return string.Empty;
+
+            // El valor viene tal cual del seed, por ejemplo '+50761234567' o '61925420'.
+            // Si comienza con '+', intentamos detectar códigos de país definidos
+            // en el archivo de migraciones y removerlos para obtener sólo el número.
+            try
+            {
+                string numero = posibleNumero.Trim();
+                if (!numero.StartsWith("+")) return numero;
+
+                string? raiz = BuscarRaizRepositorio();
+                if (raiz == null) return numero;
+
+                string rutaPaises = Path.Combine(
+                    raiz,
+                    "database",
+                    "sqlserver_proveedor",
+                    "migrations",
+                    "006_seed_paises_tarifas.sql"
+                );
+
+                if (!File.Exists(rutaPaises)) return numero;
+
+                string contenido = File.ReadAllText(rutaPaises);
+                // Buscar todos los códigos en formato '+NNN'
+                var matches = System.Text.RegularExpressions.Regex.Matches(contenido, @"'\+\d{1,4}'");
+                foreach (System.Text.RegularExpressions.Match m in matches)
+                {
+                    string codigo = m.Value.Trim('"', '\'', ' ');
+                    if (numero.StartsWith(codigo))
+                    {
+                        return numero.Substring(codigo.Length);
+                    }
+                }
+
+                return numero;
+            }
+            catch
+            {
+                return posibleNumero;
+            }
         }
 
         private static List<SaldoSeed> LeerSaldos(string sql)
@@ -192,6 +250,71 @@ namespace SimuladorTelefonico.Services
                     LeerDecimal(valores.ElementAtOrDefault(1))
                 ))
                 .ToList();
+        }
+
+        public static string NormalizarNumeroVisible(string posibleNumero, string pais = "")
+        {
+            if (string.IsNullOrWhiteSpace(posibleNumero))
+            {
+                return string.Empty;
+            }
+
+            string numero = posibleNumero.Trim();
+
+            if (numero.StartsWith("+", StringComparison.Ordinal))
+            {
+                foreach (string codigo in ObtenerCodigosArea(pais))
+                {
+                    if (numero.StartsWith(codigo, StringComparison.OrdinalIgnoreCase))
+                    {
+                        numero = numero[codigo.Length..];
+                        break;
+                    }
+                }
+            }
+
+            string soloDigitos = Regex.Replace(numero, @"\D", string.Empty);
+
+            return soloDigitos.Length > 8
+                ? soloDigitos[^8..]
+                : soloDigitos;
+        }
+
+        public static string ObtenerCodigoArea(string pais)
+        {
+            return Paises.TryGetValue(pais, out var datos)
+                ? datos.CodigoArea
+                : string.Empty;
+        }
+
+        public static string ObtenerTipoLlamada(string pais, string nacionalidad)
+        {
+            if (string.IsNullOrWhiteSpace(pais) && string.IsNullOrWhiteSpace(nacionalidad))
+            {
+                return "NACIONAL";
+            }
+
+            if (Paises.TryGetValue(pais, out var datos))
+            {
+                return datos.TipoLlamada;
+            }
+
+            return nacionalidad.Equals("NACIONAL", StringComparison.OrdinalIgnoreCase)
+                ? "NACIONAL"
+                : "INTERNACIONAL";
+        }
+
+        private static IEnumerable<string> ObtenerCodigosArea(string pais)
+        {
+            if (Paises.TryGetValue(pais, out var datosPais))
+            {
+                yield return datosPais.CodigoArea;
+            }
+
+            foreach (var datos in Paises.Values.OrderByDescending(v => v.CodigoArea.Length))
+            {
+                yield return datos.CodigoArea;
+            }
         }
 
         private static string LeerProveedor(string sql)
@@ -331,6 +454,7 @@ namespace SimuladorTelefonico.Services
                     Proveedor = "Mock",
                     ProveedorCodigo = "MOCK",
                     Pais = "Costa Rica",
+                    CodigoArea = "+506",
                     Nacionalidad = "NACIONAL",
                     IdentificadorTarjeta = "SIM-MOCK",
                     IdentificadorDispositivo = "IMEI-MOCK",

@@ -104,9 +104,9 @@ namespace SimuladorTelefonico
             {
                 Text = "Telefonos en uso",
                 ForeColor = UiTheme.Texto,
-                Font = new Font("Segoe UI", 23, FontStyle.Bold),
+                Font = new Font("Segoe UI", 15, FontStyle.Bold),
                 Location = new Point(0, 14),
-                Size = new Size(ClientSize.Width, 42),
+                Size = new Size(ClientSize.Width, 45),
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
                 TextAlign = ContentAlignment.MiddleCenter
             };
@@ -255,17 +255,6 @@ namespace SimuladorTelefonico
                 TextAlign = ContentAlignment.MiddleRight
             };
 
-            Label lblNombre = new Label
-            {
-                Text = FormatearNombreCliente(telefono.Cliente),
-                ForeColor = UiTheme.Texto,
-                Font = new Font("Segoe UI", 12, FontStyle.Bold),
-                Location = new Point(18, 48),
-                Size = new Size(318, 28),
-                TextAlign = ContentAlignment.MiddleCenter,
-                AutoEllipsis = true
-            };
-
             Label lblNumero = new Label
             {
                 Text = telefono.Numero,
@@ -301,11 +290,11 @@ namespace SimuladorTelefonico
 
             datos.BorderColor = Color.FromArgb(25, 32, 42);
 
-            datos.Controls.Add(CrearDato("Saldo", UiTheme.FormatearSaldo(telefono.TipoServicio, telefono.SaldoDisponible), 10, 318));
-            datos.Controls.Add(CrearDato("SIM", UiTheme.AgruparIdentificador(telefono.IdentificadorTarjeta), 62, 318));
-            datos.Controls.Add(CrearDato("IMEI", UiTheme.AgruparIdentificador(telefono.IdentificadorDispositivo), 114, 318));
-
-            tooltip.SetToolTip(datos, $"SIM: {telefono.IdentificadorTarjeta}\nIMEI: {telefono.IdentificadorDispositivo}");
+            TelefonoVirtual? contactoDestinoSeleccionado = null;
+            FlowLayoutPanel listaContactos = CrearListaContactos(
+                telefono,
+                contactoSeleccionado => contactoDestinoSeleccionado = contactoSeleccionado);
+            datos.Controls.Add(listaContactos);
 
             Label lblAcciones = new Label
             {
@@ -320,10 +309,23 @@ namespace SimuladorTelefonico
             Button btnMarcar = CrearBoton("Marcar", 410, UiTheme.Primario, true);
             btnMarcar.Click += (sender, e) =>
             {
+                if (contactoDestinoSeleccionado == null)
+                {
+                    MessageBox.Show(
+                        "Seleccione un numero de la lista de contactos.",
+                        "Contacto requerido",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                    return;
+                }
+
                 AppConfig.SeleccionarTelefono(telefono.Id);
                 CambiarEstadoTelefono(lblEstado, true);
 
-                using MarcarNumeroForm form = new MarcarNumeroForm();
+                using MarcarNumeroForm form = new MarcarNumeroForm(
+                    contactoDestinoSeleccionado.Numero,
+                    contactoDestinoSeleccionado.Pais,
+                    contactoDestinoSeleccionado.TipoLlamada);
                 form.ShowDialog(this);
 
                 CambiarEstadoTelefono(lblEstado, false);
@@ -351,7 +353,6 @@ namespace SimuladorTelefonico
             pantalla.Controls.Add(franja);
             pantalla.Controls.Add(lblServicio);
             pantalla.Controls.Add(lblEstado);
-            pantalla.Controls.Add(lblNombre);
             pantalla.Controls.Add(lblNumero);
             pantalla.Controls.Add(lblResumen);
             pantalla.Controls.Add(datos);
@@ -366,57 +367,133 @@ namespace SimuladorTelefonico
             return tarjeta;
         }
 
-        private Control CrearDato(string etiqueta, string valor, int y, int ancho)
+        private FlowLayoutPanel CrearListaContactos(
+            TelefonoVirtual telefonoActual,
+            Action<TelefonoVirtual> seleccionarContacto)
         {
-            Panel contenedor = new Panel
+            FlowLayoutPanel lista = new FlowLayoutPanel
             {
-                Location = new Point(0, y),
-                Size = new Size(ancho, 48),
-                BackColor = Color.Transparent
+                Location = new Point(0, 0),
+                Size = new Size(318 + SystemInformation.VerticalScrollBarWidth, 174),
+                BackColor = Color.Transparent,
+                AutoScroll = true,
+                FlowDirection = FlowDirection.TopDown,
+                WrapContents = false,
+                Padding = new Padding(10, 10, SystemInformation.VerticalScrollBarWidth + 10, 10),
+                TabStop = true
             };
 
-            Label lblEtiqueta = new Label
+            Panel? contactoSeleccionado = null;
+            List<TelefonoVirtual> contactos = AppConfig.TelefonosVirtuales
+                .Where(t => !t.Numero.Equals(telefonoActual.Numero, StringComparison.OrdinalIgnoreCase))
+                .Where(t => t.Activo)
+                .ToList();
+
+            if (contactos.Count == 0)
             {
-                Text = etiqueta,
-                Location = new Point(14, 0),
-                Size = new Size(ancho - 28, 18),
+                lista.Controls.Add(new Label
+                {
+                    Text = "Sin contactos disponibles",
+                    Size = new Size(276, 32),
+                    ForeColor = UiTheme.TextoSecundario,
+                    Font = new Font("Segoe UI", 8.5f, FontStyle.Bold),
+                    TextAlign = ContentAlignment.MiddleCenter
+                });
+
+                return lista;
+            }
+
+            foreach (TelefonoVirtual contacto in contactos)
+            {
+                Panel fila = CrearFilaContacto(contacto);
+                fila.Click += (sender, e) =>
+                    SeleccionarFilaContacto(fila, ref contactoSeleccionado, seleccionarContacto);
+
+                foreach (Control control in fila.Controls)
+                {
+                    control.Click += (sender, e) =>
+                        SeleccionarFilaContacto(fila, ref contactoSeleccionado, seleccionarContacto);
+                }
+
+                lista.Controls.Add(fila);
+            }
+
+            lista.MouseEnter += (sender, e) => lista.Focus();
+
+            return lista;
+        }
+
+        private static Panel CrearFilaContacto(TelefonoVirtual contacto)
+        {
+            Panel fila = new Panel
+            {
+                Tag = contacto,
+                Size = new Size(276, 34),
+                Margin = new Padding(0, 0, 0, 6),
+                BackColor = Color.Transparent,
+                Cursor = Cursors.Hand
+            };
+
+            Label texto = new Label
+            {
+                Text = contacto.Numero,
+                Location = new Point(10, 0),
+                Size = new Size(128, 32),
+                ForeColor = UiTheme.Texto,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleLeft,
+                AutoEllipsis = true,
+                Cursor = Cursors.Hand
+            };
+
+            Label clasificacion = new Label
+            {
+                Text = contacto.Nacionalidad,
+                Location = new Point(144, 0),
+                Size = new Size(122, 32),
                 ForeColor = UiTheme.TextoSecundario,
                 Font = new Font("Segoe UI", 8, FontStyle.Bold),
-                TextAlign = ContentAlignment.MiddleLeft
-            };
-
-            Label lblValor = new Label
-            {
-                Text = valor,
-                Location = new Point(14, 18),
-                Size = new Size(ancho - 28, 28),
-                ForeColor = UiTheme.Texto,
-                Font = new Font("Segoe UI", 9),
+                TextAlign = ContentAlignment.MiddleRight,
                 AutoEllipsis = true,
-                TextAlign = ContentAlignment.MiddleLeft
+                Cursor = Cursors.Hand
             };
 
-            contenedor.Controls.Add(lblEtiqueta);
-            contenedor.Controls.Add(lblValor);
+            Panel separador = new Panel
+            {
+                Location = new Point(10, 33),
+                Size = new Size(256, 1),
+                BackColor = Color.FromArgb(34, 42, 54)
+            };
 
-            return contenedor;
+            fila.Controls.Add(texto);
+            fila.Controls.Add(clasificacion);
+            fila.Controls.Add(separador);
+
+            return fila;
+        }
+
+        private static void SeleccionarFilaContacto(
+            Panel fila,
+            ref Panel? contactoSeleccionado,
+            Action<TelefonoVirtual> seleccionarContacto)
+        {
+            if (contactoSeleccionado != null)
+            {
+                contactoSeleccionado.BackColor = Color.Transparent;
+            }
+
+            contactoSeleccionado = fila;
+            fila.BackColor = Color.FromArgb(31, 79, 108);
+
+            if (fila.Tag is TelefonoVirtual contacto)
+            {
+                seleccionarContacto(contacto);
+            }
         }
 
         private Button CrearBoton(string texto, int y, Color color, bool principal)
         {
             return UiTheme.CrearBoton(texto, 24, y, 306, 36, color);
-        }
-
-        private static string FormatearNombreCliente(string nombre)
-        {
-            const string prefijo = "Cliente ";
-
-            if (nombre.StartsWith(prefijo, StringComparison.OrdinalIgnoreCase))
-            {
-                return nombre[prefijo.Length..];
-            }
-
-            return nombre;
         }
 
         private void CambiarEstadoTelefono(Label lblEstado, bool enLlamada)
