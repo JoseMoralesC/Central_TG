@@ -109,14 +109,14 @@ namespace SimuladorTelefonico.UI
                 UiTheme.Primario);
             btnAbrir.Click += AbrirTelefonosSeleccionados_Click;
 
-            Button btnAdministracion = UiTheme.CrearBoton(
-                "Administracion telefonica",
-                460,
-                588,
-                260,
-                44,
-                Color.FromArgb(52, 60, 72));
-            btnAdministracion.Click += async (_, _) => await AdministracionTelefonicaAsync();
+            //Button btnAdministracion = UiTheme.CrearBoton(
+               // "Administracion telefonica",
+               // 460,
+              //  588,
+               // 260,
+               // 44,
+               // Color.FromArgb(52, 60, 72));
+            //btnAdministracion.Click += async (_, _) => await AdministracionTelefonicaAsync();
 
             Controls.Add(lblTitulo);
             Controls.Add(lblSubtitulo);
@@ -124,7 +124,7 @@ namespace SimuladorTelefonico.UI
             Controls.Add(listaTelefonos);
             Controls.Add(_lblEstado);
             Controls.Add(btnAbrir);
-            Controls.Add(btnAdministracion);
+            //Controls.Add(btnAdministracion);
         }
 
         private CheckBox CrearOpcionTelefono(TelefonoVirtual telefono)
