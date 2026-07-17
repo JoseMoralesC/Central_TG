@@ -7,9 +7,9 @@ Central_TG/
 │
 ├── csharp_simulador/              # José - actualizar si corresponde
 │
-├── python_identificador/          # Gabriel - IDENTIFICADOR6 y ajustes
+├── python_identificador/          # José - IDENTIFICADOR6 y ajustes
 │
-├── java_proveedor/                # Charlie - PROVEEDOR4, 5 y 6
+├── java_proveedor/                # José - PROVEEDOR5; equipo - proveedor compartido
 │
 ├── dotnet_webservices/            # Nuevos proyectos C# en Visual Studio
 │   │

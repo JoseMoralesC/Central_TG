@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
-using System;
 using WS_Proveedor.Models;
 
 namespace WS_Proveedor.Validators
@@ -46,7 +42,28 @@ namespace WS_Proveedor.Validators
                 return false;
             }
 
-            return true;
+            return EsBase64(solicitud.NumeroTelefono) &&
+                EsBase64(solicitud.IdentificadorTelefono) &&
+                EsBase64(solicitud.IdentificadorTarjeta) &&
+                EsBase64(solicitud.IdentificacionCliente);
+        }
+
+        private static bool EsBase64(string valor)
+        {
+            if (string.IsNullOrWhiteSpace(valor))
+            {
+                return false;
+            }
+
+            try
+            {
+                Convert.FromBase64String(valor.Trim());
+                return true;
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
         }
     }
 }

@@ -1,0 +1,8 @@
+{
+  "tipo_transaccion": "RESPUESTA_IDENTIFICADOR6",
+  "resultado": {
+    "codigo": "OK",
+    "estado": "LINEA_SINCRONIZADA",
+    "mensaje": "OK"
+  }
+}
