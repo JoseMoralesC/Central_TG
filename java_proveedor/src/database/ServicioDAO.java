@@ -270,6 +270,186 @@ public class ServicioDAO {
         }
     }
 
+    public LineaProveedor5 obtenerLineaProveedor5(String numeroTelefono) {
+        ultimoError = "";
+
+        String sql =
+            "SELECT servicio_id, numero_telefono, tipo_servicio, activo, " +
+            "COALESCE(estado_linea, CASE WHEN activo = 1 THEN 'ACTIVO' ELSE 'DISPONIBLE' END) AS estado_linea, " +
+            "identificador_telefono_cifrado, identificador_tarjeta_cifrado, identificacion_dueno_cifrada " +
+            "FROM servicios " +
+            "WHERE numero_telefono = ?";
+
+        try (
+            Connection conn = ConexionSQL.getConexion();
+            PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
+            ps.setString(1, numeroTelefono);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    LineaProveedor5 linea = new LineaProveedor5();
+                    linea.servicioId = rs.getInt("servicio_id");
+                    linea.numeroTelefono = rs.getString("numero_telefono");
+                    linea.tipoServicio = rs.getString("tipo_servicio");
+                    linea.activo = rs.getBoolean("activo");
+                    linea.estadoLinea = rs.getString("estado_linea");
+                    linea.identificadorTelefono = rs.getString("identificador_telefono_cifrado");
+                    linea.identificadorTarjeta = rs.getString("identificador_tarjeta_cifrado");
+                    linea.identificacionDueno = rs.getString("identificacion_dueno_cifrada");
+                    return linea;
+                }
+            }
+        } catch (Exception e) {
+            ultimoError = e.getMessage();
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    public boolean activarLineaProveedor5(
+        int servicioId,
+        String identificadorTelefono,
+        String identificadorTarjeta,
+        String tipoServicio,
+        String identificacionDueno,
+        BigDecimal saldoInicialPrepago
+    ) {
+        ultimoError = "";
+        Connection conn = null;
+
+        try {
+            conn = ConexionSQL.getConexion();
+            conn.setAutoCommit(false);
+
+            try (
+                PreparedStatement servicio = conn.prepareStatement(
+                    "UPDATE servicios " +
+                    "SET activo = 1, estado_linea = 'ACTIVO', tipo_servicio = ?, " +
+                    "identificador_telefono_cifrado = ?, identificador_tarjeta_cifrado = ?, " +
+                    "identificacion_dueno_cifrada = ? " +
+                    "WHERE servicio_id = ?"
+                )
+            ) {
+                servicio.setString(1, tipoServicio);
+                servicio.setString(2, identificadorTelefono);
+                servicio.setString(3, identificadorTarjeta);
+                servicio.setString(4, identificacionDueno);
+                servicio.setInt(5, servicioId);
+
+                if (servicio.executeUpdate() == 0) {
+                    throw new IllegalStateException("No se actualizo el servicio");
+                }
+            }
+
+            if ("PREPAGO".equalsIgnoreCase(tipoServicio)) {
+                asegurarSaldoPrepago(conn, servicioId, saldoInicialPrepago);
+            }
+
+            conn.commit();
+            return true;
+        } catch (Exception e) {
+            ultimoError = e.getMessage();
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (Exception rollbackError) {
+                    rollbackError.printStackTrace();
+                }
+            }
+            e.printStackTrace();
+            return false;
+        } finally {
+            cerrarConexionTransaccional(conn);
+        }
+    }
+
+    public boolean desactivarLineaProveedor5(int servicioId) {
+        ultimoError = "";
+
+        String sql =
+            "UPDATE servicios " +
+            "SET activo = 0, estado_linea = 'DISPONIBLE', identificacion_dueno_cifrada = NULL " +
+            "WHERE servicio_id = ?";
+
+        try (
+            Connection conn = ConexionSQL.getConexion();
+            PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
+            ps.setInt(1, servicioId);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            ultimoError = e.getMessage();
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    private void asegurarSaldoPrepago(
+        Connection conn,
+        int servicioId,
+        BigDecimal saldoInicialPrepago
+    ) throws Exception {
+        try (
+            PreparedStatement existe = conn.prepareStatement(
+                "SELECT COUNT(1) FROM saldos WHERE servicio_id = ?"
+            )
+        ) {
+            existe.setInt(1, servicioId);
+
+            try (ResultSet rs = existe.executeQuery()) {
+                if (rs.next() && rs.getInt(1) > 0) {
+                    try (
+                        PreparedStatement update = conn.prepareStatement(
+                            "UPDATE saldos SET saldo_disponible = ?, fecha_actualizacion = GETDATE() " +
+                            "WHERE servicio_id = ?"
+                        )
+                    ) {
+                        update.setBigDecimal(1, saldoInicialPrepago);
+                        update.setInt(2, servicioId);
+                        update.executeUpdate();
+                    }
+                    return;
+                }
+            }
+        }
+
+        try (
+            PreparedStatement insert = conn.prepareStatement(
+                "INSERT INTO saldos (servicio_id, saldo_disponible) VALUES (?, ?)"
+            )
+        ) {
+            insert.setInt(1, servicioId);
+            insert.setBigDecimal(2, saldoInicialPrepago);
+            insert.executeUpdate();
+        }
+    }
+
+    private void cerrarConexionTransaccional(Connection conn) {
+        if (conn == null) {
+            return;
+        }
+
+        try {
+            conn.setAutoCommit(true);
+            conn.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static class LineaProveedor5 {
+        public int servicioId;
+        public String numeroTelefono;
+        public String tipoServicio;
+        public boolean activo;
+        public String estadoLinea;
+        public String identificadorTelefono;
+        public String identificadorTarjeta;
+        public String identificacionDueno;
+    }
+
     private boolean existeTelefono(String numeroTelefono) {
         String sql =
             "SELECT COUNT(1) AS total FROM servicios " +

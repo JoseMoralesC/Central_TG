@@ -6,6 +6,7 @@ import java_proveedor.src.services.ConsultaSaldo;
 import java_proveedor.src.services.RegistrarMovimiento;
 import java_proveedor.src.services.VerificarSaldo;
 import java_proveedor.src.services.AdministracionTelefonica;
+import java_proveedor.src.services.Proveedor5Service;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -24,6 +25,7 @@ public class ManejoCliente extends Thread
     RegistrarMovimiento registrarMovimiento = new RegistrarMovimiento();
     VerificarSaldo verificarSaldo = new VerificarSaldo();
     AdministracionTelefonica administracionTelefonica = new AdministracionTelefonica();
+    Proveedor5Service proveedor5Service = new Proveedor5Service();
     BitacoraService bitacoraService = BitacoraService.obtenerInstancia();
 
     public ManejoCliente(Socket clienteSocket)
@@ -92,6 +94,11 @@ public class ManejoCliente extends Thread
 
                 case "CAMBIAR_ESTADO_TELEFONO":
                     procesarCambioEstadoTelefono(solicitud, writer);
+                    break;
+
+                case "ACTIVAR":
+                case "DESACTIVAR":
+                    procesarProveedor5(solicitud, writer);
                     break;
 
                 default:
@@ -224,6 +231,11 @@ public class ManejoCliente extends Thread
         boolean activo = !"false".equalsIgnoreCase(activoTexto) && !"0".equals(activoTexto);
 
         enviarRespuesta(writer, administracionTelefonica.procesarCambioEstado(numero, activo));
+    }
+
+    private void procesarProveedor5(String solicitud, PrintWriter writer)
+    {
+        enviarRespuesta(writer, proveedor5Service.procesar(solicitud));
     }
 
     private void enviarRespuesta(PrintWriter writer, String respuesta)
