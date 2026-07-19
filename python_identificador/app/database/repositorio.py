@@ -178,6 +178,206 @@ def actualizar_estado_telefono_catalogo_por_id(telefono_id: int, activo: bool) -
     finally:
         cerrar_conexion(conn)
 
+def sincronizar_linea_identificador6(
+    numero_cifrado: str,
+    identificador_dispositivo_cifrado: str,
+    identificador_tarjeta_cifrado: str,
+    tipo_servicio: str,
+    identificacion_cliente_cifrada: str,
+    proveedor_codigo: str,
+    activo: bool
+) -> bool:
+    """
+    Inserta o actualiza la linea enviada por PROVEEDOR5 para IDENTIFICADOR6.
+    Mantiene telefono, SIM y dispositivo sincronizados en MySQL.
+    """
+    conn = obtener_conexion()
+    if conn is None:
+        return False
+
+    try:
+        cursor = conn.cursor(dictionary=True, buffered=True)
+        cursor.execute(
+            """
+            SELECT proveedor_id
+            FROM proveedores
+            WHERE codigo = %s AND activo = TRUE
+            LIMIT 1
+            """,
+            (proveedor_codigo,)
+        )
+        proveedor = cursor.fetchone()
+
+        if not proveedor:
+            return False
+
+        cursor.execute(
+            """
+            SELECT telefono_id
+            FROM telefonos
+            WHERE numero_cifrado = %s
+            LIMIT 1
+            """,
+            (numero_cifrado,)
+        )
+        telefono = cursor.fetchone()
+
+        if telefono:
+            telefono_id = telefono["telefono_id"]
+            cursor.execute(
+                """
+                UPDATE telefonos
+                SET proveedor_id = %s,
+                    tipo_servicio = %s,
+                    activo = %s,
+                    identificacion_cliente_cifrada = %s
+                WHERE telefono_id = %s
+                """,
+                (
+                    proveedor["proveedor_id"],
+                    tipo_servicio,
+                    activo,
+                    identificacion_cliente_cifrada if activo else None,
+                    telefono_id
+                )
+            )
+        else:
+            cursor.execute(
+                """
+                INSERT INTO telefonos (
+                    numero_cifrado,
+                    proveedor_id,
+                    tipo_servicio,
+                    activo,
+                    pais,
+                    identificacion_cliente_cifrada
+                )
+                VALUES (%s, %s, %s, %s, 'Costa Rica', %s)
+                """,
+                (
+                    numero_cifrado,
+                    proveedor["proveedor_id"],
+                    tipo_servicio,
+                    activo,
+                    identificacion_cliente_cifrada if activo else None
+                )
+            )
+            telefono_id = cursor.lastrowid
+
+        _actualizar_o_insertar_tarjeta(
+            cursor,
+            telefono_id,
+            identificador_tarjeta_cifrado,
+            activo
+        )
+        _actualizar_o_insertar_dispositivo(
+            cursor,
+            telefono_id,
+            identificador_dispositivo_cifrado,
+            activo
+        )
+
+        conn.commit()
+        cursor.close()
+        return True
+    except Exception as e:
+        print(f"[DB Error] sincronizar_linea_identificador6: {e}")
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return False
+    finally:
+        cerrar_conexion(conn)
+
+def _actualizar_o_insertar_tarjeta(
+    cursor,
+    telefono_id: int,
+    identificador_tarjeta_cifrado: str,
+    activa: bool
+) -> None:
+    cursor.execute(
+        """
+        SELECT tarjeta_id
+        FROM tarjetas_telefonicas
+        WHERE telefono_id = %s
+        LIMIT 1
+        """,
+        (telefono_id,)
+    )
+    tarjeta = cursor.fetchone()
+
+    if tarjeta:
+        cursor.execute(
+            """
+            UPDATE tarjetas_telefonicas
+            SET identificador_tarjeta_cifrado = %s,
+                activa = %s
+            WHERE tarjeta_id = %s
+            """,
+            (
+                identificador_tarjeta_cifrado,
+                activa,
+                tarjeta["tarjeta_id"]
+            )
+        )
+    else:
+        cursor.execute(
+            """
+            INSERT INTO tarjetas_telefonicas (
+                telefono_id,
+                identificador_tarjeta_cifrado,
+                activa
+            )
+            VALUES (%s, %s, %s)
+            """,
+            (telefono_id, identificador_tarjeta_cifrado, activa)
+        )
+
+def _actualizar_o_insertar_dispositivo(
+    cursor,
+    telefono_id: int,
+    identificador_dispositivo_cifrado: str,
+    activo: bool
+) -> None:
+    cursor.execute(
+        """
+        SELECT dispositivo_id
+        FROM dispositivos
+        WHERE telefono_id = %s
+        LIMIT 1
+        """,
+        (telefono_id,)
+    )
+    dispositivo = cursor.fetchone()
+
+    if dispositivo:
+        cursor.execute(
+            """
+            UPDATE dispositivos
+            SET identificador_dispositivo_cifrado = %s,
+                activo = %s
+            WHERE dispositivo_id = %s
+            """,
+            (
+                identificador_dispositivo_cifrado,
+                activo,
+                dispositivo["dispositivo_id"]
+            )
+        )
+    else:
+        cursor.execute(
+            """
+            INSERT INTO dispositivos (
+                telefono_id,
+                identificador_dispositivo_cifrado,
+                activo
+            )
+            VALUES (%s, %s, %s)
+            """,
+            (telefono_id, identificador_dispositivo_cifrado, activo)
+        )
+
 def existe_telefono_catalogo(numero_plano: str) -> bool:
     from app.utils.crypto import desencriptar_aes
 
