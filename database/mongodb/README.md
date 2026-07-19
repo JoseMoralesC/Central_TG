@@ -28,4 +28,17 @@ load("database/mongodb/indices_usuarios.js")
 load("database/mongodb/datos_semilla_usuarios.example.js")
 ```
 
-Los valores de `usuario` y `contrasena` deben ser cifrados por el servicio de autenticacion antes de guardarse en datos reales.
+## Estructura esperada
+
+- Base: `central_tg_mongo`
+- Colección: `usuarios`
+- Índices:
+  - `ux_usuarios_identificacion`
+  - `ux_usuarios_usuario_cifrado`
+  - `ux_usuarios_correo`
+
+## Notas importantes
+
+- Los valores de `usuario` y `contrasena` deben ser cifrados por el servicio de autenticación antes de guardarse en datos reales.
+- Los documentos semilla son ejemplos; al conectar la base real, se pueden reemplazar por los usuarios reales del sistema.
+- El script de creación es idempotente: si la colección ya existe, no intenta recrearla.

@@ -18,7 +18,6 @@ db.usuarios.insertMany([
     identificacion: "209990888",
     nombre: "Cliente",
     primerApellido: "Prueba",
-    segundoApellido: "Sistema",
     correo: "cliente@example.com",
     usuario: "CLIENTE_CIFRADO_EJEMPLO",
     contrasena: "CONTRASENA_CLIENTE_CIFRADA_EJEMPLO",
