@@ -1,0 +1,11 @@
+{
+  "tipo_transaccion": "IDENTIFICADOR6",
+  "telefono": "dato_cifrado",
+  "identificador_dispositivo": "dato_cifrado",
+  "identificador_tarjeta": "dato_cifrado",
+  "tipo_servicio": "PREPAGO",
+  "identificacion_cliente": "dato_cifrado",
+  "proveedor_codigo": "XYZ",
+  "accion": "ACTIVAR",
+  "fecha_hora": "2026-07-16T18:00:00"
+}

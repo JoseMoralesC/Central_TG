@@ -4,6 +4,7 @@ from app.services.autorizacion_llamada import procesar_autorizacion_llamada
 from app.services.iniciar_llamada import procesar_inicio_llamada
 from app.services.termina_llamada import procesar_finalizacion_llamada
 from app.services.consulta import procesar_consulta_saldo
+from app.services.identificador6 import procesar_identificador6
 from app.services.administracion_telefonica import (
     procesar_catalogo_telefonos,
     procesar_recarga_saldo,
@@ -108,7 +109,8 @@ def manejar_cliente(conexion_cliente, direccion_cliente):
             "CONSULTA_CATALOGO_TELEFONOS": procesar_catalogo_telefonos,
             "RECARGAR_SALDO": procesar_recarga_saldo,
             "REGISTRAR_TELEFONO": procesar_registro_telefono,
-            "CAMBIAR_ESTADO_TELEFONO": procesar_cambio_estado_telefono
+            "CAMBIAR_ESTADO_TELEFONO": procesar_cambio_estado_telefono,
+            "IDENTIFICADOR6": procesar_identificador6
         }
 
         # Validar tipo de transacción

@@ -1,0 +1,8 @@
+{
+  "tipo_transaccion": "RESPUESTA_PROVEEDOR5",
+  "resultado": {
+    "codigo": "OK",
+    "estado": "LINEA_ACTIVADA",
+    "mensaje": "Línea activada correctamente"
+  }
+}
