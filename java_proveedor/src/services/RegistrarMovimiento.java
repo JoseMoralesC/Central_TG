@@ -27,7 +27,7 @@ public class RegistrarMovimiento
             MovimientoRequest request = MovimientoRequest.desdeJson(solicitudJson);
             String errorValidacion = request.validar();
 
-            if (!errorValidacion.isBlank()) {
+            if (!errorValidacion.isEmpty()) {
                 return respuestaError(errorValidacion);
             }
 
@@ -39,7 +39,7 @@ public class RegistrarMovimiento
             if (servicio == null) {
                 String error = servicioDAO.getUltimoError();
                 return respuestaError(
-                    error != null && !error.isBlank()
+                    error != null && !error.isEmpty()
                         ? "Error SQL Server: " + error
                         : "Linea no registrada en SQL Server"
                 );
@@ -54,7 +54,7 @@ public class RegistrarMovimiento
             if (tarifa == null) {
                 String error = tarifaDAO.getUltimoError();
                 return respuestaError(
-                    error != null && !error.isBlank()
+                    error != null && !error.isEmpty()
                         ? "Error consultando tarifa: " + error
                         : "Tarifa activa no encontrada para tipo de llamada " + request.tipoLlamada
                 );
@@ -145,7 +145,7 @@ public class RegistrarMovimiento
 
     private String sanitizar(String texto)
     {
-        if (texto == null || texto.isBlank()) {
+        if (texto == null || texto.isEmpty()) {
             return "Error registrando movimiento";
         }
 
@@ -193,11 +193,11 @@ public class RegistrarMovimiento
 
         String validar()
         {
-            if (telefonoOrigen == null || telefonoOrigen.isBlank()) {
+            if (telefonoOrigen == null || telefonoOrigen.isEmpty()) {
                 return "telefono_origen es obligatorio";
             }
 
-            if (telefonoDestino == null || telefonoDestino.isBlank()) {
+            if (telefonoDestino == null || telefonoDestino.isEmpty()) {
                 return "telefono_destino es obligatorio";
             }
 
@@ -236,7 +236,7 @@ public class RegistrarMovimiento
         {
             String valor = leerValorPrimitivo(json, campo);
 
-            if (valor.isBlank()) {
+            if (valor.isEmpty()) {
                 return valorDefecto;
             }
 
@@ -251,7 +251,7 @@ public class RegistrarMovimiento
         {
             String valor = leerValorPrimitivo(json, campo);
 
-            if (valor.isBlank()) {
+            if (valor.isEmpty()) {
                 return valorDefecto;
             }
 
@@ -315,11 +315,11 @@ public class RegistrarMovimiento
         ) {
             String valor = leerTexto(json, campo);
 
-            if (valor.isBlank()) {
+            if (valor.isEmpty()) {
                 valor = leerTexto(json, "fecha_hora");
             }
 
-            if (valor.isBlank()) {
+            if (valor.isEmpty()) {
                 return valorDefecto;
             }
 
@@ -332,7 +332,7 @@ public class RegistrarMovimiento
 
         private static String valorPorDefecto(String valor, String valorDefecto)
         {
-            if (valor == null || valor.isBlank()) {
+            if (valor == null || valor.isEmpty()) {
                 return valorDefecto;
             }
 
