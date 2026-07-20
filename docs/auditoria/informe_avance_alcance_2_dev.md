@@ -13,9 +13,15 @@ Ese bloque cuenta con codigo, contratos, migraciones y evidencias especificas.
 Sin embargo, el alcance 2 no esta completo como entrega integral. Hay historias
 que existen solo parcialmente, estan ubicadas en un componente distinto al
 solicitado por el PDF, o estan escritas pero no integradas al ejecutable principal.
-El mayor riesgo de evaluacion es que el requerimiento exige servicios SOAP en C#
-y tramas de texto plano para Proveedor/Identificador, mientras que gran parte de
-la integracion actual usa JSON por socket TCP.
+
+Aclaracion importante sobre contratos: desde el alcance 1 el equipo dejo
+establecidos contratos JSON para la comunicacion interna entre componentes. Para
+el alcance 2 esa decision se mantiene. XML/SOAP aplica en la frontera de los Web
+Services cuando el requerimiento lo exige, pero la comunicacion interna puede
+seguir usando JSON siempre que el WS traduzca correctamente entre XML/SOAP y el
+contrato JSON existente. Por tanto, el uso de JSON no se considera por si mismo
+un incumplimiento; el punto a verificar es que los servicios SOAP existan,
+reciban/entreguen XML correctamente y respeten los contratos internos acordados.
 
 Estado global estimado:
 
@@ -73,19 +79,25 @@ Reglas tecnicas relevantes del PDF:
 
 ## 4. Hallazgos transversales
 
-### 4.1 Contrato interno JSON vs texto plano
+### 4.1 Coexistencia JSON y XML/SOAP
 
-El PDF pide que el Proveedor reciba tramas en texto plano para PROVEEDOR4,
-PROVEEDOR5 y PROVEEDOR6. La implementacion y contratos actuales usan JSON UTF-8
-por socket TCP, por ejemplo:
+El equipo mantiene los contratos JSON definidos desde el alcance 1 para la
+comunicacion interna entre C#, Python, Java y bases de datos. En el alcance 2,
+los servicios web deben actuar como frontera SOAP/XML cuando corresponda, pero
+pueden transformar la solicitud SOAP a JSON interno para reutilizar contratos ya
+estables.
+
+Ejemplos de contratos internos JSON vigentes:
 
 - `docs/contratos/jose_activacion_desactivacion.md`
 - `shared/contracts/activar_desactivar_linea_proveedor5.json`
 - `java_proveedor/src/services/Proveedor5Service.java`
 - `python_identificador/app/sockets/handler.py`
 
-Esto puede funcionar tecnicamente, pero no cumple literalmente el formato
-solicitado. Debe documentarse como decision del equipo o ajustarse a texto plano.
+Esto debe quedar explicado en la documentacion final como una decision de
+arquitectura: XML/SOAP en la capa de Web Services; JSON en la capa interna de
+integracion. Con esa aclaracion, el riesgo no es usar JSON, sino no tener el WS
+SOAP/XML funcional que haga la traduccion.
 
 ### 4.2 El proyecto .NET principal no compila los WS reales
 
@@ -138,7 +150,8 @@ Evidencia:
 - El handler valida campos, cifra con AES, verifica duplicado e inserta catalogo.
 - Pero el propio archivo indica que almacena en MySQL.
 - La historia PROVEEDOR4 pertenece al Proveedor y debe persistir en SQL Server.
-- Usa JSON (`REGISTRAR_LINEA`), no texto plano.
+- Usa JSON (`REGISTRAR_LINEA`) como contrato interno, consistente con la decision
+  del equipo desde el alcance 1.
 - No valida longitud de identificador de telefono de 16 digitos ni tarjeta de 19
   digitos en la funcion `validar_campos`; solo valida existencia, tipo y estado.
 - Inserta con `proveedor_codigo="SISTEMA"`, pero el repositorio busca proveedor
@@ -156,7 +169,7 @@ Nivel de cumplimiento: 35%.
 Pendientes:
 
 - Implementar PROVEEDOR4 en Proveedor/SQL Server.
-- Alinear formato de trama a texto plano o documentar formalmente excepcion.
+- Documentar formalmente que el WS recibe SOAP/XML y traduce a JSON interno.
 - Validar 16 y 19 digitos.
 - Guardar como linea disponible, no activa.
 - Responder con mensajes exactos.
@@ -234,11 +247,11 @@ Pendientes:
 
 ### 5.4 Resultado Gabriel
 
-| Historia | Estado | Cumple PDF | Observacion |
-|---|---|---|---|
-| PROVEEDOR4 | Parcial | No completo | Existe handler en Python/MySQL, no Proveedor/SQL Server. |
-| WS_PROVEEDOR1 | Pendiente | No | No se encontro operacion SOAP de alta. |
-| WS_IDENTIFICADOR1 | Pendiente | No | Solo existe consulta de saldo del flujo anterior por socket JSON. |
+| Historia | Estado | Cumple PDF | Observacion | Que falta programar | Herramienta recomendada |
+|---|---|---|---|---|---|
+| PROVEEDOR4 | Parcial | No completo | Existe handler en Python/MySQL, no Proveedor/SQL Server. | Logica real de alta de linea disponible en Proveedor/SQL Server; validar 16/19 digitos, duplicados, estado disponible y cifrado. | VS Code o IDE Java para `java_proveedor`; SQL Server Management Studio para scripts y pruebas. |
+| WS_PROVEEDOR1 | Pendiente | No | No se encontro operacion SOAP de alta. | Operacion SOAP `RegistrarLinea`, validacion de datos cifrados y traduccion SOAP/XML -> JSON interno para PROVEEDOR4. | Visual Studio Community; proyecto WCF/.NET Framework similar a `WS_Proveedor`. |
+| WS_IDENTIFICADOR1 | Pendiente | No | Solo existe consulta de saldo del flujo anterior por socket JSON. | Servicio C# SOAP/XML para consulta de saldo, origen Web/telefono y traduccion hacia el contrato interno de consulta. | Visual Studio Community; WCF o servicio SOAP equivalente en C#. |
 
 Riesgo principal: alto. Gabriel necesita completar o evidenciar tres historias
 para poder defender evaluacion individual.
@@ -288,7 +301,7 @@ Lo que ya esta:
 
 Pendientes o riesgos:
 
-- Usa JSON, no texto plano.
+- Usa JSON interno, lo cual es consistente con los contratos del alcance 1.
 - La lectura de JSON se hace manualmente con busqueda de strings; puede fallar con
   JSON valido pero distinto en orden/escape.
 - El flujo sincroniza Identificador antes de actualizar SQL Server. Eso reduce el
@@ -296,9 +309,9 @@ Pendientes o riesgos:
   falla SQL Server. Falta compensacion/rollback logico documentado y automatizado.
 - `ManejoCliente` enruta PROVEEDOR5 por el campo `accion`, no por
   `tipo_transaccion`. Funciona para `ACTIVAR`/`DESACTIVAR`, pero es fragil.
-- No se evidencian todas las pruebas negativas del roadmap: dueno incorrecto,
-  linea ya activa, Identificador fuera de servicio, respuesta invalida del
-  Identificador, error SQL y error MySQL.
+- Las pruebas de todos los escenarios ya fueron realizadas por Jose fuera del
+  proyecto. Lo que falta dentro del repositorio es documentarlas con capturas y
+  evidencia formal del proceso.
 
 Nivel de cumplimiento: 75%.
 
@@ -336,8 +349,9 @@ Lo que ya esta:
 
 Pendientes o riesgos:
 
-- Usa JSON por socket, no texto plano.
-- Respuesta no es literalmente texto `OK`; es JSON con `codigo: OK`.
+- Usa JSON por socket como contrato interno del alcance 1.
+- Responde con JSON estructurado que contiene `codigo: OK`, equivalente interno
+  al `OK` requerido por el flujo.
 - El PDF indica que la trama debe incluir `Estado: activo`; la implementacion usa
   `accion: ACTIVAR/DESACTIVAR`, aceptable como extension pero no literal.
 - Falta evidencia automatizada o scripts reproducibles de prueba.
@@ -383,7 +397,8 @@ Pendientes o riesgos:
 - No se pudo compilar desde terminal porque no hay `msbuild` clasico en PATH.
 - El proyecto principal `CentralTelefonica.WebServices.csproj` excluye esta carpeta,
   asi que `dotnet build` no valida este WS.
-- La trama enviada a PROVEEDOR5 es JSON, no texto plano.
+- La trama enviada a PROVEEDOR5 es JSON interno, segun los contratos estables del
+  equipo.
 - No se encontro evidencia ejecutada directamente en SoapUI/WCF Test Client; el
   documento indica que la validacion final esta pendiente en Visual Studio.
 
@@ -391,14 +406,15 @@ Nivel de cumplimiento: 70%.
 
 ### 6.4 Resultado Jose
 
-| Historia | Estado | Cumple PDF | Observacion |
-|---|---|---|---|
-| PROVEEDOR5 | Parcial alto | Mayormente si | Funcional, con diferencia de contrato JSON/texto plano y riesgo de compensacion. |
-| IDENTIFICADOR6 | Parcial alto | Mayormente si | Funcional, con respuesta JSON y no texto plano literal. |
-| WS_PROVEEDOR2 | Parcial alto | Si, sujeto a prueba WCF | Codigo SOAP existe; falta prueba final en Visual Studio/SoapUI. |
+| Historia | Estado | Cumple PDF | Observacion | Que falta programar/documentar | Herramienta recomendada |
+|---|---|---|---|---|---|
+| PROVEEDOR5 | Parcial alto | Mayormente si | Funcional con JSON interno; falta subir evidencia/capturas de todos los escenarios. | No se identifica programacion critica pendiente; falta documentar capturas de activacion, desactivacion, errores, SQL Server y MySQL. | VS Code/terminal para Java; SQL Server Management Studio; carpeta `docs/evidencias/jose`. |
+| IDENTIFICADOR6 | Parcial alto | Mayormente si | Funcional con respuesta JSON estructurada; falta evidencia visual completa. | No se identifica programacion critica pendiente; falta documentar capturas de MySQL, respuestas OK y fallos. | VS Code para Python; MySQL Workbench o cliente MySQL; carpeta `docs/evidencias/jose`. |
+| WS_PROVEEDOR2 | Parcial alto | Si, sujeto a prueba WCF | Codigo SOAP existe; falta documentar prueba final en Visual Studio/SoapUI. | Falta capturar prueba SOAP real con `ActivarDesactivarLinea` y respuesta `Resultado=true`. | Visual Studio Community para WCF; SoapUI o WCF Test Client para evidencia. |
 
-Riesgo principal: medio. Jose tiene las tres historias defendibles, pero debe
-llevar evidencia de ejecucion integrada y explicar la decision JSON vs texto plano.
+Riesgo principal: medio-bajo. Jose tiene las tres historias defendibles y las
+pruebas ya fueron realizadas fuera del repositorio. El pendiente principal es
+documentar en este proyecto las capturas y evidencias de todos los escenarios.
 
 ## 7. Charlie - Companero 3
 
@@ -559,12 +575,12 @@ Nivel de cumplimiento: 35%.
 
 ### 7.5 Resultado Charlie
 
-| Historia | Estado | Cumple PDF | Observacion |
-|---|---|---|---|
-| PROVEEDOR6 | Parcial bajo | No completo | Hay SP, pero no cumple alcance global ni fecha maxima. |
-| WS_PROVEEDOR3 | Pendiente/parcial minimo | No | No hay SOAP funcional demostrado. |
-| WS_AUTENTICACION1 | Parcial bajo | No completo | Logica existe, pero no host SOAP ni cifrado requerido. |
-| WS_AUTENTICACION2 | Parcial | No completo | CRUD parcial, pero incumple SOAP, cifrado y reglas llave/estado. |
+| Historia | Estado | Cumple PDF | Observacion | Que falta programar | Herramienta recomendada |
+|---|---|---|---|---|---|
+| PROVEEDOR6 | Parcial bajo | No completo | Hay SP, pero no cumple alcance global ni fecha maxima. | Servicio interno del Proveedor para recibir fecha calculo/fecha maxima, ejecutar SP para todos los postpago, guardar fecha maxima y devolver OK/ERROR. | VS Code o IDE Java para `java_proveedor`; SQL Server Management Studio para SP. |
+| WS_PROVEEDOR3 | Pendiente/parcial minimo | No | No hay SOAP funcional demostrado. | Operacion SOAP `CalcularFacturacion` que traduzca SOAP/XML -> JSON interno PROVEEDOR6 y devuelva Resultado/Mensaje. | Visual Studio Community; WCF dentro de `WS_Proveedor` o proyecto SOAP C# equivalente. |
+| WS_AUTENTICACION1 | Parcial bajo | No completo | Logica existe, pero no host SOAP ni cifrado requerido. | Host SOAP/XML real para login, conexion MongoDB, validacion de credenciales activas y mensajes exactos. | Visual Studio Community si se mantiene C#; WCF/CoreWCF o servicio SOAP equivalente. MongoDB Compass para datos. |
+| WS_AUTENTICACION2 | Parcial | No completo | CRUD parcial, pero incumple SOAP, cifrado y reglas llave/estado. | Metodos SOAP para crear, modificar y activar/inactivar; corregir reglas de estado, campos llave, identificacion y cifrado. | Visual Studio Community para servicio; MongoDB Compass/mongosh para validar coleccion e indices. |
 
 Riesgo principal: alto. Charlie necesita integrar el servicio SOAP real, corregir
 cifrado/validaciones y completar facturacion postpago conforme al PDF.
@@ -616,9 +632,11 @@ Prioridad alta:
 
 Prioridad media:
 
-1. Documentar formalmente la decision JSON vs texto plano o ajustar contratos.
+1. Documentar formalmente la convivencia XML/SOAP en Web Services y JSON en
+   contratos internos.
 2. Agregar compensacion si IDENTIFICADOR6 actualiza MySQL pero SQL Server falla.
-3. Completar pruebas negativas de Jose.
+3. Incorporar al repositorio las evidencias/capturas de las pruebas ya realizadas
+   por Jose.
 4. Unificar mensajes exactos requeridos por PDF.
 5. Actualizar diagramas de base de datos, casos de uso y clases.
 
@@ -640,11 +658,12 @@ mas pendiente. La ruta mas corta es:
 Debe preparar defensa y pruebas integradas. Su codigo es el mas cercano a
 terminado, pero conviene reforzar:
 
-1. Probar `WS_PROVEEDOR2` en Visual Studio/SoapUI.
-2. Guardar evidencia real de SOAP.
-3. Documentar el contrato JSON como decision del equipo o adaptar a texto plano.
-4. Agregar prueba de fallo de Identificador y compensacion.
-5. Agregar prueba de dueno incorrecto y linea ya activa.
+1. Subir al proyecto las capturas de las pruebas ya realizadas.
+2. Guardar evidencia real de SOAP para `WS_PROVEEDOR2`.
+3. Documentar en el informe final que XML/SOAP vive en el WS y JSON queda como
+   contrato interno heredado del alcance 1.
+4. Dejar evidencia de fallo de Identificador y compensacion.
+5. Dejar evidencia de dueno incorrecto y linea ya activa.
 
 ### Charlie
 
@@ -657,15 +676,42 @@ Debe convertir clases sueltas en servicios demostrables:
 5. Rehacer PROVEEDOR6 para calcular todos los postpago y guardar fecha maxima.
 6. Crear WS_PROVEEDOR3 SOAP conectado a PROVEEDOR6.
 
-## 12. Conclusion
+## 12. Nivel de cumplimiento por integrante
+
+Estimacion de avance contra las historias asignadas y evidencias visibles en este
+repositorio. En el caso de Jose, se considera la aclaracion de que las pruebas
+completas ya fueron realizadas fuera del proyecto y que falta incorporar capturas.
+
+```text
+Gabriel : [##--------] 20% de 100
+Jose    : [########--] 75% de 100
+Charlie : [###-------] 25% de 100
+```
+
+Lectura rapida:
+
+- Gabriel: tiene avances indirectos en consulta/registro, pero faltan los WS SOAP
+  y PROVEEDOR4 en el componente correcto.
+- Jose: tiene las tres historias implementadas y probadas; falta subir evidencia
+  formal/capturas al repositorio.
+- Charlie: tiene bases de MongoDB, validadores y SP inicial, pero faltan servicios
+  SOAP funcionales y facturacion completa.
+
+## 13. Conclusion
 
 El proyecto muestra una integracion importante del alcance anterior y un avance
-solido en las historias de Jose. No obstante, frente al PDF de alcance 2, la entrega
-todavia no cumple como sistema completo. La mayor brecha esta en Gabriel y Charlie:
-faltan servicios SOAP reales, ubicacion correcta de PROVEEDOR4, WS Identificador,
-facturacion postpago completa y autenticacion MongoDB expuesta como SOAP.
+solido en las historias de Jose. La arquitectura puede defender la coexistencia
+de dos formatos: SOAP/XML en la frontera de Web Services y JSON como contrato
+interno estable desde el alcance 1. Esa decision debe quedar explicada en la
+documentacion final para evitar que se interprete como una contradiccion.
 
-Si se evalua por historias, Jose tiene material defendible. Gabriel y Charlie
+Frente al PDF de alcance 2, la entrega todavia no cumple como sistema completo.
+La mayor brecha esta en Gabriel y Charlie: faltan servicios SOAP reales, ubicacion
+correcta de PROVEEDOR4, WS Identificador, facturacion postpago completa y
+autenticacion MongoDB expuesta como SOAP.
+
+Si se evalua por historias, Jose tiene material defendible y pruebas realizadas;
+su pendiente es documentarlas con capturas dentro del proyecto. Gabriel y Charlie
 necesitan completar o al menos simular formalmente sus componentes con evidencias.
 Si se evalua como grupo, el riesgo principal es presentar componentes aislados o
 endpoints REST/stubs en lugar de SOAP integrado, lo que el PDF penaliza.
