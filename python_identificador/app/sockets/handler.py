@@ -5,12 +5,15 @@ from app.services.iniciar_llamada import procesar_inicio_llamada
 from app.services.termina_llamada import procesar_finalizacion_llamada
 from app.services.consulta import procesar_consulta_saldo
 from app.services.identificador6 import procesar_identificador6
+from app.services.proveedor4_handler import procesar_registro_linea
 from app.services.administracion_telefonica import (
     procesar_catalogo_telefonos,
     procesar_recarga_saldo,
     procesar_registro_telefono,
     procesar_cambio_estado_telefono
 )
+
+
 
 # Cola de bitácora (inyectada desde servidor.py)
 cola_bitacora = None
@@ -110,7 +113,8 @@ def manejar_cliente(conexion_cliente, direccion_cliente):
             "RECARGAR_SALDO": procesar_recarga_saldo,
             "REGISTRAR_TELEFONO": procesar_registro_telefono,
             "CAMBIAR_ESTADO_TELEFONO": procesar_cambio_estado_telefono,
-            "IDENTIFICADOR6": procesar_identificador6
+            "IDENTIFICADOR6": procesar_identificador6,
+            "REGISTRAR_LINEA": procesar_registro_linea
         }
 
         # Validar tipo de transacción
