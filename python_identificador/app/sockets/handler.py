@@ -99,6 +99,8 @@ def manejar_cliente(conexion_cliente, direccion_cliente):
             return
 
         trama = json.loads(trama_str)
+        print("TRAMA RECIBIDA:")
+        print(trama)
         
         # Registrar trama de entrada en bitácora
         registrar_en_bitacora(trama, "ENTRADA")
@@ -138,6 +140,8 @@ def manejar_cliente(conexion_cliente, direccion_cliente):
         # Enviar respuesta con salto de línea (\n) como requiere el protocolo
         respuesta_json = json.dumps(resultado) + "\n"
         conexion_cliente.sendall(respuesta_json.encode('utf-8'))
+        print("RESPUESTA:")
+        print(resultado)
 
     except json.JSONDecodeError:
         error_resp = {
