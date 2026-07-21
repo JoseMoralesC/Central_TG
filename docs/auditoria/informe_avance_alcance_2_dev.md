@@ -1,135 +1,125 @@
-# Informe de avance - Alcance 2 contra rama dev
+# Informe de avance - Alcance 2 contra proyecto actual
 
-Fecha de analisis: 2026-07-20  
-Rama revisada: `dev` sincronizada con `origin/dev`  
-Repositorio: `Central_TG`
+Fecha de analisis: 2026-07-21  
+Rama revisada: arbol local actual del repositorio `Central_TG`  
+Documentos base: PDF `Proyecto - Alcance 2`, `docs/estrategia/estrategia_2.md`, `docs/estrategia/orden.md`
 
 ## 1. Resumen ejecutivo
 
-El proyecto tiene avances reales, especialmente en el flujo asignado a Jose:
-`WS_PROVEEDOR2 -> PROVEEDOR5 -> IDENTIFICADOR6 -> MySQL/SQL Server`.
-Ese bloque cuenta con codigo, contratos, migraciones y evidencias especificas.
+El proyecto tiene avances reales en los tres bloques asignados, pero no esta listo
+como entrega integral del alcance 2. La situacion cambio respecto al informe
+anterior: ahora hay intentos visibles de `WS_PROVEEDOR1`, `WS_IDENTIFICADOR1`,
+`PROVEEDOR6` y `WS_AUTENTICACION1/2`. Sin embargo, varios de esos avances estan
+incompletos, no compilan dentro del proyecto que los contiene, no estan conectados
+al componente correcto o no cumplen los textos y reglas exactas del PDF.
 
-Sin embargo, el alcance 2 no esta completo como entrega integral. Hay historias
-que existen solo parcialmente, estan ubicadas en un componente distinto al
-solicitado por el PDF, o estan escritas pero no integradas al ejecutable principal.
-
-Aclaracion importante sobre contratos: desde el alcance 1 el equipo dejo
-establecidos contratos JSON para la comunicacion interna entre componentes. Para
-el alcance 2 esa decision se mantiene. XML/SOAP aplica en la frontera de los Web
-Services cuando el requerimiento lo exige, pero la comunicacion interna puede
-seguir usando JSON siempre que el WS traduzca correctamente entre XML/SOAP y el
-contrato JSON existente. Por tanto, el uso de JSON no se considera por si mismo
-un incumplimiento; el punto a verificar es que los servicios SOAP existan,
-reciban/entreguen XML correctamente y respeten los contratos internos acordados.
+Aclaracion importante sobre formatos: desde el alcance 1 el equipo dejo definidos
+contratos internos JSON. Esa decision se mantiene. En el alcance 2, SOAP/XML aplica
+en la frontera de los Web Services, especialmente en WS Proveedor, WS Identificador
+y WS Autenticacion. Por tanto, JSON interno no se considera incumplimiento si el WS
+recibe/entrega SOAP/XML correctamente y traduce hacia las tramas JSON heredadas.
+El riesgo actual no es usar JSON internamente, sino que algunos servicios SOAP no
+compilan, no estan completos o no tienen evidencia de ejecucion.
 
 Estado global estimado:
 
 | Area | Estado | Comentario |
 |---|---|---|
-| Distribucion de responsabilidades | Cumple | `orden.md` asigna Gabriel, Jose y Charlie con minimo 3 historias. |
-| Simulador C# | Cumple como base | Compila correctamente; corresponde mas al alcance anterior y apoyo de pruebas. |
-| Proveedor Java | Parcial | Tiene PROVEEDOR5 y funciones previas; falta PROVEEDOR4/6 conforme PDF. |
-| Identificador Python | Parcial | Tiene IDENTIFICADOR6; tambien contiene un handler llamado PROVEEDOR4, pero no corresponde al bloque Proveedor/SQL Server. |
-| WS Proveedor | Parcial | Existe WCF para WS_PROVEEDOR2; no se evidencian WS_PROVEEDOR1/3 completos en C# SOAP. |
-| WS Autenticacion | Parcial bajo | Hay clases de servicio/validacion MongoDB, pero no estan compiladas por el proyecto principal y no hay proyecto SOAP completo. |
-| WS Identificador | Pendiente | No se encontro implementacion C# SOAP de WS_IDENTIFICADOR1. |
-| MongoDB | Parcial | Hay scripts de coleccion, indices y README; falta confirmar servicio SOAP funcional y cifrado requerido. |
-| Documentacion final | Parcial | Hay estrategia, orden, contrato de Jose y evidencias de Jose; faltan evidencias completas de Gabriel y Charlie. |
+| Distribucion de responsabilidades | Cumple | `orden.md` asigna Gabriel, Jose y Charlie, cada uno con al menos tres historias. |
+| Simulador C# | Cumple como base | Compila correctamente; sirve como soporte del alcance anterior y pruebas. |
+| Proveedor Java | Parcial alto | Compila e incluye PROVEEDOR5 y PROVEEDOR6; falta PROVEEDOR4 real en SQL Server. |
+| Identificador Python | Parcial alto | Compila e incluye IDENTIFICADOR6 y consulta de saldo; tambien contiene un handler PROVEEDOR4 en MySQL que no corresponde al bloque Proveedor. |
+| WS Proveedor | Parcial | Hay WCF para WS_PROVEEDOR2 y otro proyecto para WS_PROVEEDOR1/saldo, pero hay problemas de compilacion/integracion. |
+| WS Autenticacion | Parcial bajo | Existe proyecto WCF separado con MongoDB, pero faltan archivos incluidos por el `.csproj` y hay errores de modelo/codigo. |
+| WS Identificador | Parcial bajo | Hay una operacion `ConsultarSaldo` dentro de `WS_Proveedor_1`, pero no un WS Identificador C# SOAP separado como pide el PDF. |
+| MongoDB | Parcial | Existen scripts y clases, pero el servicio SOAP funcional no queda comprobado. |
+| Documentacion/evidencias | Parcial | Jose tiene evidencias; Gabriel y Charlie siguen sin evidencias equivalentes completas. |
 
-## 2. Requerimientos base revisados
+## 2. Requerimientos fuente revisados
 
-Documentos fuente:
+El PDF de alcance 2 exige diez historias principales:
 
-- `docs/Proyecto/Proyecto - Alcance 2.pdf`
-- `docs/estrategia/estrategia_2.md`
-- `docs/estrategia/orden.md`
-- `docs/roadmaps/roadmap_2.md`
+| Integrante | Historias asignadas segun `orden.md` |
+|---|---|
+| Gabriel | PROVEEDOR4, WS_PROVEEDOR1, WS_IDENTIFICADOR1 |
+| Jose | PROVEEDOR5, IDENTIFICADOR6, WS_PROVEEDOR2 |
+| Charlie | PROVEEDOR6, WS_PROVEEDOR3, WS_AUTENTICACION1, WS_AUTENTICACION2 |
 
-Historias y responsables acordados:
+Reglas tecnicas obligatorias del PDF:
 
-| Integrante | Rol | Historias |
-|---|---|---|
-| Gabriel | Companero 1 | PROVEEDOR4, WS_PROVEEDOR1, WS_IDENTIFICADOR1 |
-| Jose | Companero 2 | PROVEEDOR5, IDENTIFICADOR6, WS_PROVEEDOR2 |
-| Charlie | Companero 3 | PROVEEDOR6, WS_PROVEEDOR3, WS_AUTENTICACION1, WS_AUTENTICACION2 |
-
-Reglas tecnicas relevantes del PDF:
-
-- WS Proveedor y WS Identificador deben estar en C#.
-- Todos los web services deben usar SOAP.
-- WS Autenticacion puede usar otra herramienta, pero debe usar SOAP/XML.
-- Proveedor trabaja con SQL Server.
-- Identificador trabaja con MySQL.
-- Autenticacion trabaja con MongoDB.
+- WS Proveedor y WS Identificador deben desarrollarse en C#.
+- Todos los Web Services deben usar SOAP.
+- WS Autenticacion puede usar otra herramienta, pero debe ser XML/SOAP.
+- Proveedor persiste en SQL Server.
+- Identificador persiste en MySQL.
+- Autenticacion usa MongoDB.
 - Usuario, contrasena y datos telefonicos sensibles deben viajar y almacenarse cifrados.
-- Los componentes deben poder probarse integrados; si algo falta, debe existir stub o simulador.
+- Si un componente no esta listo, debe existir stub o simulador para probar lo desarrollado.
+- La revision aislada de componentes puede tener sancion del 20%.
 
 ## 3. Verificaciones ejecutadas
 
 | Verificacion | Resultado |
 |---|---|
-| `git status --short --branch` | Rama `dev...origin/dev`, sin cambios locales antes del reporte. |
+| Extraccion de PDF con `pypdf` | Correcta; se confirmaron historias y criterios de aceptacion del alcance 2. |
 | `dotnet build csharp_simulador/SimuladorTelefonico/SimuladorTelefonico.csproj --no-restore` | Correcto, 0 errores. |
-| `dotnet build dotnet_webservices/CentralTelefonica.WebServices/CentralTelefonica.WebServices.csproj --no-restore` | Correcto, 0 errores, pero compila el host minimo REST, no las carpetas WCF excluidas. |
 | `python -m compileall python_identificador` | Correcto. |
-| `javac -d build ...` en `java_proveedor` | Correcto sin incluir el jar de SQL Server. |
-| `javac -cp lib/mssql-jdbc.jar ...` | Falla por `AccessDeniedException` sobre el jar, no por error de sintaxis. |
-| `msbuild WS_Proveedor.csproj` | No ejecutable: `msbuild` no esta en PATH. Requiere Visual Studio/MSBuild clasico. |
+| `javac -d java_proveedor/build ...` | Correcto; el proveedor Java compila con PROVEEDOR5 y PROVEEDOR6. |
+| `dotnet build dotnet_webservices/CentralTelefonica.WebServices/CentralTelefonica.WebServices.csproj --no-restore` | Falla. El proyecto net8 arrastra `WS_Proveedor_1` y genera errores de WCF/Newtonsoft/atributos duplicados. |
+| `msbuild` | No esta en PATH; no se pudo compilar desde terminal los proyectos WCF clasicos. |
+
+Observacion de build: el proyecto `CentralTelefonica.WebServices.csproj` excluye
+`WS_Autenticacion/**/*.cs` y `WS_Proveedor/**/*.cs`, pero no excluye
+`WS_Proveedor_1/**/*.cs`. Por eso el build net8 intenta compilar codigo WCF clasico
+.NET Framework y falla. Esto debe corregirse o separarse antes de defender la
+entrega.
 
 ## 4. Hallazgos transversales
 
-### 4.1 Coexistencia JSON y XML/SOAP
+### 4.1 JSON interno y SOAP/XML externo
 
-El equipo mantiene los contratos JSON definidos desde el alcance 1 para la
-comunicacion interna entre C#, Python, Java y bases de datos. En el alcance 2,
-los servicios web deben actuar como frontera SOAP/XML cuando corresponda, pero
-pueden transformar la solicitud SOAP a JSON interno para reutilizar contratos ya
-estables.
+El repositorio mantiene contratos internos JSON en `shared/contracts` y en los
+clientes TCP entre C#, Java y Python. Esto es coherente con el alcance 1. Para el
+alcance 2 debe documentarse asi:
 
-Ejemplos de contratos internos JSON vigentes:
+- SOAP/XML: contrato externo de Web Services.
+- JSON: contrato interno entre WS y componentes heredados.
+- Cifrado: los datos sensibles deben llegar cifrados al WS o ser cifrados antes de
+  enviarse al componente interno, segun el contrato acordado.
 
-- `docs/contratos/jose_activacion_desactivacion.md`
-- `shared/contracts/activar_desactivar_linea_proveedor5.json`
-- `java_proveedor/src/services/Proveedor5Service.java`
-- `python_identificador/app/sockets/handler.py`
+### 4.2 Hay avance nuevo, pero sin evidencia completa
 
-Esto debe quedar explicado en la documentacion final como una decision de
-arquitectura: XML/SOAP en la capa de Web Services; JSON en la capa interna de
-integracion. Con esa aclaracion, el riesgo no es usar JSON, sino no tener el WS
-SOAP/XML funcional que haga la traduccion.
+Se encontraron piezas nuevas o no contempladas por el informe anterior:
 
-### 4.2 El proyecto .NET principal no compila los WS reales
+- `dotnet_webservices/CentralTelefonica.WebServices/WS_Proveedor_1`
+- `java_proveedor/src/services/Proveedor6Service.java`
+- `java_proveedor/src/database/FacturacionDAO.java`
+- `database/sqlserver_proveedor/migrations/010_proveedor6_facturacion.sql`
+- `dotnet_webservices/WS_Autenticacion`
+- `shared/contracts/proveedor6_facturacion.json`
 
-`dotnet_webservices/CentralTelefonica.WebServices/CentralTelefonica.WebServices.csproj`
-excluye:
+Estas piezas suben el avance de Gabriel y Charlie, pero todavia no cierran sus
+historias porque faltan compilacion WCF real, ubicacion correcta, validaciones,
+mensajes exactos y evidencias SOAP.
 
-- `WS_Autenticacion/**/*.cs`
-- `WS_Proveedor/**/*.cs`
-- `MinimalHost.cs`
+### 4.3 Build .NET principal actualmente roto
 
-Por eso el build verde del proyecto principal solo valida `Program.cs`, que expone:
+Antes el host .NET principal compilaba como minimal API. En el estado actual falla
+porque `WS_Proveedor_1` quedo dentro del arbol del proyecto net8 sin exclusion. Los
+errores observados incluyen:
 
-- `/health`
-- `/autenticacion/login`
-- `/proveedor/facturacion`
+- atributos `AssemblyCompany`, `AssemblyConfiguration`, `AssemblyVersion`, etc.
+  duplicados;
+- referencias WCF clasicas no disponibles para net8;
+- falta de referencia a `Newtonsoft.Json`;
+- tipos `ServiceContract` y `OperationContract` no resueltos.
 
-Estos endpoints son REST/minimal API y responden "Servicio listo"; no son SOAP ni
-ejecutan las clases WCF/MongoDB reales.
+Esto no significa que los proyectos WCF clasicos no puedan compilar en Visual
+Studio, pero si significa que el build principal del repositorio no esta limpio.
 
-### 4.3 Evidencias desbalanceadas
+## 5. Gabriel - PROVEEDOR4, WS_PROVEEDOR1, WS_IDENTIFICADOR1
 
-Hay evidencias detalladas para Jose:
-
-- `docs/evidencias/jose/PROVEEDOR5/prueba_proveedor5.md`
-- `docs/evidencias/jose/IDENTIFICADOR6/prueba_identificador6.md`
-- `docs/evidencias/jose/WS_PROVEEDOR2/prueba_ws_proveedor2.md`
-
-No se encontro un equivalente de evidencias completas para Gabriel ni Charlie.
-
-## 5. Gabriel - Companero 1
-
-Responsabilidad: alta de lineas y consulta de saldo.
+Responsabilidad: alta de lineas disponibles y consulta de saldo.
 
 ### 5.1 PROVEEDOR4
 
@@ -138,75 +128,75 @@ Requerido por PDF:
 - Recibir trama de texto plano desde WS Proveedor.
 - Registrar nueva linea disponible en Proveedor/SQL Server.
 - Validar datos completos.
-- Validar numero no usado.
-- Cifrar y almacenar numero, identificador de telefono e identificador de tarjeta.
-- Responder exactamente: `OK`, `Datos Incompletos`, `Telefono en uso`, `ERROR`.
+- Validar telefono no usado.
+- Validar identificador de telefono de 16 digitos e identificador de tarjeta de 19.
+- Cifrar y almacenar telefono, identificador de telefono e identificador de tarjeta.
+- Responder `OK`, `Datos Incompletos`, `Telefono en uso` o `ERROR`.
 
-Estado encontrado: Parcial / no ubicado en el componente correcto.
+Estado encontrado: Parcial bajo.
 
 Evidencia:
 
-- Existe `python_identificador/app/services/proveedor4_handler.py`.
-- El handler valida campos, cifra con AES, verifica duplicado e inserta catalogo.
-- Pero el propio archivo indica que almacena en MySQL.
-- La historia PROVEEDOR4 pertenece al Proveedor y debe persistir en SQL Server.
-- Usa JSON (`REGISTRAR_LINEA`) como contrato interno, consistente con la decision
-  del equipo desde el alcance 1.
-- No valida longitud de identificador de telefono de 16 digitos ni tarjeta de 19
-  digitos en la funcion `validar_campos`; solo valida existencia, tipo y estado.
-- Inserta con `proveedor_codigo="SISTEMA"`, pero el repositorio busca proveedor
-  por codigo activo; si `SISTEMA` no existe, la insercion falla.
-- Inserta `activo=True`, aunque el PDF pide estado `disponible`.
+- `python_identificador/app/services/proveedor4_handler.py`
+- `dotnet_webservices/CentralTelefonica.WebServices/WS_Proveedor_1/Service1.svc.cs`
 
-Conclusion:
+Lo que ya esta:
 
-Hay una implementacion parecida al alta, pero no cumple completamente PROVEEDOR4
-porque esta en Python/Identificador/MySQL y no en Proveedor/SQL Server. Debe
-reubicarse o replicarse en el Proveedor Java/SQL Server con el contrato oficial.
+- Existe un handler llamado PROVEEDOR4 en Python.
+- El handler valida campos basicos, cifra con AES, revisa duplicado e inserta datos.
+- `WS_Proveedor_1` construye una trama `REGISTRAR_LINEA` y la envia por TCP.
 
-Nivel de cumplimiento: 35%.
+Pendientes o riesgos:
 
-Pendientes:
+- La historia PROVEEDOR4 pertenece al Proveedor y debe persistir en SQL Server; el
+  handler encontrado esta en Identificador/Python/MySQL.
+- No se encontro implementacion equivalente en `java_proveedor` para registrar la
+  linea disponible en SQL Server.
+- El handler no valida formalmente 16 y 19 digitos.
+- Inserta como activo/disponible desde una logica que no coincide claramente con
+  la tabla de Proveedor SQL Server.
+- Falta evidencia de registro real en SQL Server.
 
-- Implementar PROVEEDOR4 en Proveedor/SQL Server.
-- Documentar formalmente que el WS recibe SOAP/XML y traduce a JSON interno.
-- Validar 16 y 19 digitos.
-- Guardar como linea disponible, no activa.
-- Responder con mensajes exactos.
-- Agregar evidencias de pruebas positivas y negativas.
+Nivel de cumplimiento estimado: 35%.
 
 ### 5.2 WS_PROVEEDOR1
 
 Requerido por PDF:
 
 - Servicio Web SOAP en C#.
-- Recibe numero, identificador telefono, identificador tarjeta, tipo y estado.
-- Todos los datos llegan encriptados.
-- Construye trama hacia PROVEEDOR4.
+- Recibe telefono, identificador telefono, identificador tarjeta, tipo y estado.
+- Todos los datos se reciben encriptados.
+- Prepara trama hacia PROVEEDOR4.
 - Si PROVEEDOR4 responde OK: `Resultado=true`, `Mensaje=Exitoso`.
 - Si no: `Resultado=false`, `Mensaje=Problemas al incluir la informacion.`
 
-Estado encontrado: Pendiente / no evidenciado.
+Estado encontrado: Parcial.
 
 Evidencia:
 
-- No se encontro operacion WCF/SOAP de registro de linea en `WS_Proveedor`.
-- `WS_Proveedor` contiene principalmente `ActivarDesactivarLinea`, asociado a
-  WS_PROVEEDOR2.
-- `Program.cs` tiene endpoints REST de prueba, no SOAP.
+- `dotnet_webservices/CentralTelefonica.WebServices/WS_Proveedor_1/IService1.cs`
+- `dotnet_webservices/CentralTelefonica.WebServices/WS_Proveedor_1/Service1.svc.cs`
+- `dotnet_webservices/CentralTelefonica.WebServices/WS_Proveedor_1/WS_Proveedor_1.csproj`
 
-Conclusion:
+Lo que ya esta:
 
-WS_PROVEEDOR1 no esta listo como historia demostrable segun el PDF.
+- Existe proyecto WCF clasico .NET Framework 4.7.2.
+- Existe operacion `RegistrarLinea`.
+- La operacion arma JSON interno `REGISTRAR_LINEA`.
+- Devuelve `Resultado=true`, `Mensaje=Exitoso` cuando recibe `OK`.
 
-Nivel de cumplimiento: 10% por estructura parcial de WS Proveedor, sin operacion.
+Pendientes o riesgos:
 
-Pendientes:
+- El archivo `Services/CryptoAES.cs` existe, pero no esta incluido en
+  `WS_Proveedor_1.csproj`; asi el proyecto WCF no queda completo para compilar.
+- `RegistrarLinea` cifra los datos recibidos, pero el PDF indica que los datos se
+  reciben encriptados. Debe definirse si el WS recibe plano y cifra, o si valida
+  datos ya cifrados.
+- El cliente TCP apunta por defecto a `127.0.0.1:5000`, que corresponde mas al
+  Identificador Python que al Proveedor Java; PROVEEDOR4 deberia estar en Proveedor.
+- No hay evidencia SoapUI/WCF Test Client.
 
-- Agregar operacion SOAP `RegistrarLinea` o equivalente.
-- Validar datos cifrados.
-- Invocar PROVEEDOR4 real.
-- Preparar prueba SOAP y evidencia en SQL Server.
+Nivel de cumplimiento estimado: 45%.
 
 ### 5.3 WS_IDENTIFICADOR1
 
@@ -214,67 +204,54 @@ Requerido por PDF:
 
 - Servicio Web SOAP/XML en C# para consulta de saldo.
 - Recibe XML con telefono cifrado, origen Web/telefono y tipo transaccion saldo.
-- Si origen es Web solo esos datos son obligatorios.
-- Si origen es telefono debe validar el flujo completo existente.
-- Envia trama al Proveedor y devuelve XML con resultado y saldo.
-- Debe modificar Proveedor4 para aceptar nuevo campo/origen.
+- Si origen es Web, solo esos datos son obligatorios.
+- Si origen es telefono, valida el flujo completo existente.
+- Envia trama al Proveedor y responde XML con `Resultado: ok` y saldo.
+- Debe modificar PROVEEDOR4 para soportar origen y validaciones por origen.
 
-Estado encontrado: Pendiente / no evidenciado.
+Estado encontrado: Parcial bajo.
 
 Evidencia:
 
-- No se encontro carpeta ni proyecto `WS_Identificador` con archivos.
-- Existe consulta de saldo en Python/Java/C# del alcance anterior:
-  - `python_identificador/app/services/consulta.py`
-  - `java_proveedor/src/services/ConsultaSaldo.java`
-  - `csharp_simulador/SimuladorTelefonico/UI/ConsultaSaldoForm.cs`
-- Esa consulta usa JSON por socket, no SOAP/XML C#.
+- `dotnet_webservices/CentralTelefonica.WebServices/WS_Proveedor_1/IService1.cs`
+- `dotnet_webservices/CentralTelefonica.WebServices/WS_Proveedor_1/Service1.svc.cs`
+- `python_identificador/app/services/consulta.py`
+- `java_proveedor/src/services/ConsultaSaldo.java`
 
-Conclusion:
+Lo que ya esta:
 
-La funcionalidad de consulta de saldo existe parcialmente en el flujo previo, pero
-no existe como WS_IDENTIFICADOR1 SOAP/XML en C#.
+- Hay una operacion WCF `ConsultarSaldo`.
+- La consulta arma JSON interno `CONSULTA_SALDO`.
+- El flujo de consulta de saldo existe desde el alcance anterior en Python/Java.
 
-Nivel de cumplimiento: 20% funcional indirecto; 0% como WS solicitado.
+Pendientes o riesgos:
 
-Pendientes:
+- La operacion esta dentro de `WS_Proveedor_1`, no en un WS Identificador C# separado.
+- No se observa contrato XML completo con origen Web/telefono y tipo de transaccion.
+- La implementacion fija `origen = "WEB"` y no valida el caso origen telefono.
+- No se evidencia modificacion de PROVEEDOR4 para el nuevo campo origen.
+- No hay evidencia SoapUI ni respuesta XML con el formato exacto solicitado.
 
-- Crear WS Identificador en C# con SOAP.
-- Implementar contrato XML de entrada/salida.
-- Diferenciar origen Web vs telefono.
-- Conectar con Proveedor.
-- Documentar pruebas XML/SOAP.
+Nivel de cumplimiento estimado: 30%.
 
 ### 5.4 Resultado Gabriel
 
-| Historia | Estado | Cumple PDF | Observacion | Que falta programar | Herramienta recomendada |
-|---|---|---|---|---|---|
-| PROVEEDOR4 | Parcial | No completo | Existe handler en Python/MySQL, no Proveedor/SQL Server. | Logica real de alta de linea disponible en Proveedor/SQL Server; validar 16/19 digitos, duplicados, estado disponible y cifrado. | VS Code o IDE Java para `java_proveedor`; SQL Server Management Studio para scripts y pruebas. |
-| WS_PROVEEDOR1 | Pendiente | No | No se encontro operacion SOAP de alta. | Operacion SOAP `RegistrarLinea`, validacion de datos cifrados y traduccion SOAP/XML -> JSON interno para PROVEEDOR4. | Visual Studio Community; proyecto WCF/.NET Framework similar a `WS_Proveedor`. |
-| WS_IDENTIFICADOR1 | Pendiente | No | Solo existe consulta de saldo del flujo anterior por socket JSON. | Servicio C# SOAP/XML para consulta de saldo, origen Web/telefono y traduccion hacia el contrato interno de consulta. | Visual Studio Community; WCF o servicio SOAP equivalente en C#. |
+| Historia | Estado | Cumple PDF | Que falta |
+|---|---|---|---|
+| PROVEEDOR4 | Parcial bajo | No completo | Implementarlo en Proveedor/SQL Server, validar 16/19 digitos, duplicados, estado disponible, cifrado y mensajes exactos. |
+| WS_PROVEEDOR1 | Parcial | Parcialmente | Incluir `CryptoAES.cs` en el proyecto, apuntar al Proveedor correcto, confirmar recepcion de datos cifrados y generar evidencia SOAP. |
+| WS_IDENTIFICADOR1 | Parcial bajo | No completo | Crear/ordenar WS Identificador C# SOAP/XML real, diferenciar origen Web/telefono y documentar XML de entrada/salida. |
 
-Riesgo principal: alto. Gabriel necesita completar o evidenciar tres historias
-para poder defender evaluacion individual.
+Riesgo principal: alto. Gabriel ya tiene codigo visible para WS, pero todavia no
+tiene las tres historias defendibles contra el PDF.
 
-## 6. Jose - Companero 2
+## 6. Jose - PROVEEDOR5, IDENTIFICADOR6, WS_PROVEEDOR2
 
 Responsabilidad: activacion/desactivacion e integracion Proveedor-Identificador.
 
 ### 6.1 PROVEEDOR5
 
-Requerido por PDF:
-
-- Recibir trama desde WS_PROVEEDOR2.
-- Validar datos completos.
-- Validar linea disponible para activar y activa para desactivar.
-- Validar pertenencia al dueno en desactivacion.
-- Activar asociando cliente.
-- Si es prepago, saldo inicial 1000.
-- Sincronizar con IDENTIFICADOR6.
-- Responder OK solo si Identificador responde OK.
-- Responder mensajes exactos de error.
-
-Estado encontrado: Cumple parcialmente alto.
+Estado encontrado: Parcial alto / defendible.
 
 Evidencia:
 
@@ -293,39 +270,25 @@ Lo que ya esta:
 - Consulta linea en SQL Server.
 - Detecta linea activa como `Telefono en uso`.
 - Detecta desactivacion no valida como `Telefono no corresponde`.
-- Llama a `Identificador6Client` antes de confirmar cambio local.
-- Activa en SQL Server y asigna datos cifrados.
-- Crea o actualiza saldo inicial prepago en 1000.
-- Desactiva dejando `activo=0`, `estado_linea='DISPONIBLE'` y dueno nulo.
-- Hay evidencia documentada de activacion, desactivacion y datos incompletos.
+- Llama a IDENTIFICADOR6 antes de confirmar cambio local.
+- Activa en SQL Server, asocia datos cifrados y crea saldo inicial prepago de 1000.
+- Desactiva dejando la linea disponible y sin dueno.
+- Hay evidencia documentada.
 
 Pendientes o riesgos:
 
-- Usa JSON interno, lo cual es consistente con los contratos del alcance 1.
-- La lectura de JSON se hace manualmente con busqueda de strings; puede fallar con
-  JSON valido pero distinto en orden/escape.
-- El flujo sincroniza Identificador antes de actualizar SQL Server. Eso reduce el
-  riesgo de SQL activo/MySQL fallido, pero puede dejar MySQL actualizado si luego
-  falla SQL Server. Falta compensacion/rollback logico documentado y automatizado.
-- `ManejoCliente` enruta PROVEEDOR5 por el campo `accion`, no por
-  `tipo_transaccion`. Funciona para `ACTIVAR`/`DESACTIVAR`, pero es fragil.
-- Las pruebas de todos los escenarios ya fueron realizadas por Jose fuera del
-  proyecto. Lo que falta dentro del repositorio es documentarlas con capturas y
-  evidencia formal del proceso.
+- Usa lectura manual de JSON por busqueda de strings; funciona para el contrato
+  actual, pero es fragil ante cambios de orden/escape.
+- Si IDENTIFICADOR6 actualiza MySQL y luego falla SQL Server, falta compensacion
+  automatica documentada.
+- Faltan capturas completas dentro del repositorio para todos los escenarios
+  negativos.
 
-Nivel de cumplimiento: 75%.
+Nivel de cumplimiento estimado: 80%.
 
 ### 6.2 IDENTIFICADOR6
 
-Requerido por PDF:
-
-- Recibir trama del Proveedor.
-- Validar datos completos.
-- Validar datos cifrados.
-- Incluir o actualizar datos en telefonos asociados al Proveedor en MySQL.
-- Responder `OK` o `Activacion fallida`.
-
-Estado encontrado: Cumple parcialmente alto.
+Estado encontrado: Parcial alto / defendible.
 
 Evidencia:
 
@@ -337,38 +300,25 @@ Evidencia:
 
 Lo que ya esta:
 
-- Router de Python acepta `IDENTIFICADOR6`.
-- Valida campos obligatorios.
-- Valida tipo de servicio y accion.
+- Router Python acepta `IDENTIFICADOR6`.
+- Valida campos obligatorios, tipo de servicio y accion.
 - Descifra AES para comprobar telefono, dispositivo, tarjeta y cliente.
 - Valida longitud de dispositivo 16 y tarjeta 19.
 - Inserta o actualiza telefono, tarjeta y dispositivo en MySQL.
 - Asocia/desasocia cliente cifrado segun accion.
-- Responde con JSON que contiene `codigo: OK` y `mensaje: OK`.
-- Evidencia documentada para activacion, desactivacion y AES invalido.
+- Devuelve `codigo: OK` en respuesta JSON interna.
 
 Pendientes o riesgos:
 
-- Usa JSON por socket como contrato interno del alcance 1.
-- Responde con JSON estructurado que contiene `codigo: OK`, equivalente interno
-  al `OK` requerido por el flujo.
-- El PDF indica que la trama debe incluir `Estado: activo`; la implementacion usa
-  `accion: ACTIVAR/DESACTIVAR`, aceptable como extension pero no literal.
-- Falta evidencia automatizada o scripts reproducibles de prueba.
+- El PDF habla de estado `activo`; la implementacion usa `accion` ACTIVAR/DESACTIVAR
+  como extension interna.
+- Falta evidencia automatizada o capturas completas en base de datos.
 
-Nivel de cumplimiento: 80%.
+Nivel de cumplimiento estimado: 82%.
 
 ### 6.3 WS_PROVEEDOR2
 
-Requerido por PDF:
-
-- Operacion SOAP en C#.
-- Recibe datos cifrados.
-- Prepara trama para PROVEEDOR5.
-- Si PROVEEDOR5 responde OK: `Resultado=true`, `Mensaje=Exitoso`.
-- Si no: `Resultado=false`, `Mensaje=Problemas al activar/desactivar la linea.`
-
-Estado encontrado: Parcial alto, sujeto a Visual Studio/WCF.
+Estado encontrado: Parcial alto / sujeto a prueba WCF.
 
 Evidencia:
 
@@ -377,46 +327,38 @@ Evidencia:
 - `dotnet_webservices/CentralTelefonica.WebServices/WS_Proveedor/IProveedorService.cs`
 - `dotnet_webservices/CentralTelefonica.WebServices/WS_Proveedor/Services/TramaProveedorService.cs`
 - `dotnet_webservices/CentralTelefonica.WebServices/WS_Proveedor/Infrastructure/ProveedorTcpClient.cs`
-- `dotnet_webservices/CentralTelefonica.WebServices/WS_Proveedor/Web.config`
 - `docs/evidencias/jose/WS_PROVEEDOR2/prueba_ws_proveedor2.md`
 
 Lo que ya esta:
 
 - Proyecto WCF clasico .NET Framework 4.7.2.
 - Contrato SOAP `ActivarDesactivarLinea`.
-- Validador de campos obligatorios.
-- Validador de Base64 para campos sensibles.
-- Construccion de trama PROVEEDOR5.
-- Cliente TCP a Java configurable.
-- `ProveedorModoSimulado=false` en Web.config.
+- Valida campos obligatorios y Base64 en campos sensibles.
+- Construye trama JSON interna para PROVEEDOR5.
+- Cliente TCP configurable hacia Java.
 - Traduce `OK` a `Resultado=true`, `Mensaje=Exitoso`.
-- Traduce errores a mensaje requerido.
+- Traduce errores al mensaje requerido: `Problemas al activar/desactivar la linea.`
 
 Pendientes o riesgos:
 
-- No se pudo compilar desde terminal porque no hay `msbuild` clasico en PATH.
-- El proyecto principal `CentralTelefonica.WebServices.csproj` excluye esta carpeta,
-  asi que `dotnet build` no valida este WS.
-- La trama enviada a PROVEEDOR5 es JSON interno, segun los contratos estables del
-  equipo.
-- No se encontro evidencia ejecutada directamente en SoapUI/WCF Test Client; el
-  documento indica que la validacion final esta pendiente en Visual Studio.
+- No se pudo compilar desde terminal porque `msbuild` clasico no esta en PATH.
+- La prueba final SOAP con WCF Test Client/SoapUI no esta documentada con captura.
+- El build net8 principal no valida este WCF y actualmente falla por `WS_Proveedor_1`.
 
-Nivel de cumplimiento: 70%.
+Nivel de cumplimiento estimado: 75%.
 
 ### 6.4 Resultado Jose
 
-| Historia | Estado | Cumple PDF | Observacion | Que falta programar/documentar | Herramienta recomendada |
-|---|---|---|---|---|---|
-| PROVEEDOR5 | Parcial alto | Mayormente si | Funcional con JSON interno; falta subir evidencia/capturas de todos los escenarios. | No se identifica programacion critica pendiente; falta documentar capturas de activacion, desactivacion, errores, SQL Server y MySQL. | VS Code/terminal para Java; SQL Server Management Studio; carpeta `docs/evidencias/jose`. |
-| IDENTIFICADOR6 | Parcial alto | Mayormente si | Funcional con respuesta JSON estructurada; falta evidencia visual completa. | No se identifica programacion critica pendiente; falta documentar capturas de MySQL, respuestas OK y fallos. | VS Code para Python; MySQL Workbench o cliente MySQL; carpeta `docs/evidencias/jose`. |
-| WS_PROVEEDOR2 | Parcial alto | Si, sujeto a prueba WCF | Codigo SOAP existe; falta documentar prueba final en Visual Studio/SoapUI. | Falta capturar prueba SOAP real con `ActivarDesactivarLinea` y respuesta `Resultado=true`. | Visual Studio Community para WCF; SoapUI o WCF Test Client para evidencia. |
+| Historia | Estado | Cumple PDF | Que falta |
+|---|---|---|---|
+| PROVEEDOR5 | Parcial alto | Mayormente si | Documentar mas evidencias visuales y compensacion si SQL falla despues de MySQL. |
+| IDENTIFICADOR6 | Parcial alto | Mayormente si | Completar evidencias MySQL y respuestas de error. |
+| WS_PROVEEDOR2 | Parcial alto | Si, sujeto a ejecucion | Capturar prueba SOAP real y confirmar build/ejecucion en Visual Studio. |
 
-Riesgo principal: medio-bajo. Jose tiene las tres historias defendibles y las
-pruebas ya fueron realizadas fuera del repositorio. El pendiente principal es
-documentar en este proyecto las capturas y evidencias de todos los escenarios.
+Riesgo principal: medio-bajo. Jose tiene el bloque mas defendible; su pendiente
+principal es evidencia formal y prueba SOAP final.
 
-## 7. Charlie - Companero 3
+## 7. Charlie - PROVEEDOR6, WS_PROVEEDOR3, WS_AUTENTICACION1, WS_AUTENTICACION2
 
 Responsabilidad: facturacion postpago y autenticacion/usuarios con MongoDB.
 
@@ -424,37 +366,46 @@ Responsabilidad: facturacion postpago y autenticacion/usuarios con MongoDB.
 
 Requerido por PDF:
 
-- Recibir trama desde WS_PROVEEDOR3 con fecha de calculo y fecha maxima de pago.
+- Recibir fecha de calculo y fecha maxima de pago desde WS Proveedor.
 - Validar datos completos y fechas validas.
-- Ejecutar procedimiento almacenado SQL Server que calcule saldo en llamadas de
-  todos los servicios postpago.
-- Almacenar fecha maxima de pago.
+- Ejecutar procedimiento almacenado SQL Server para todos los servicios postpago.
+- Guardar fecha maxima de pago.
 - Responder `OK` o `ERROR`.
 
-Estado encontrado: Parcial bajo.
+Estado encontrado: Parcial medio.
 
 Evidencia:
 
-- `database/sqlserver_proveedor/schema/002_pa_database_facturacionPostpago.sql`
-- `dotnet_webservices/CentralTelefonica.WebServices/WS_Proveedor/Services/ProveedorService.cs`
+- `java_proveedor/src/services/Proveedor6Service.java`
+- `java_proveedor/src/database/FacturacionDAO.java`
+- `java_proveedor/src/sockets/ManejoCliente.java`
+- `database/sqlserver_proveedor/migrations/010_proveedor6_facturacion.sql`
+- `shared/contracts/proveedor6_facturacion.json`
 
 Lo que ya esta:
 
-- Existe un procedimiento `sp_CalcularFacturacionPostpago`.
-- Existe una clase C# que llama un SP y devuelve una respuesta de facturacion.
+- Java compila con `Proveedor6Service`.
+- `ManejoCliente` enruta `accion = "CALCULAR_FACTURACION"` hacia PROVEEDOR6.
+- Valida que las fechas existan y tengan formato `YYYY-MM-DD`.
+- Ejecuta `sp_CalcularFacturacionPostpago(?, ?)`.
+- La migracion `010_proveedor6_facturacion.sql` crea tabla
+  `facturacion_postpago` y un SP con `@fecha_calculo` y `@fecha_maxima_pago`.
+- El SP inserta facturacion para servicios `POSTPAGO` activos y guarda fecha
+  maxima de pago.
 
 Pendientes o riesgos:
 
-- El SP encontrado recibe `@identificacion_cliente`, `@fecha_inicio` y
-  `@fecha_fin`; el PDF pide fecha de calculo y fecha maxima de pago para todos los
-  servicios postpago.
-- El SP consulta `historial_llamadas`, pero el esquema base del proveedor usa
-  tablas como `llamadas_proveedor`; falta confirmar que la tabla exista y coincida.
-- No se evidencia almacenamiento de la fecha maxima de pago.
-- No se encontro servicio Java/Proveedor que reciba PROVEEDOR6 por socket.
-- No se encontro respuesta `OK`/`ERROR` hacia WS_PROVEEDOR3.
+- Si faltan fechas responde `Datos Incompletos`, pero el PDF para PROVEEDOR6 solo
+  define `ERROR` como respuesta no exitosa.
+- El contrato `shared/contracts/proveedor6_facturacion.json` usa
+  `fecha_Maxima_pago` con `M` mayuscula, pero Java lee `fecha_maxima_pago`; esa
+  diferencia rompe la trama de ejemplo.
+- El SP filtra llamadas `lp.fecha_llamada >= @fecha_calculo`, lo cual podria
+  calcular desde la fecha de calculo hacia adelante, no un periodo cerrado. Debe
+  validarse con el criterio del equipo/profesora.
+- Falta evidencia en SQL Server del resultado de `facturacion_postpago`.
 
-Nivel de cumplimiento: 25%.
+Nivel de cumplimiento estimado: 55%.
 
 ### 7.2 WS_PROVEEDOR3
 
@@ -462,256 +413,259 @@ Requerido por PDF:
 
 - Operacion SOAP en C#.
 - Recibe fecha de calculo y fecha maxima de pago.
-- Prepara trama para PROVEEDOR6.
+- Prepara trama hacia PROVEEDOR6.
 - Si PROVEEDOR6 responde OK: `Resultado=true`, `Mensaje=Exitoso`.
 - Si no: `Resultado=false`, `Mensaje=Problemas al realizar el calculo.`
-
-Estado encontrado: Pendiente / parcial minimo.
-
-Evidencia:
-
-- El host principal tiene endpoint REST `/proveedor/facturacion`, pero solo
-  responde `"Servicio listo"` y devuelve el request.
-- Existe una clase `ProveedorService.cs` con `ObtenerFacturaPostpago`, pero no
-  corresponde al contrato WS_PROVEEDOR3 del PDF y no esta compilada por el
-  proyecto principal.
-- El `WS_Proveedor.csproj` clasico no incluye `Services/ProveedorService.cs` ni
-  `Models/FacturacionResponse.cs` segun el listado de Compile; por tanto esa pieza
-  no queda dentro del WCF revisado.
-
-Conclusion:
-
-WS_PROVEEDOR3 no esta listo como SOAP demostrable.
-
-Nivel de cumplimiento: 15%.
-
-### 7.3 WS_AUTENTICACION1
-
-Requerido por PDF:
-
-- Servicio Web XML/SOAP.
-- Recibe usuario, contrasena y tipo.
-- Valida existencia, contrasena, estado activo y tipo.
-- Usuario y contrasena viajan encriptados.
-- Usuario y contrasena se almacenan encriptados en MongoDB.
-- Respuesta correcta: `Resultado=true`, `Mensaje=Exitoso`.
-- Respuesta incorrecta: `Resultado=false`, `Mensaje=Usuario y/o contrasena incorrectos.`
 
 Estado encontrado: Parcial bajo.
 
 Evidencia:
 
-- `dotnet_webservices/CentralTelefonica.WebServices/WS_Autenticacion/Contracts/IAutenticacionService.cs`
-- `dotnet_webservices/CentralTelefonica.WebServices/WS_Autenticacion/Services/AutenticacionService.cs`
-- `database/mongodb/crear_coleccion_usuarios.js`
-- `database/mongodb/indices_usuarios.js`
-- `database/mongodb/README.md`
+- `dotnet_webservices/CentralTelefonica.WebServices/WS_Proveedor/Models/CalcularFacturacionRequest.cs`
+- `dotnet_webservices/CentralTelefonica.WebServices/WS_Proveedor/Services/TramaProveedor6Service.cs`
+- `dotnet_webservices/CentralTelefonica.WebServices/WS_Proveedor/Validators/CalcularFacturacionValidator.cs`
+- `dotnet_webservices/CentralTelefonica.WebServices/Program.cs`
 
 Lo que ya esta:
 
-- Existe interfaz con `[ServiceContract]` y metodo `AutenticarUsuario`.
-- Existe clase que consulta MongoDB.
-- Valida usuario, contrasena, tipo y estado activo.
-- Hay scripts de coleccion e indices MongoDB.
+- Hay modelos/servicios auxiliares para construir trama PROVEEDOR6.
+- El host minimal tiene endpoint REST `/proveedor/facturacion`, pero solo responde
+  `"Servicio listo"` y no es SOAP.
 
 Pendientes o riesgos:
 
-- No hay `.svc`, `.csproj` o host SOAP completo para WS_Autenticacion.
-- El proyecto principal excluye `WS_Autenticacion/**/*.cs`, por lo que estas clases
-  no se compilan en el build actual.
-- `Program.cs` expone `/autenticacion/login` REST y responde `"Servicio listo"`, sin
-  ejecutar `AutenticacionService`.
-- Usa SHA-256 para contrasena, no cifrado/encriptacion reversible como lo pide el
-  PDF para usuario y contrasena.
-- El usuario se almacena/compara en texto plano (`u.Usuario == usuario.Trim()`).
-- Los mensajes no coinciden con los textos exactos requeridos.
+- `WS_Proveedor.csproj` no incluye los archivos de facturacion en su lista
+  `Compile`, por lo que no forman parte del WCF real.
+- `IProveedorService.cs` del WCF solo expone `ActivarDesactivarLinea`.
+- No existe operacion SOAP `CalcularFacturacion` demostrable.
+- No hay evidencia SoapUI/WCF Test Client.
 
-Nivel de cumplimiento: 30%.
+Nivel de cumplimiento estimado: 25%.
+
+### 7.3 WS_AUTENTICACION1
+
+Requerido por PDF:
+
+- Servicio Web XML/SOAP para autenticar usuarios.
+- Recibe usuario, contrasena y tipo.
+- Valida existencia, contrasena, estado activo y tipo.
+- Usuario y contrasena viajan encriptados.
+- Usuario y contrasena se almacenan en MongoDB de forma encriptada.
+- Respuesta exitosa: `Resultado=true`, `Mensaje=Exitoso`.
+- Respuesta fallida: `Resultado=false`, `Mensaje=Usuario y/o contrasena incorrectos.`
+
+Estado encontrado: Parcial bajo.
+
+Evidencia:
+
+- `dotnet_webservices/WS_Autenticacion/WS_Autenticacion.csproj`
+- `dotnet_webservices/WS_Autenticacion/Contracts/IAutenticacionService.cs`
+- `dotnet_webservices/WS_Autenticacion/Services/IService1.cs`
+- `database/mongodb/crear_coleccion_usuarios.js`
+- `database/mongodb/indices_usuarios.js`
+
+Lo que ya esta:
+
+- Hay proyecto WCF separado .NET Framework 4.8.
+- Hay contrato SOAP con `AutenticarUsuario`.
+- Hay clase de servicio que consulta MongoDB.
+- Valida usuario, contrasena hasheada, tipo y estado activo.
+
+Pendientes o riesgos:
+
+- `WS_Autenticacion.csproj` incluye `Service1.svc` y `Service1.svc.cs`, pero esos
+  archivos no existen en la carpeta. Asi el proyecto no esta completo.
+- El servicio usa constructor `AutenticacionService(IMongoDatabase database)`, lo
+  cual no es directamente instanciable por WCF clasico sin configuracion/factory.
+- `Services/IService1.cs` usa sintaxis nullable `Usuario?`, incompatible con C# 7.3
+  si se compila como proyecto .NET Framework clasico sin version moderna de C#.
+- Los mensajes no son los exactos del PDF.
+- Se usa SHA-256 para contrasena, no cifrado reversible/encriptacion como indica el
+  PDF para usuario y contrasena.
+- No se ve cifrado del campo usuario; el modelo MongoDB tiene inconsistencias de
+  propiedades (`UserUsuario`, `NombreUsuario`) y el servicio tambien referencia
+  `usuario.Usuario`, propiedad que no existe.
+
+Nivel de cumplimiento estimado: 25%.
 
 ### 7.4 WS_AUTENTICACION2
 
 Requerido por PDF:
 
-- Servicio Web XML/SOAP con tres metodos:
-  - crear usuario,
-  - modificar usuario,
-  - activar/inactivar usuario.
-- Validar campos completos, correo, nombres/apellidos, tipo 1/2, estado activo en
-  usuarios nuevos y contrasena exacta de 14 caracteres con reglas.
+- Metodos SOAP/XML para crear, modificar y activar/inactivar usuarios.
+- Validar campos completos, correo, nombres/apellidos, tipo 1/2.
+- Usuario nuevo debe crearse activo.
+- Contrasena de exactamente 14 caracteres con mayuscula, minuscula, numero y
+  caracter especial.
 - No permitir duplicados.
-- No permitir modificar campos llave.
+- No modificar campos llave.
+- Cambiar estado por identificacion y estado.
 - Usuario y contrasena viajan y se almacenan encriptados.
-- Respuestas exactas segun PDF.
+- Mensajes exactos segun PDF.
 
-Estado encontrado: Parcial.
+Estado encontrado: Parcial bajo.
 
 Evidencia:
 
-- `AutenticacionService.cs` implementa `CrearUsuario`, `ModificarUsuario`,
-  `CambiarEstadoUsuario`.
-- `UsuarioValidator.cs` valida correo, nombres, tipo y contrasena de 14 caracteres.
-- Scripts MongoDB crean coleccion e indices.
+- `dotnet_webservices/WS_Autenticacion/Contracts/IAutenticacionService.cs`
+- `dotnet_webservices/WS_Autenticacion/Services/IService1.cs`
+- `dotnet_webservices/WS_Autenticacion/Validators/UsuarioValidator.cs`
+- `dotnet_webservices/WS_Autenticacion/Models/Usuario.cs`
 
 Lo que ya esta:
 
-- Hay logica de CRUD parcial en MongoDB.
-- Hay validaciones importantes de contrasena, correo y tipo.
-- Hay deteccion de duplicados por usuario, correo e identificacion.
+- Existen metodos `CrearUsuario`, `ModificarUsuario` y `CambiarEstadoUsuario`.
+- El validador revisa correo, nombres, tipo y contrasena de 14 caracteres.
+- Hay deteccion intencionada de duplicados.
 
 Pendientes o riesgos:
 
-- No esta expuesto como SOAP ejecutable.
-- No se compila dentro del proyecto principal.
-- Crear usuario permite que el estado venga informado como `inactivo`; el PDF exige
-  que usuarios nuevos se creen activos.
-- Modificar usuario permite cambiar `Usuario` e `Identificacion`, aunque el PDF
-  indica que campos llave no deben modificarse.
-- Cambio de estado busca por `usuario`; el PDF pide recibir identificacion y estado.
-- Usuario se guarda en texto plano.
-- Contrasena se guarda como hash SHA-256, no como cifrado requerido.
-- Mensajes de respuesta no son los exactos del PDF.
+- El proyecto no esta completo por falta de `Service1.svc` y `Service1.svc.cs`.
+- El servicio referencia `u.Usuario` y `usuario.Usuario`, pero el modelo define
+  `UserUsuario` y `NombreUsuario`; eso impide compilacion.
+- `ModificarUsuario` permite cambiar identificacion y usuario, aunque son llaves.
+- `CambiarEstadoUsuario` recibe nombre de usuario, pero el PDF pide identificacion.
+- Crear usuario permite estado informado; el PDF exige estado activo para nuevos.
+- Usuario no se guarda cifrado y contrasena se guarda como hash.
+- Los mensajes de respuesta no coinciden con los textos exactos.
 
-Nivel de cumplimiento: 35%.
+Nivel de cumplimiento estimado: 25%.
 
 ### 7.5 Resultado Charlie
 
-| Historia | Estado | Cumple PDF | Observacion | Que falta programar | Herramienta recomendada |
-|---|---|---|---|---|---|
-| PROVEEDOR6 | Parcial bajo | No completo | Hay SP, pero no cumple alcance global ni fecha maxima. | Servicio interno del Proveedor para recibir fecha calculo/fecha maxima, ejecutar SP para todos los postpago, guardar fecha maxima y devolver OK/ERROR. | VS Code o IDE Java para `java_proveedor`; SQL Server Management Studio para SP. |
-| WS_PROVEEDOR3 | Pendiente/parcial minimo | No | No hay SOAP funcional demostrado. | Operacion SOAP `CalcularFacturacion` que traduzca SOAP/XML -> JSON interno PROVEEDOR6 y devuelva Resultado/Mensaje. | Visual Studio Community; WCF dentro de `WS_Proveedor` o proyecto SOAP C# equivalente. |
-| WS_AUTENTICACION1 | Parcial bajo | No completo | Logica existe, pero no host SOAP ni cifrado requerido. | Host SOAP/XML real para login, conexion MongoDB, validacion de credenciales activas y mensajes exactos. | Visual Studio Community si se mantiene C#; WCF/CoreWCF o servicio SOAP equivalente. MongoDB Compass para datos. |
-| WS_AUTENTICACION2 | Parcial | No completo | CRUD parcial, pero incumple SOAP, cifrado y reglas llave/estado. | Metodos SOAP para crear, modificar y activar/inactivar; corregir reglas de estado, campos llave, identificacion y cifrado. | Visual Studio Community para servicio; MongoDB Compass/mongosh para validar coleccion e indices. |
+| Historia | Estado | Cumple PDF | Que falta |
+|---|---|---|---|
+| PROVEEDOR6 | Parcial medio | Parcial | Alinear contrato `fecha_maxima_pago`, ajustar respuesta de error, probar SP y guardar evidencias SQL Server. |
+| WS_PROVEEDOR3 | Parcial bajo | No completo | Agregar operacion SOAP real al WCF, incluir archivos en `.csproj`, conectar con PROVEEDOR6 y evidenciar SoapUI. |
+| WS_AUTENTICACION1 | Parcial bajo | No completo | Completar proyecto WCF, corregir constructor/modelos, cifrar usuario/contrasena y mensajes exactos. |
+| WS_AUTENTICACION2 | Parcial bajo | No completo | Corregir compilacion, reglas de llaves/estado, cambio por identificacion, cifrado y respuestas exactas. |
 
-Riesgo principal: alto. Charlie necesita integrar el servicio SOAP real, corregir
-cifrado/validaciones y completar facturacion postpago conforme al PDF.
+Riesgo principal: alto. Charlie tiene mas avance que antes en PROVEEDOR6, pero el
+bloque SOAP de autenticacion y WS_PROVEEDOR3 todavia no es defendible.
 
 ## 8. Estado de entregables del PDF
 
 | Entregable | Estado | Evidencia / comentario |
 |---|---|---|
-| Documentacion analisis/diseno | Parcial | Existen estrategia, orden, docs de entrega final y contrato de Jose. Faltan diagramas actualizados completos para alcance 2. |
-| MongoDB | Parcial | Scripts en `database/mongodb`, pero falta validar servicio SOAP real. |
-| Codigo Identificador actualizado | Parcial alto | Python compila e incluye IDENTIFICADOR6. |
-| Codigo Proveedor actualizado | Parcial | Java compila y tiene PROVEEDOR5; faltan PROVEEDOR4/6 oficiales. |
-| Codigo Simulador | Cumple | C# compila correctamente. |
-| WS Proveedor | Parcial | WS_PROVEEDOR2 existe; WS_PROVEEDOR1/3 no estan completos. |
-| WS Autenticacion | Parcial bajo | Clases existen, pero no host SOAP compilado. |
-| WS Identificador | Pendiente | No se encontro implementacion C# SOAP. |
+| Documentacion analisis/diseno | Parcial | Hay estrategia, orden, roadmaps y docs finales; faltan diagramas actualizados completos y evidencias por historia. |
+| MongoDB | Parcial | Hay scripts e indices; falta servicio SOAP funcional y prueba real. |
+| Codigo Identificador actualizado | Parcial alto | Python compila e incluye IDENTIFICADOR6 y consulta saldo previa. |
+| Codigo Proveedor actualizado | Parcial alto | Java compila con PROVEEDOR5 y PROVEEDOR6; falta PROVEEDOR4 oficial en SQL Server. |
+| Codigo Simulador | Cumple | C# compila. |
+| WS Proveedor | Parcial | WS_PROVEEDOR2 existe; WS_PROVEEDOR1 parcial; WS_PROVEEDOR3 no integrado al WCF. |
+| WS Autenticacion | Parcial bajo | Proyecto existe, pero no esta completo ni consistente para compilar/ejecutar. |
+| WS Identificador | Parcial bajo | Hay consulta en `WS_Proveedor_1`, no WS Identificador separado. |
 
 ## 9. Lo que ya esta
 
-- Rama `dev` limpia y sincronizada.
-- Simulador C# compila.
-- Host .NET principal compila, aunque es REST/minimal y no SOAP.
+- El PDF fue revisado y coincide con la separacion Gabriel/Jose/Charlie de
+  `orden.md`.
+- El simulador C# compila.
 - Python Identificador compila.
-- Java Proveedor compila sin el jar en classpath; el error con jar parece de acceso
-  del sistema, no de codigo.
-- Jose tiene:
-  - contrato documentado,
-  - PROVEEDOR5 funcional,
-  - IDENTIFICADOR6 funcional,
-  - WS_PROVEEDOR2 WCF implementado,
-  - migraciones SQL/MySQL,
-  - evidencias documentadas.
-- MongoDB tiene scripts de coleccion e indices.
-- Hay avance de logica de autenticacion y administracion de usuarios.
-- Hay un SP inicial de facturacion.
+- Java Proveedor compila e incluye PROVEEDOR5 y PROVEEDOR6.
+- Jose tiene contrato, codigo y evidencias para sus tres historias.
+- Gabriel tiene un proyecto WCF para registrar linea y consultar saldo, aunque no
+  esta cerrado.
+- Charlie tiene PROVEEDOR6 en Java y SP de facturacion mas un proyecto inicial de
+  WS Autenticacion.
+- MongoDB tiene scripts base.
+- Hay contratos JSON internos para PROVEEDOR5, IDENTIFICADOR6 y PROVEEDOR6.
 
 ## 10. Lo que falta para cierre defendible
 
 Prioridad alta:
 
-1. Completar WS_IDENTIFICADOR1 en C# SOAP.
-2. Completar WS_PROVEEDOR1 en C# SOAP.
-3. Mover o implementar PROVEEDOR4 en Proveedor/SQL Server.
-4. Completar PROVEEDOR6 real en Proveedor/SQL Server.
-5. Completar WS_PROVEEDOR3 SOAP y conectarlo a PROVEEDOR6.
-6. Crear host/proyecto SOAP real para WS_AUTENTICACION1/2.
-7. Corregir cifrado de usuario/contrasena segun requerimiento.
-8. Ejecutar pruebas con SoapUI/WCF Test Client y guardar evidencias.
+1. Corregir el build .NET principal excluyendo o separando `WS_Proveedor_1` del
+   proyecto net8, o eliminando la mezcla net8/WCF clasico.
+2. Completar PROVEEDOR4 en Proveedor/SQL Server.
+3. Hacer que `WS_Proveedor_1` compile como WCF: incluir `CryptoAES.cs`, revisar
+   namespaces y apuntar al Proveedor correcto.
+4. Crear o reubicar WS_IDENTIFICADOR1 como C# SOAP/XML real, no solo metodo dentro
+   de WS Proveedor.
+5. Integrar WS_PROVEEDOR3 al WCF real y conectarlo con PROVEEDOR6.
+6. Completar `WS_Autenticacion`: agregar archivos `.svc`, corregir modelo
+   `Usuario`, constructor WCF, propiedades y mensajes.
+7. Corregir cifrado de usuario/contrasena segun PDF.
+8. Ejecutar pruebas con SoapUI/WCF Test Client y guardar evidencias por historia.
 
 Prioridad media:
 
-1. Documentar formalmente la convivencia XML/SOAP en Web Services y JSON en
-   contratos internos.
-2. Agregar compensacion si IDENTIFICADOR6 actualiza MySQL pero SQL Server falla.
-3. Incorporar al repositorio las evidencias/capturas de las pruebas ya realizadas
-   por Jose.
-4. Unificar mensajes exactos requeridos por PDF.
+1. Alinear `shared/contracts/proveedor6_facturacion.json` con el campo real
+   `fecha_maxima_pago`.
+2. Documentar formalmente SOAP/XML externo y JSON interno.
+3. Agregar evidencias de Gabriel y Charlie con el mismo nivel que Jose.
+4. Documentar compensacion del flujo PROVEEDOR5/IDENTIFICADOR6.
 5. Actualizar diagramas de base de datos, casos de uso y clases.
 
 ## 11. Recomendacion por responsable
 
 ### Gabriel
 
-Debe enfocarse en cerrar las tres historias asignadas. Actualmente son el bloque
-mas pendiente. La ruta mas corta es:
+Ruta corta para defensa:
 
-1. Implementar `PROVEEDOR4` en Java/SQL Server usando tablas `servicios`, saldos y
-   campos cifrados de linea.
-2. Agregar operacion WCF `RegistrarLinea` en `WS_Proveedor`.
-3. Crear proyecto/carpeta `WS_Identificador` C# SOAP para consulta de saldo.
-4. Preparar evidencias equivalentes a las de Jose.
+1. Implementar PROVEEDOR4 en `java_proveedor` contra SQL Server.
+2. Corregir `WS_Proveedor_1` para que compile en Visual Studio e incluir
+   `Services/CryptoAES.cs`.
+3. Configurar el cliente TCP hacia el Proveedor Java, no hacia Identificador.
+4. Separar o crear WS Identificador C# SOAP/XML para consulta de saldo.
+5. Subir evidencias SoapUI y SQL Server/MySQL de alta y saldo.
 
 ### Jose
 
-Debe preparar defensa y pruebas integradas. Su codigo es el mas cercano a
-terminado, pero conviene reforzar:
+Ruta corta para defensa:
 
-1. Subir al proyecto las capturas de las pruebas ya realizadas.
-2. Guardar evidencia real de SOAP para `WS_PROVEEDOR2`.
-3. Documentar en el informe final que XML/SOAP vive en el WS y JSON queda como
-   contrato interno heredado del alcance 1.
-4. Dejar evidencia de fallo de Identificador y compensacion.
-5. Dejar evidencia de dueno incorrecto y linea ya activa.
+1. Mantener PROVEEDOR5, IDENTIFICADOR6 y WS_PROVEEDOR2 como bloque integrado.
+2. Tomar capturas de activacion, desactivacion, linea ya activa, dueno incorrecto,
+   datos incompletos y fallo de Identificador.
+3. Documentar que SOAP/XML vive en WS y JSON se mantiene como contrato interno.
+4. Confirmar en Visual Studio que `WS_Proveedor` ejecuta `ActivarDesactivarLinea`.
 
 ### Charlie
 
-Debe convertir clases sueltas en servicios demostrables:
+Ruta corta para defensa:
 
-1. Crear o integrar un WS SOAP real para Autenticacion.
-2. Hacer que las clases `WS_Autenticacion` se compilen y se ejecuten.
-3. Corregir almacenamiento/cifrado de usuario y contrasena.
-4. Ajustar crear/modificar/cambiar estado a las reglas exactas del PDF.
-5. Rehacer PROVEEDOR6 para calcular todos los postpago y guardar fecha maxima.
-6. Crear WS_PROVEEDOR3 SOAP conectado a PROVEEDOR6.
+1. Probar `PROVEEDOR6` con el contrato correcto `fecha_maxima_pago` y guardar
+   evidencia en `facturacion_postpago`.
+2. Agregar operacion SOAP `CalcularFacturacion` al WCF `WS_Proveedor`.
+3. Reparar `WS_Autenticacion.csproj`: agregar `.svc`, corregir propiedades
+   `Usuario/UserUsuario/NombreUsuario` y constructor del servicio.
+4. Ajustar WS_AUTENTICACION2 a reglas exactas: usuario nuevo activo, llaves no
+   modificables, cambio de estado por identificacion.
+5. Corregir cifrado y mensajes exactos.
 
 ## 12. Nivel de cumplimiento por integrante
 
-Estimacion de avance contra las historias asignadas y evidencias visibles en este
-repositorio. En el caso de Jose, se considera la aclaracion de que las pruebas
-completas ya fueron realizadas fuera del proyecto y que falta incorporar capturas.
+Estimacion de avance contra historias asignadas y evidencias visibles en este
+repositorio:
 
 ```text
-Gabriel : [##--------] 20% de 100
-Jose    : [########--] 75% de 100
-Charlie : [###-------] 25% de 100
+Gabriel : [####------] 37% de 100
+Jose    : [########--] 79% de 100
+Charlie : [###-------] 33% de 100
 ```
 
 Lectura rapida:
 
-- Gabriel: tiene avances indirectos en consulta/registro, pero faltan los WS SOAP
-  y PROVEEDOR4 en el componente correcto.
-- Jose: tiene las tres historias implementadas y probadas; falta subir evidencia
-  formal/capturas al repositorio.
-- Charlie: tiene bases de MongoDB, validadores y SP inicial, pero faltan servicios
-  SOAP funcionales y facturacion completa.
+- Gabriel: subio avance real de WS, pero PROVEEDOR4 esta en el componente
+  incorrecto y WS_IDENTIFICADOR1 no esta completo como servicio C# SOAP/XML.
+- Jose: mantiene el bloque mas solido; falta evidencia formal y prueba SOAP final.
+- Charlie: PROVEEDOR6 mejoro, pero WS_PROVEEDOR3 y WS_AUTENTICACION1/2 siguen con
+  riesgo alto por compilacion, integracion, cifrado y mensajes.
 
 ## 13. Conclusion
 
-El proyecto muestra una integracion importante del alcance anterior y un avance
-solido en las historias de Jose. La arquitectura puede defender la coexistencia
-de dos formatos: SOAP/XML en la frontera de Web Services y JSON como contrato
-interno estable desde el alcance 1. Esa decision debe quedar explicada en la
-documentacion final para evitar que se interprete como una contradiccion.
+El proyecto avanzo frente al informe anterior: ya no se puede decir que Gabriel y
+Charlie no tengan nada en sus historias. Hay codigo nuevo y parte del flujo de
+facturacion ya compila en Java. Aun asi, la entrega completa del alcance 2 sigue
+en riesgo porque varias historias estan en estado parcial y el build principal de
+Web Services esta roto.
 
-Frente al PDF de alcance 2, la entrega todavia no cumple como sistema completo.
-La mayor brecha esta en Gabriel y Charlie: faltan servicios SOAP reales, ubicacion
-correcta de PROVEEDOR4, WS Identificador, facturacion postpago completa y
-autenticacion MongoDB expuesta como SOAP.
+La arquitectura JSON interna puede defenderse, siempre que quede claramente
+documentado que SOAP/XML es la frontera externa requerida por el PDF. Para cerrar
+el alcance, el equipo debe concentrarse en hacer ejecutables los servicios SOAP,
+ubicar PROVEEDOR4 en Proveedor/SQL Server, completar WS_IDENTIFICADOR1, integrar
+WS_PROVEEDOR3 y reparar WS_AUTENTICACION con MongoDB, cifrado y mensajes exactos.
 
-Si se evalua por historias, Jose tiene material defendible y pruebas realizadas;
-su pendiente es documentarlas con capturas dentro del proyecto. Gabriel y Charlie
-necesitan completar o al menos simular formalmente sus componentes con evidencias.
-Si se evalua como grupo, el riesgo principal es presentar componentes aislados o
-endpoints REST/stubs en lugar de SOAP integrado, lo que el PDF penaliza.
+Si se evalua por historias, Jose tiene el bloque mas defendible. Gabriel y Charlie
+necesitan terminar o simular formalmente sus componentes y documentar evidencias
+equivalentes antes de la entrega.
