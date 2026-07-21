@@ -39,18 +39,112 @@ def consultar_saldo_proveedor(telefono_origen: str) -> dict:
     respuesta = enviar_al_proveedor(trama_consulta)
     return respuesta
 
+def _respuesta_error(mensaje: str) -> dict:
+    return {
+        "tipo_transaccion": "RESPUESTA_SALDO",
+        "resultado": {
+            "codigo": "ERROR",
+            "estado": "CONSULTA_FALLIDA",
+            "mensaje": mensaje
+        }
+    }
+
+def procesar_consulta_saldo_web(trama_json: dict) -> dict:
+    """
+    Procesa consulta de saldo desde origen Web (WS_IDENTIFICADOR1).
+    Solo valida el número de teléfono, sin requerir SIM, dispositivo ni ubicación.
+    
+    Contrato de entrada:
+    {
+        "tipo_transaccion": "CONSULTA_SALDO",
+        "origen": "WEB",
+        "telefono_origen": "..." (cifrado AES),
+        "fecha_hora": "..."
+    }
+    """
+    # 1. Validar campo obligatorio
+    telefono_cifrado = trama_json.get("telefono_origen")
+    if not telefono_cifrado:
+        return _respuesta_error("Datos incompletos")
+
+    # 2. Descifrar teléfono
+    telefono = desencriptar_aes(telefono_cifrado)
+    if not telefono:
+        return _respuesta_error("Error de seguridad: no fue posible descifrar los datos")
+
+    # 3. Validar que el teléfono exista en MySQL
+    try:
+        from app.database.repositorio import buscar_telefono_por_numero_cifrado
+
+        registro = buscar_telefono_por_numero_cifrado(telefono_cifrado)
+        if not registro:
+            return _respuesta_error("El teléfono no existe en la base de datos")
+
+        if not registro.get("activo"):
+            return _respuesta_error("El teléfono se encuentra inactivo")
+
+    except Exception as db_err:
+        print(f"[-] Error en consulta MySQL: {db_err}")
+        return _respuesta_error("Error no controlado")
+
+    # 4. Consultar saldo al proveedor Java
+    resultado = consultar_saldo_proveedor(telefono)
+
+    resultado_codigo = resultado.get(
+        "status",
+        resultado.get("resultado", {}).get("codigo", "ERROR")
+    )
+    datos_autorizacion = resultado.get("datos_autorizacion", {})
+
+    if resultado_codigo == "OK":
+        saldo_disponible = resultado.get(
+            "saldo",
+            datos_autorizacion.get("saldo_disponible", 0)
+        )
+
+        return {
+            "tipo_transaccion": "RESPUESTA_SALDO",
+            "telefono_origen": telefono,
+            "resultado": {
+                "codigo": "OK",
+                "estado": "CONSULTA_EXITOSA",
+                "mensaje": "Consulta realizada correctamente"
+            },
+            "datos_saldo": {
+                "tipo_servicio": registro.get("tipo_servicio", "PREPAGO"),
+                "saldo_disponible": saldo_disponible,
+                "moneda": datos_autorizacion.get("moneda", "CRC"),
+                "fecha_consulta": trama_json.get("fecha_hora", datetime.now().isoformat())
+            }
+        }
+    else:
+        return _respuesta_error(
+            resultado.get("resultado", {}).get("mensaje", "Error al consultar saldo")
+        )
+
 def procesar_consulta_saldo(trama_json: dict) -> dict:
     """
     HU Identificador4: Consulta de saldo.
     Recibe solicitud de consulta de saldo, valida datos contra BD y consulta al proveedor.
     
+    Si origen = "WEB", usa validación simplificada (solo número de teléfono).
+    Si origen es otro o no viene, usa validación completa (SIM, dispositivo, ubicación).
+    
     Campos esperados del contrato consulta_saldo.json:
     - tipo_transaccion: "CONSULTA_SALDO"
     - telefono_origen: str (cifrado)
-    - identificador_dispositivo: str (cifrado, 16 dígitos)
-    - identificador_tarjeta: str (cifrado, 19 dígitos)
+    - origen: "WEB" (opcional, para consultas desde web)
+    - identificador_dispositivo: str (cifrado, 16 dígitos) - solo para origen teléfono
+    - identificador_tarjeta: str (cifrado, 19 dígitos) - solo para origen teléfono
+    - ubicacion: dict - solo para origen teléfono
     - fecha_hora: str
     """
+    # Detectar si viene de Web (validación simplificada)
+    origen = trama_json.get("origen", "").strip().upper()
+    if origen == "WEB":
+        return procesar_consulta_saldo_web(trama_json)
+
+    # ===== Validación completa (desde teléfono) =====
     # Validar campos requeridos
     campos_requeridos = [
         "telefono_origen", "identificador_dispositivo", 

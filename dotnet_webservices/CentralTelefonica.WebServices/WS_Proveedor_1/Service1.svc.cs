@@ -1,11 +1,6 @@
 ﻿using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Serialization;
-using System.ServiceModel;
-using System.ServiceModel.Web;
-using System.Text;
+using WcfService1.Utils;
 using WS_Proveedor_1.Models;
 using WS_Proveedor_1.Services;
 using static WS_Proveedor_1.Models.Proovedor_telefono;
@@ -24,9 +19,9 @@ namespace WS_Proveedor_1
                     var trama = new
                     {
                         tipo_transaccion = "REGISTRAR_LINEA",
-                        telefono = request.NumeroTelefono,
-                        identificador_dispositivo = request.IdentificadorTelefono,
-                        identificador_tarjeta = request.IdentificadorTarjeta,
+                        telefono = CryptoAES.Encriptar(request.NumeroTelefono),
+                        identificador_dispositivo = CryptoAES.Encriptar(request.IdentificadorTelefono),
+                        identificador_tarjeta = CryptoAES.Encriptar(request.IdentificadorTarjeta),
                         tipo = request.Tipo,
                         estado = request.Estado
                     };
@@ -80,7 +75,7 @@ namespace WS_Proveedor_1
                 {
                     tipo_transaccion = "CONSULTA_SALDO",
                     origen = "WEB",
-                    telefono_origen = request.NumeroTelefono
+                    telefono_origen = CryptoAES.Encriptar(request.NumeroTelefono)
                 };
 
                 string json = JsonConvert.SerializeObject(trama);
