@@ -1,5 +1,6 @@
 using System.Data;
 using System.Data.SqlClient;
+using System.Text.Json;
 using CentralTelefonica.WebServices.WS_Proveedor.Contracts;
 using CentralTelefonica.WebServices.WS_Proveedor.Models;
 
@@ -43,6 +44,69 @@ public class ProveedorService : IProveedorService
                 Exito = false,
                 Mensaje = $"Error al calcular la facturación: {ex.Message}",
                 TotalFacturar = 0m
+            };
+        }
+    }
+
+    public RespuestaServicio RegistrarLinea(RegistrarLineaRequest request)
+    {
+        try
+        {
+            var payload = new
+            {
+                numeroTelefono = request.NumeroTelefono,
+                identificadorTelefono = request.IdentificadorTelefono,
+                identificadorTarjeta = request.IdentificadorTarjeta,
+                tipo = request.Tipo,
+                estado = request.Estado
+            };
+
+            var json = JsonSerializer.Serialize(payload);
+
+            return new RespuestaServicio
+            {
+                Resultado = true,
+                Mensaje = $"Línea registrada correctamente. Payload interno: {json}"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new RespuestaServicio
+            {
+                Resultado = false,
+                Mensaje = $"Error al registrar línea: {ex.Message}"
+            };
+        }
+    }
+
+    public RespuestaServicio ActivarDesactivarLinea(ActivarDesactivarLineaRequest request)
+    {
+        try
+        {
+            var payload = new
+            {
+                numeroTelefono = request.NumeroTelefono,
+                identificadorTelefono = request.IdentificadorTelefono,
+                identificadorTarjeta = request.IdentificadorTarjeta,
+                tipo = request.Tipo,
+                identificacionCliente = request.IdentificacionCliente,
+                estado = request.Estado
+            };
+
+            var json = JsonSerializer.Serialize(payload);
+
+            return new RespuestaServicio
+            {
+                Resultado = true,
+                Mensaje = $"Cambio de estado aplicado. Payload interno: {json}"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new RespuestaServicio
+            {
+                Resultado = false,
+                Mensaje = $"Error al cambiar estado: {ex.Message}"
             };
         }
     }

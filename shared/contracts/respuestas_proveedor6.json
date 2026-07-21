@@ -1,0 +1,8 @@
+{
+    "tipo_transaccion": "RESPUESTA_PROVEEDOR6",
+    "resultado" :
+    {
+        "codigo" : "OK",
+        "mensaje" : "OK"
+    }
+}
