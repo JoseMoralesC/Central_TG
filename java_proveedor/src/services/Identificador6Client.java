@@ -6,6 +6,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 
@@ -22,7 +23,12 @@ public class Identificador6Client {
         );
 
         try (
-            Socket socket = new Socket(host, puerto);
+            Socket socket = new Socket();
+        ) {
+            socket.connect(new InetSocketAddress(host, puerto), 3000);
+            socket.setSoTimeout(5000);
+
+            try (
             PrintWriter writer = new PrintWriter(
                 new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8),
                 true
@@ -36,6 +42,7 @@ public class Identificador6Client {
 
             return respuesta != null
                 && respuesta.replace(" ", "").contains("\"codigo\":\"OK\"");
+            }
         } catch (Exception e) {
             System.err.println("[Identificador6Client] Error al sincronizar: " + e.getMessage());
             return false;

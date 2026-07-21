@@ -151,7 +151,7 @@ public class ServicioDAO {
         ultimoError = "";
 
         String sql =
-            "UPDATE servicios SET activo = ? " +
+            "UPDATE servicios SET activo = ?, estado_linea = ? " +
             "WHERE numero_telefono = ? " +
             "OR RIGHT(REPLACE(numero_telefono, '+', ''), 8) = ?";
 
@@ -160,8 +160,9 @@ public class ServicioDAO {
             PreparedStatement ps = conn.prepareStatement(sql)
         ) {
             ps.setBoolean(1, activo);
-            ps.setString(2, numeroTelefono);
-            ps.setString(3, ultimosOchoDigitos(numeroTelefono));
+            ps.setString(2, activo ? "ACTIVO" : "DISPONIBLE");
+            ps.setString(3, numeroTelefono);
+            ps.setString(4, ultimosOchoDigitos(numeroTelefono));
             return ps.executeUpdate() > 0;
         } catch (Exception e) {
             ultimoError = e.getMessage();
@@ -274,7 +275,8 @@ public class ServicioDAO {
         ultimoError = "";
 
         String sql =
-            "SELECT servicio_id, numero_telefono, tipo_servicio, activo, " +
+            "SELECT servicio_id, numero_telefono, tipo_servicio, " +
+            "COALESCE(proveedor_codigo, 'KOLBI') AS proveedor_codigo, activo, " +
             "COALESCE(estado_linea, CASE WHEN activo = 1 THEN 'ACTIVO' ELSE 'DISPONIBLE' END) AS estado_linea, " +
             "identificador_telefono_cifrado, identificador_tarjeta_cifrado, identificacion_dueno_cifrada " +
             "FROM servicios " +
@@ -292,6 +294,7 @@ public class ServicioDAO {
                     linea.servicioId = rs.getInt("servicio_id");
                     linea.numeroTelefono = rs.getString("numero_telefono");
                     linea.tipoServicio = rs.getString("tipo_servicio");
+                    linea.proveedorCodigo = rs.getString("proveedor_codigo");
                     linea.activo = rs.getBoolean("activo");
                     linea.estadoLinea = rs.getString("estado_linea");
                     linea.identificadorTelefono = rs.getString("identificador_telefono_cifrado");
@@ -443,6 +446,7 @@ public class ServicioDAO {
         public int servicioId;
         public String numeroTelefono;
         public String tipoServicio;
+        public String proveedorCodigo;
         public boolean activo;
         public String estadoLinea;
         public String identificadorTelefono;

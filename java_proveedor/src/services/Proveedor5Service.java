@@ -11,6 +11,7 @@ public class Proveedor5Service {
 
     private ServicioDAO servicioDAO = new ServicioDAO();
     private Identificador6Client identificador6Client = new Identificador6Client();
+    private CryptoService cryptoService = new CryptoService();
 
     public String procesar(String solicitud) {
         TramaProveedor5 trama = TramaProveedor5.desdeJson(solicitud);
@@ -23,7 +24,8 @@ public class Proveedor5Service {
             return "ERROR";
         }
 
-        LineaProveedor5 linea = servicioDAO.obtenerLineaProveedor5(trama.telefono);
+        String telefonoConsulta = cryptoService.desencriptarAesOOriginal(trama.telefono);
+        LineaProveedor5 linea = servicioDAO.obtenerLineaProveedor5(telefonoConsulta);
         if (linea == null) {
             return "ERROR";
         }
@@ -34,7 +36,7 @@ public class Proveedor5Service {
         }
 
         boolean sincronizado = identificador6Client.sincronizar(
-            construirTramaIdentificador6(trama)
+            construirTramaIdentificador6(trama, linea)
         );
 
         if (!sincronizado) {
@@ -87,7 +89,7 @@ public class Proveedor5Service {
         return almacenado == null || almacenado.isBlank() || almacenado.equals(recibido);
     }
 
-    private String construirTramaIdentificador6(TramaProveedor5 trama) {
+    private String construirTramaIdentificador6(TramaProveedor5 trama, LineaProveedor5 linea) {
         return "{"
             + "\"tipo_transaccion\":\"IDENTIFICADOR6\","
             + "\"telefono\":\"" + sanitizar(trama.telefono) + "\","
@@ -95,7 +97,7 @@ public class Proveedor5Service {
             + "\"identificador_tarjeta\":\"" + sanitizar(trama.identificadorTarjeta) + "\","
             + "\"tipo_servicio\":\"" + sanitizar(trama.tipoServicio) + "\","
             + "\"identificacion_cliente\":\"" + sanitizar(trama.identificacionDueno) + "\","
-            + "\"proveedor_codigo\":\"XYZ\","
+            + "\"proveedor_codigo\":\"" + sanitizar(linea.proveedorCodigo) + "\","
             + "\"accion\":\"" + sanitizar(trama.accion) + "\","
             + "\"fecha_hora\":\"" + sanitizar(trama.fechaHora) + "\""
         + "}";
