@@ -39,7 +39,7 @@ namespace WS_Autenticacion.Models
 
         [BsonElement("usuario")]
         [DataMember]
-        public string Usuario { get; set; } = string.Empty;
+        public string UserUsuario { get; set; } = string.Empty;
 
         [BsonElement("contrasena")]
         [DataMember]

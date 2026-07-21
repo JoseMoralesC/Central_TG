@@ -9,9 +9,9 @@ namespace WS_Autenticacion.Validators
 {
     public static class UsuarioValidator
     {
-        private static readonly Regex EmailRegex = new(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.Compiled);
-        private static readonly Regex NombreRegex = new(@"^[A-Za-zÁÉÍÓÚáéíóúÑñ]+$", RegexOptions.Compiled);
-        private static readonly Regex PasswordRegex = new(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{14}$", RegexOptions.Compiled);
+        private static readonly Regex EmailRegex = new Regex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.Compiled);
+        private static readonly Regex NombreRegex = new Regex(@"^[A-Za-zÁÉÍÓÚáéíóúÑñ]+$", RegexOptions.Compiled);
+        private static readonly Regex PasswordRegex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{14}$", RegexOptions.Compiled);
 
         public static string Validar(Usuario usuario)
         {
@@ -45,7 +45,7 @@ namespace WS_Autenticacion.Validators
                 return "El correo es inválido.";
             }
 
-            if (string.IsNullOrWhiteSpace(usuario.Usuario))
+            if (string.IsNullOrWhiteSpace(usuario.UserUsuario))
             {
                 return "El nombre de usuario es obligatorio.";
             }
