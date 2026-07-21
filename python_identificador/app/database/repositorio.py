@@ -83,6 +83,7 @@ def insertar_telefono_catalogo(
     try:
         proveedor = buscar_proveedor_por_codigo(proveedor_codigo)
         if not proveedor:
+            print("Proveedor encontrado:", proveedor)
             return False
 
         cursor = conn.cursor()

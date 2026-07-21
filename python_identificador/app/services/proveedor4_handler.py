@@ -32,8 +32,8 @@ Códigos de respuesta:
 """
 
 from app.database.repositorio import (
-    insertar_telefono_catalogo,
-    existe_telefono_catalogo
+    existe_telefono_catalogo,
+    insertar_linea_proveedor4
 )
 from app.utils.crypto import encriptar_aes
 
@@ -116,11 +116,11 @@ def procesar_registro_linea(trama: dict) -> dict:
         print(f"[PROVEEDOR4] Error en cifrado AES: {e}")
         return _respuesta("ERROR", "ERROR")
 
-    # 4. Insertar en MySQL
+    # 4. Insertar en MySQL usando el nuevo método específico de PROVEEDOR4
+    #    que NO depende de la tabla proveedores
     try:
-        ok = insertar_telefono_catalogo(
+        ok = insertar_linea_proveedor4(
             numero_cifrado=telefono_cifrado,
-            proveedor_codigo="SISTEMA",
             tipo_servicio=tipo,
             pais="Costa Rica",
             sim_cifrado=sim_cifrada,

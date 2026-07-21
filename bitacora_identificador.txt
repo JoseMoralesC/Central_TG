@@ -13,3 +13,27 @@
 06/06/2026: {"tipo": "ENTRADA", "data": {"tipo_transaccion": "solicitud", "telefono": "MjU3NDM3MTU=", "identificador_telefono": "MTIzNDU2Nzg5MDEyMzQ1Ng==", "identificador_tarjeta": "MTEyMzQwNDU2OTg5OTY5Njk2OQ==", "ubicacion_geografica": "9.9281,-84.0907", "telefono_destino": "89154242"}}
 06/06/2026: {"tipo": "SALIDA", "data": {"status": "ERROR", "motivo": 4, "detalle": "La trama no es un objeto JSON (dict)"}}
 06/06/2026: {"tipo": "SALIDA", "data": {"status": "ERROR", "motivo": 5, "detalle": "Error interno del servidor"}}
+20/07/2026: {"telefono": "1234", "identificadorTel": "12345", "identificadorChip": "12345", "coordenadas": "", "Transaccion": "REGISTRAR_LINEA", "Destino": "", "Tiempo": "", "tipo_registro": "ENTRADA"}
+20/07/2026: {"telefono": "1234", "identificadorTel": "12345", "identificadorChip": "12345", "coordenadas": "", "Transaccion": "REGISTRAR_LINEA", "Destino": "", "Tiempo": "", "tipo_registro": "ENTRADA"}
+20/07/2026: {"telefono": "", "identificadorTel": "", "identificadorChip": "", "coordenadas": "", "Transaccion": "RESPUESTA_REGISTRO_LINEA", "Destino": "", "Tiempo": "", "tipo_registro": "SALIDA"}
+20/07/2026: {"telefono": "", "identificadorTel": "", "identificadorChip": "", "coordenadas": "", "Transaccion": "RESPUESTA_REGISTRO_LINEA", "Destino": "", "Tiempo": "", "tipo_registro": "SALIDA"}
+20/07/2026: {"telefono": "1234", "identificadorTel": "12345", "identificadorChip": "12345", "coordenadas": "", "Transaccion": "REGISTRAR_LINEA", "Destino": "", "Tiempo": "", "tipo_registro": "ENTRADA"}
+20/07/2026: {"telefono": "", "identificadorTel": "", "identificadorChip": "", "coordenadas": "", "Transaccion": "RESPUESTA_REGISTRO_LINEA", "Destino": "", "Tiempo": "", "tipo_registro": "SALIDA"}
+20/07/2026: {"telefono": "1234", "identificadorTel": "12345", "identificadorChip": "12345", "coordenadas": "", "Transaccion": "REGISTRAR_LINEA", "Destino": "", "Tiempo": "", "tipo_registro": "ENTRADA"}
+20/07/2026: {"telefono": "", "identificadorTel": "", "identificadorChip": "", "coordenadas": "", "Transaccion": "RESPUESTA_REGISTRO_LINEA", "Destino": "", "Tiempo": "", "tipo_registro": "SALIDA"}
+20/07/2026: {"telefono": "12345", "identificadorTel": "123456", "identificadorChip": "123457", "coordenadas": "", "Transaccion": "REGISTRAR_LINEA", "Destino": "", "Tiempo": "", "tipo_registro": "ENTRADA"}
+20/07/2026: {"telefono": "", "identificadorTel": "", "identificadorChip": "", "coordenadas": "", "Transaccion": "RESPUESTA_REGISTRO_LINEA", "Destino": "", "Tiempo": "", "tipo_registro": "SALIDA"}
+20/07/2026: {"telefono": "123", "identificadorTel": "1234", "identificadorChip": "12345", "coordenadas": "", "Transaccion": "REGISTRAR_LINEA", "Destino": "", "Tiempo": "", "tipo_registro": "ENTRADA"}
+20/07/2026: {"telefono": "", "identificadorTel": "", "identificadorChip": "", "coordenadas": "", "Transaccion": "RESPUESTA_REGISTRO_LINEA", "Destino": "", "Tiempo": "", "tipo_registro": "SALIDA"}
+20/07/2026: {"telefono": "123", "identificadorTel": "1234", "identificadorChip": "12345", "coordenadas": "", "Transaccion": "REGISTRAR_LINEA", "Destino": "", "Tiempo": "", "tipo_registro": "ENTRADA"}
+20/07/2026: {"telefono": "", "identificadorTel": "", "identificadorChip": "", "coordenadas": "", "Transaccion": "RESPUESTA_REGISTRO_LINEA", "Destino": "", "Tiempo": "", "tipo_registro": "SALIDA"}
+20/07/2026: {"telefono": "123", "identificadorTel": "1234", "identificadorChip": "12345", "coordenadas": "", "Transaccion": "REGISTRAR_LINEA", "Destino": "", "Tiempo": "", "tipo_registro": "ENTRADA"}
+20/07/2026: {"telefono": "", "identificadorTel": "", "identificadorChip": "", "coordenadas": "", "Transaccion": "RESPUESTA_REGISTRO_LINEA", "Destino": "", "Tiempo": "", "tipo_registro": "SALIDA"}
+20/07/2026: {"telefono": "123", "identificadorTel": "1234", "identificadorChip": "12345", "coordenadas": "", "Transaccion": "REGISTRAR_LINEA", "Destino": "", "Tiempo": "", "tipo_registro": "ENTRADA"}
+20/07/2026: {"telefono": "", "identificadorTel": "", "identificadorChip": "", "coordenadas": "", "Transaccion": "RESPUESTA_REGISTRO_LINEA", "Destino": "", "Tiempo": "", "tipo_registro": "SALIDA"}
+20/07/2026: {"telefono": "123", "identificadorTel": "1234", "identificadorChip": "12345", "coordenadas": "", "Transaccion": "REGISTRAR_LINEA", "Destino": "", "Tiempo": "", "tipo_registro": "ENTRADA"}
+20/07/2026: {"telefono": "", "identificadorTel": "", "identificadorChip": "", "coordenadas": "", "Transaccion": "RESPUESTA_REGISTRO_LINEA", "Destino": "", "Tiempo": "", "tipo_registro": "SALIDA"}
+20/07/2026: {"telefono": "123", "identificadorTel": "1234", "identificadorChip": "12345", "coordenadas": "", "Transaccion": "REGISTRAR_LINEA", "Destino": "", "Tiempo": "", "tipo_registro": "ENTRADA"}
+20/07/2026: {"telefono": "", "identificadorTel": "", "identificadorChip": "", "coordenadas": "", "Transaccion": "RESPUESTA_REGISTRO_LINEA", "Destino": "", "Tiempo": "", "tipo_registro": "SALIDA"}
+20/07/2026: {"telefono": "123", "identificadorTel": "1234", "identificadorChip": "12345", "coordenadas": "", "Transaccion": "REGISTRAR_LINEA", "Destino": "", "Tiempo": "", "tipo_registro": "ENTRADA"}
+20/07/2026: {"telefono": "", "identificadorTel": "", "identificadorChip": "", "coordenadas": "", "Transaccion": "RESPUESTA_REGISTRO_LINEA", "Destino": "", "Tiempo": "", "tipo_registro": "SALIDA"}
