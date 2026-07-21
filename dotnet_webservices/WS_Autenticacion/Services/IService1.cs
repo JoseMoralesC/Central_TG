@@ -24,16 +24,16 @@ namespace WS_Autenticacion
             _usuarios = database.GetCollection<Usuario>("usuarios");
         }
 
-        public AutenticacionResponse AutenticarUsuario(string usuario, string contrasena, int tipo)
+        public AutenticacionResponse AutenticarUsuario(AutenticacionRequest request)
         {
-            if (string.IsNullOrWhiteSpace(usuario) || string.IsNullOrWhiteSpace(contrasena))
+            if (request is null || string.IsNullOrWhiteSpace(request.Usuario) || string.IsNullOrWhiteSpace(request.Contrasena))
             {
                 return CrearRespuesta(false, "Usuario y contraseña son obligatorios.");
             }
 
-            var passwordHash = HashPassword(contrasena);
+            var passwordHash = HashPassword(request.Contrasena);
             var usuarioAutenticado = _usuarios
-                .Find(u => u.Usuario == usuario.Trim() && u.Contrasena == passwordHash && u.Tipo == tipo && u.Estado == "activo")
+                .Find(u => u.UserUsuario == request.Usuario.Trim() && u.Contrasena == passwordHash && u.Tipo == request.Tipo && u.Estado == "activo")
                 .FirstOrDefault();
 
             return usuarioAutenticado is null

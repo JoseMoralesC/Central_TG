@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.ServiceModel;
-using System.Web;
+﻿using System.ServiceModel;
 using WS_Autenticacion.Models;
 
 namespace WS_Autenticacion.Contracts
@@ -11,7 +7,7 @@ namespace WS_Autenticacion.Contracts
     public interface IAutenticacionService
     {
         [OperationContract]
-        AutenticacionResponse AutenticarUsuario(string usuario, string contrasena, int tipo);
+        AutenticacionResponse AutenticarUsuario(AutenticacionRequest request);
 
         [OperationContract]
         AutenticacionResponse CrearUsuario(Usuario usuario);

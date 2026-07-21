@@ -6,6 +6,12 @@ public interface IProveedorService
 {
     [OperationContract]
     FacturacionResponse ObtenerFacturaPostpago(string identificacion, DateTime inicio, DateTime fin);
+
+    [OperationContract]
+    RespuestaServicio RegistrarLinea(RegistrarLineaRequest request);
+
+    [OperationContract]
+    RespuestaServicio ActivarDesactivarLinea(ActivarDesactivarLineaRequest request);
 }
 
 [ServiceContract]
