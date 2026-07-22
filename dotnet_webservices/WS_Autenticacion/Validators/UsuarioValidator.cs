@@ -1,71 +1,34 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Web;
+﻿using System.Text.RegularExpressions;
 using WS_Autenticacion.Models;
 
-namespace WS_Autenticacion.Validators
+namespace CentralTelefonica.WS_Autenticacion.Validators
 {
     public static class UsuarioValidator
     {
-        private static readonly Regex EmailRegex = new Regex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.Compiled);
-        private static readonly Regex NombreRegex = new Regex(@"^[A-Za-zÁÉÍÓÚáéíóúÑñ]+$", RegexOptions.Compiled);
-        private static readonly Regex PasswordRegex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{14}$", RegexOptions.Compiled);
+        private static readonly Regex NombreRegex =
+            new Regex(@"^(?!\s*$)[A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]+$", RegexOptions.Compiled);
 
-        public static string Validar(Usuario usuario)
-        {
-            if (usuario is null)
-            {
-                return "El usuario no puede ser nulo.";
-            }
+        private static readonly Regex ContrasenaRegex =
+            new Regex(@"^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{14}$", RegexOptions.Compiled);
 
-            if (string.IsNullOrWhiteSpace(usuario.Identificacion))
-            {
-                return "La identificación es obligatoria.";
-            }
+        private static readonly Regex CorreoRegex =
+            new Regex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.Compiled);
 
-            if (string.IsNullOrWhiteSpace(usuario.Nombre) || !NombreRegex.IsMatch(usuario.Nombre))
-            {
-                return "El nombre es inválido.";
-            }
+        public static bool EsNombreValido(string valor) =>
+            !string.IsNullOrWhiteSpace(valor) && NombreRegex.IsMatch(valor.Trim());
 
-            if (string.IsNullOrWhiteSpace(usuario.PrimerApellido) || !NombreRegex.IsMatch(usuario.PrimerApellido))
-            {
-                return "El primer apellido es inválido.";
-            }
+        public static bool EsCorreoValido(string valor) =>
+            !string.IsNullOrWhiteSpace(valor) && CorreoRegex.IsMatch(valor.Trim());
 
-            if (!string.IsNullOrWhiteSpace(usuario.SegundoApellido) && !NombreRegex.IsMatch(usuario.SegundoApellido))
-            {
-                return "El segundo apellido es inválido.";
-            }
+        public static bool EsContrasenaValida(string valorPlano) =>
+            !string.IsNullOrEmpty(valorPlano) && ContrasenaRegex.IsMatch(valorPlano);
 
-            if (string.IsNullOrWhiteSpace(usuario.Correo) || !EmailRegex.IsMatch(usuario.Correo))
-            {
-                return "El correo es inválido.";
-            }
+        public static bool EsTipoValido(int tipo) => tipo == 1 || tipo == 2;
 
-            if (string.IsNullOrWhiteSpace(usuario.UserUsuario))
-            {
-                return "El nombre de usuario es obligatorio.";
-            }
+        public static bool EsEstadoValido(string estado) =>
+            estado == "activo" || estado == "inactivo";
 
-            if (string.IsNullOrWhiteSpace(usuario.Contrasena) || !PasswordRegex.IsMatch(usuario.Contrasena))
-            {
-                return "La contraseña debe tener exactamente 14 caracteres, incluir mayúscula, minúscula, número y carácter especial.";
-            }
-
-            if (usuario.Tipo != 1 && usuario.Tipo != 2)
-            {
-                return "El tipo de usuario debe ser 1 o 2.";
-            }
-
-            if (!string.IsNullOrWhiteSpace(usuario.Estado) && usuario.Estado.ToLowerInvariant() != "activo" && usuario.Estado.ToLowerInvariant() != "inactivo")
-            {
-                return "El estado debe ser activo o inactivo.";
-            }
-
-            return null;
-        }
+        public static bool EsIdentificacionValida(string identificacion) =>
+            !string.IsNullOrWhiteSpace(identificacion);
     }
 }

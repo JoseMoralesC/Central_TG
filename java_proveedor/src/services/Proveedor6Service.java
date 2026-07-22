@@ -12,11 +12,11 @@ public class Proveedor6Service {
         String fechaMaximaPago = leerCampo(trama, "fecha_maxima_pago");
 
         if (fechaCalculo.isEmpty() || fechaMaximaPago.isEmpty()) {
-        return "Datos Incompletos";
+        return "ERROR";
         }
 
         if (!esFechaValida(fechaCalculo) || !esFechaValida(fechaMaximaPago)) {
-        return "Datos Incompletos";
+        return "ERROR";
         }
 
         facturacionDAO.calcularFacturacionPostpago(fechaCalculo, fechaMaximaPago);
