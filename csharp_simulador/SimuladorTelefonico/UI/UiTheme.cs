@@ -324,8 +324,7 @@ namespace SimuladorTelefonico.UI
                 rect,
                 ForeColor,
                 TextFormatFlags.HorizontalCenter
-                    | TextFormatFlags.VerticalCenter
-                    | TextFormatFlags.EndEllipsis);
+                    | TextFormatFlags.VerticalCenter);
         }
 
         private static GraphicsPath RoundedPanelPath(Rectangle rect, int radio)
