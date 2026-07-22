@@ -260,7 +260,7 @@ namespace SimuladorTelefonico.UI
                 FontStyle.Bold,
                 UiTheme.TextoSecundario);
             _cmbEstadoWcf.Items.Clear();
-            _cmbEstadoWcf.Items.AddRange(new object[] { "activo", "disponible" });
+            _cmbEstadoWcf.Items.AddRange(new object[] { "activo", "inactivo" });
             _cmbEstadoWcf.SelectedIndex = 0;
             EstilizarCombo(_cmbEstadoWcf);
             _cmbEstadoWcf.Location = new Point(164, 20);
@@ -273,7 +273,7 @@ namespace SimuladorTelefonico.UI
             btnCopiarWcf.Click += (_, _) => CopiarDatosWcf();
 
             Label lblAccionWcf = UiTheme.CrearEtiqueta(
-                "activo = activar | disponible = desactivar",
+                "activo = activar | inactivo = desactivar",
                 0,
                 116,
                 308,
@@ -551,7 +551,7 @@ namespace SimuladorTelefonico.UI
             if (_grid.CurrentRow?.Cells["Estado"]?.Value is string estado)
             {
                 _chkEstadoSeleccionado.Checked = estado.Equals("Activo", StringComparison.OrdinalIgnoreCase);
-                _cmbEstadoWcf.Text = _chkEstadoSeleccionado.Checked ? "activo" : "disponible";
+                _cmbEstadoWcf.Text = _chkEstadoSeleccionado.Checked ? "activo" : "inactivo";
             }
 
             ActualizarDatosWcf();

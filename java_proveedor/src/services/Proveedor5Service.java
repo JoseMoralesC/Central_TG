@@ -78,7 +78,7 @@ public class Proveedor5Service {
             return "Telefono no corresponde";
         }
 
-        if (!trama.identificacionDueno.equals(linea.identificacionDueno)) {
+        if (!coincideSiExiste(linea.identificacionDueno, trama.identificacionDueno)) {
             return "Telefono no corresponde";
         }
 

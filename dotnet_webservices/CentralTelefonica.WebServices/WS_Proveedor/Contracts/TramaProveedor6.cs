@@ -6,7 +6,7 @@ namespace WS_Proveedor.Contracts
     public class TramaProveedor6
     {
         [DataMember(Name = "tipo_transaccion")]
-        public string TipoTransaccion { get; set; } = "PROVEEDOR_6";
+        public string TipoTransaccion { get; set; } = "PROVEEDOR6";
 
         [DataMember(Name = "accion")]
         public string Accion { get; set; } = "CALCULAR_FACTURACION";

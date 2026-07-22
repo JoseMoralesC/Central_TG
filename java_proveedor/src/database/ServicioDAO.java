@@ -160,7 +160,7 @@ public class ServicioDAO {
             PreparedStatement ps = conn.prepareStatement(sql)
         ) {
             ps.setBoolean(1, activo);
-            ps.setString(2, activo ? "ACTIVO" : "DISPONIBLE");
+            ps.setString(2, activo ? "ACTIVO" : "INACTIVO");
             ps.setString(3, numeroTelefono);
             ps.setString(4, ultimosOchoDigitos(numeroTelefono));
             return ps.executeUpdate() > 0;
@@ -277,7 +277,7 @@ public class ServicioDAO {
         String sql =
             "SELECT servicio_id, numero_telefono, tipo_servicio, " +
             "COALESCE(proveedor_codigo, 'KOLBI') AS proveedor_codigo, activo, " +
-            "COALESCE(estado_linea, CASE WHEN activo = 1 THEN 'ACTIVO' ELSE 'DISPONIBLE' END) AS estado_linea, " +
+            "COALESCE(estado_linea, CASE WHEN activo = 1 THEN 'ACTIVO' ELSE 'INACTIVO' END) AS estado_linea, " +
             "identificador_telefono_cifrado, identificador_tarjeta_cifrado, identificacion_dueno_cifrada " +
             "FROM servicios " +
             "WHERE numero_telefono = ?";
@@ -373,7 +373,7 @@ public class ServicioDAO {
 
         String sql =
             "UPDATE servicios " +
-            "SET activo = 0, estado_linea = 'DISPONIBLE', identificacion_dueno_cifrada = NULL " +
+            "SET activo = 0, estado_linea = 'INACTIVO', identificacion_dueno_cifrada = NULL " +
             "WHERE servicio_id = ?";
 
         try (

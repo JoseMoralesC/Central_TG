@@ -76,7 +76,8 @@ namespace CentralTelefonica.WS_Autenticacion
                 return ResultadoOperacion.Fallo(MensajeUsuarioExisteOIncorrecto);
             }
 
-            if (estado != "activo")
+            var estadoNormalizado = estado?.Trim().ToLowerInvariant();
+            if (estadoNormalizado != "activo")
                 return ResultadoOperacion.Fallo(MensajeUsuarioExisteOIncorrecto);
 
             if (string.IsNullOrEmpty(usuarioEncriptado))
@@ -107,7 +108,7 @@ namespace CentralTelefonica.WS_Autenticacion
                 Correo = correoElectronico.Trim(),
                 UsuarioCifrado = usuarioEncriptado,
                 ContrasenaCifrada = CryptoHelper.Encrypt(contrasenaPlana),
-                Estado = "activo",
+                Estado = estadoNormalizado,
                 Tipo = tipo,
                 FechaCreacion = ahora,
                 FechaActualizacion = ahora
@@ -134,66 +135,45 @@ namespace CentralTelefonica.WS_Autenticacion
             string usuarioEncriptado,
             string contrasenaEncriptada)
         {
-            if (!UsuarioValidator.EsIdentificacionValida(identificacion))
+            if (!UsuarioValidator.EsIdentificacionValida(identificacion) ||
+                !UsuarioValidator.EsNombreValido(nombre) ||
+                !UsuarioValidator.EsNombreValido(primerApellido) ||
+                !UsuarioValidator.EsCorreoValido(correoElectronico) ||
+                string.IsNullOrWhiteSpace(usuarioEncriptado))
+            {
                 return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOIncorrecto);
+            }
 
             var usuarioExistente = _repositorio.ObtenerPorIdentificacion(identificacion);
             if (usuarioExistente == null)
                 return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOIncorrecto);
 
-            if (!string.IsNullOrWhiteSpace(nombre))
+            if (!string.IsNullOrWhiteSpace(segundoApellido) &&
+                !UsuarioValidator.EsNombreValido(segundoApellido))
             {
-                if (!UsuarioValidator.EsNombreValido(nombre))
-                    return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOIncorrecto);
-                usuarioExistente.Nombre = nombre.Trim();
+                return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOIncorrecto);
             }
 
-            if (!string.IsNullOrWhiteSpace(primerApellido))
+            if (usuarioEncriptado != usuarioExistente.UsuarioCifrado)
             {
-                if (!UsuarioValidator.EsNombreValido(primerApellido))
-                    return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOIncorrecto);
-                usuarioExistente.PrimerApellido = primerApellido.Trim();
+                return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOIncorrecto);
             }
 
-            if (!string.IsNullOrWhiteSpace(segundoApellido))
+            var correoNuevo = correoElectronico.Trim();
+            if (correoNuevo != usuarioExistente.Correo && _repositorio.ExisteCorreo(correoNuevo))
+                return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOIncorrecto);
+
+            if (!CryptoHelper.TryDecrypt(contrasenaEncriptada, out var contrasenaPlana) ||
+                !UsuarioValidator.EsContrasenaValida(contrasenaPlana))
             {
-                if (!UsuarioValidator.EsNombreValido(segundoApellido))
-                    return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOIncorrecto);
-                usuarioExistente.SegundoApellido = segundoApellido.Trim();
+                return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOIncorrecto);
             }
 
-            if (!string.IsNullOrWhiteSpace(correoElectronico))
-            {
-                if (!UsuarioValidator.EsCorreoValido(correoElectronico))
-                    return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOIncorrecto);
-
-                var correoNuevo = correoElectronico.Trim();
-                if (correoNuevo != usuarioExistente.Correo && _repositorio.ExisteCorreo(correoNuevo))
-                    return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOIncorrecto);
-
-                usuarioExistente.Correo = correoNuevo;
-            }
-
-            if (!string.IsNullOrWhiteSpace(usuarioEncriptado))
-            {
-                if (usuarioEncriptado != usuarioExistente.UsuarioCifrado &&
-                    _repositorio.ExisteUsuarioCifrado(usuarioEncriptado))
-                {
-                    return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOIncorrecto);
-                }
-                usuarioExistente.UsuarioCifrado = usuarioEncriptado;
-            }
-
-            if (!string.IsNullOrWhiteSpace(contrasenaEncriptada))
-            {
-                if (!CryptoHelper.TryDecrypt(contrasenaEncriptada, out var contrasenaPlana) ||
-                    !UsuarioValidator.EsContrasenaValida(contrasenaPlana))
-                {
-                    return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOIncorrecto);
-                }
-                usuarioExistente.ContrasenaCifrada = CryptoHelper.Encrypt(contrasenaPlana);
-            }
-
+            usuarioExistente.Nombre = nombre.Trim();
+            usuarioExistente.PrimerApellido = primerApellido.Trim();
+            usuarioExistente.SegundoApellido = string.IsNullOrWhiteSpace(segundoApellido) ? null : segundoApellido.Trim();
+            usuarioExistente.Correo = correoNuevo;
+            usuarioExistente.ContrasenaCifrada = CryptoHelper.Encrypt(contrasenaPlana);
             usuarioExistente.FechaActualizacion = DateTime.UtcNow;
 
             try
@@ -220,7 +200,7 @@ namespace CentralTelefonica.WS_Autenticacion
             if (usuarioExistente == null)
                 return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOEstadoIncorrecto);
 
-            usuarioExistente.Estado = estado;
+            usuarioExistente.Estado = estado.Trim().ToLowerInvariant();
             usuarioExistente.FechaActualizacion = DateTime.UtcNow;
             _repositorio.Actualizar(usuarioExistente);
             return ResultadoOperacion.Ok();

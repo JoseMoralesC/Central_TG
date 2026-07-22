@@ -10,7 +10,7 @@ public class FacturacionDAO
                                             String fechaMaximaPago)
                                             throws Exception
     {
-        String sql = "{call sp_CalcularFacturacionPostpago(?, ?)}";
+        String sql = "{call dbo.sp_CalcularFacturacionPostpago(?, ?)}";
         try (Connection conn = ConexionSQL.getConexion();
                 CallableStatement cs = conn.prepareCall(sql))
             {

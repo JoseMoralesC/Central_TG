@@ -211,7 +211,7 @@ public class ManejoCliente extends Thread
         String proveedorCodigo = leerCampo(solicitud, "proveedor_codigo");
         String saldoInicial = leerCampo(solicitud, "saldo_inicial");
         String activoTexto = leerCampo(solicitud, "activo");
-        boolean activo = !"false".equalsIgnoreCase(activoTexto) && !"0".equals(activoTexto);
+        boolean activo = interpretarActivo(activoTexto);
 
         enviarRespuesta(
             writer,
@@ -234,7 +234,7 @@ public class ManejoCliente extends Thread
         }
 
         String activoTexto = leerCampo(solicitud, "activo");
-        boolean activo = !"false".equalsIgnoreCase(activoTexto) && !"0".equals(activoTexto);
+        boolean activo = interpretarActivo(activoTexto);
 
         enviarRespuesta(writer, administracionTelefonica.procesarCambioEstado(numero, activo));
     }
@@ -253,6 +253,20 @@ public class ManejoCliente extends Thread
     {
         bitacoraService.registrarSalida(respuesta);
         writer.println(respuesta);
+    }
+
+    private boolean interpretarActivo(String valor)
+    {
+        if (valor == null || valor.isBlank())
+        {
+            return true;
+        }
+
+        String normalizado = valor.trim().toLowerCase();
+        return !("false".equals(normalizado)
+            || "0".equals(normalizado)
+            || "inactivo".equals(normalizado)
+            || "disponible".equals(normalizado));
     }
 
     private String respuestaConsultaSaldoOk(String numero, String saldo)

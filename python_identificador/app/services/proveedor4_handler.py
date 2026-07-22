@@ -12,7 +12,7 @@ Contrato de entrada (trama JSON):
   "identificador_dispositivo": "1234567891234567",    // 16 dígitos
   "identificador_tarjeta": "1234567891234567891",     // 19 dígitos
   "tipo": "PREPAGO",                                   // PREPAGO | POSTPAGO
-  "estado": "disponible"
+  "estado": "inactivo"
 }
 
 Contrato de respuesta (JSON):
@@ -37,6 +37,15 @@ from app.database.repositorio import (
 )
 from app.services.proveedor_cliente import enviar_al_proveedor
 from app.utils.crypto import desencriptar_aes, encriptar_aes
+
+
+def _obtener_valor_plano(valor: str) -> str:
+    """
+    Devuelve el valor descifrado cuando viene cifrado; si ya viene plano,
+    conserva el valor original para soportar pruebas manuales.
+    """
+    texto = str(valor).strip()
+    return desencriptar_aes(texto) or texto
 
 
 def _respuesta(codigo: str, mensaje: str) -> dict:
@@ -67,10 +76,27 @@ def validar_campos(trama: dict) -> tuple[bool, str]:
         if not valor or not str(valor).strip():
             return False, f"Campo '{campo}' es obligatorio"
 
+    telefono = _obtener_valor_plano(trama["telefono"])
+    id_dispositivo = _obtener_valor_plano(trama["identificador_dispositivo"])
+    id_tarjeta = _obtener_valor_plano(trama["identificador_tarjeta"])
+
+    if not telefono.isdigit():
+        return False, "Telefono debe contener solo digitos"
+
+    if not id_dispositivo.isdigit() or len(id_dispositivo) != 16:
+        return False, "Identificador de telefono debe tener 16 digitos"
+
+    if not id_tarjeta.isdigit() or len(id_tarjeta) != 19:
+        return False, "Identificador de tarjeta debe tener 19 digitos"
+
     # Validar que tipo sea PREPAGO o POSTPAGO
     tipo = str(trama["tipo"]).strip().upper()
     if tipo not in ("PREPAGO", "POSTPAGO"):
         return False, "Tipo debe ser PREPAGO o POSTPAGO"
+
+    estado = str(trama["estado"]).strip().lower()
+    if estado not in ("activo", "inactivo", "disponible", "false", "0", "no"):
+        return False, "Estado no es valido"
 
     return True, ""
 
@@ -96,7 +122,7 @@ def procesar_registro_linea(trama: dict) -> dict:
     id_tarjeta = str(trama["identificador_tarjeta"]).strip()
     tipo = str(trama["tipo"]).strip().upper()
     estado = str(trama.get("estado", "activo")).strip().lower()
-    activo = estado not in ("inactivo", "false", "0", "no")
+    activo = estado not in ("inactivo", "disponible", "false", "0", "no")
     existe_en_mysql = False
 
     # 2. Verificar duplicados (descifrando los números en MySQL)

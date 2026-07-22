@@ -66,9 +66,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Contracts\TramaProveedor5.cs" />
+    <Compile Include="Contracts\TramaProveedor6.cs" />
     <Compile Include="Infrastructure\ProveedorClientOptions.cs" />
     <Compile Include="Infrastructure\ProveedorTcpClient.cs" />
     <Compile Include="Models\ActivarDesactivarLineaRequest.cs" />
+    <Compile Include="Models\CalcularFacturacionRequest.cs" />
     <Compile Include="Models\RespuestaServicio.cs" />
     <Compile Include="ProveedorService.svc.cs">
       <DependentUpon>ProveedorService.svc</DependentUpon>
@@ -76,7 +78,9 @@
     <Compile Include="IProveedorService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\TramaProveedorService.cs" />
+    <Compile Include="Services\TramaProveedor6Service.cs" />
     <Compile Include="Validators\ActivarDesactivarLineaValidator.cs" />
+    <Compile Include="Validators\CalcularFacturacionValidator.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />

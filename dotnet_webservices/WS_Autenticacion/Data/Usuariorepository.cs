@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
-using CentralTelefonica.WS_Autenticacion.Models;
 using MongoDB.Driver;
+using WS_Autenticacion.Models;
 
 namespace CentralTelefonica.WS_Autenticacion.Data
 {

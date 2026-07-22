@@ -11,5 +11,29 @@ namespace WS_Proveedor_1.Models
     {
         [DataMember]
         public string NumeroTelefono { get; set; }
+
+        [DataMember]
+        public string Origen { get; set; }
+
+        [DataMember]
+        public string TipoTransaccion { get; set; }
+
+        [DataMember]
+        public string IdentificadorTelefono { get; set; }
+
+        [DataMember]
+        public string IdentificadorTarjeta { get; set; }
+
+        [DataMember]
+        public string Pais { get; set; }
+
+        [DataMember]
+        public string Provincia { get; set; }
+
+        [DataMember]
+        public string Latitud { get; set; }
+
+        [DataMember]
+        public string Longitud { get; set; }
     }
 }

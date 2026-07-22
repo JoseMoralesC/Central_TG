@@ -16,7 +16,7 @@ namespace WS_Proveedor
             {
                 if (!ActivarDesactivarLineaValidator.EsValida(solicitud))
                 {
-                    return CrearRespuestaError();
+                    return CrearRespuestaErrorActivacion();
                 }
 
                 var tramaService = new TramaProveedorService();
@@ -52,24 +52,88 @@ namespace WS_Proveedor
                     };
                 }
 
-                return CrearRespuestaError();
+                return CrearRespuestaErrorActivacion(respuestaProveedor);
             }
             catch (Exception ex)
             {
                 Debug.WriteLine(
                     "Error en WS_PROVEEDOR2: " + ex);
 
-                return CrearRespuestaError();
+                return CrearRespuestaErrorActivacion();
             }
         }
 
-        private static RespuestaServicio CrearRespuestaError()
+        public RespuestaServicio CalcularFacturacion(
+            CalcularFacturacionRequest solicitud)
+        {
+            try
+            {
+                if (!CalcularFacturacionValidator.EsValida(solicitud))
+                {
+                    return CrearRespuestaErrorFacturacion();
+                }
+
+                string tramaJson =
+                    TramaProveedor6Service.ConstruirTrama(solicitud);
+
+                Debug.WriteLine(
+                    "Trama PROVEEDOR6 generada: " + tramaJson);
+
+                ProveedorClientOptions opciones =
+                    ProveedorClientOptions.DesdeConfiguracion();
+
+                var clienteProveedor =
+                    new ProveedorTcpClient(opciones);
+
+                string respuestaProveedor =
+                    clienteProveedor.EnviarTrama(tramaJson);
+
+                Debug.WriteLine(
+                    "Respuesta de PROVEEDOR6: " +
+                    respuestaProveedor);
+
+                if (string.Equals(
+                    respuestaProveedor,
+                    "OK",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    return new RespuestaServicio
+                    {
+                        Resultado = true,
+                        Mensaje = "Exitoso"
+                    };
+                }
+
+                return CrearRespuestaErrorFacturacion();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(
+                    "Error en WS_PROVEEDOR3: " + ex);
+
+                return CrearRespuestaErrorFacturacion();
+            }
+        }
+
+        private static RespuestaServicio CrearRespuestaErrorActivacion(
+            string detalle = null)
+        {
+            return new RespuestaServicio
+            {
+                Resultado = false,
+                Mensaje = string.IsNullOrWhiteSpace(detalle)
+                    ? "Problemas al activar/desactivar la línea."
+                    : detalle.Trim()
+            };
+        }
+
+        private static RespuestaServicio CrearRespuestaErrorFacturacion()
         {
             return new RespuestaServicio
             {
                 Resultado = false,
                 Mensaje =
-                    "Problemas al activar/desactivar la línea."
+                    "Problemas al realizar el cálculo."
             };
         }
     }
