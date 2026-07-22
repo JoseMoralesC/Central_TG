@@ -122,6 +122,29 @@ def insertar_telefono_catalogo(
     finally:
         cerrar_conexion(conn)
 
+def insertar_linea_proveedor4(
+    numero_cifrado: str,
+    tipo_servicio: str,
+    pais: str,
+    sim_cifrado: str,
+    imei_cifrado: str,
+    activo: bool = True,
+    proveedor_codigo: str = "KOLBI"
+) -> bool:
+    """
+    Inserta una linea enviada por WS_Proveedor_1.
+    Los datos sensibles llegan cifrados desde WCF.
+    """
+    return insertar_telefono_catalogo(
+        numero_cifrado=numero_cifrado,
+        proveedor_codigo=proveedor_codigo,
+        tipo_servicio=tipo_servicio,
+        pais=pais,
+        sim_cifrado=sim_cifrado,
+        imei_cifrado=imei_cifrado,
+        activo=activo
+    )
+
 def actualizar_estado_telefono_catalogo(numero_cifrado: str, activo: bool) -> bool:
     conn = obtener_conexion()
     if conn is None:

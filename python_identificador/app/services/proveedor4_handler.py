@@ -35,7 +35,8 @@ from app.database.repositorio import (
     existe_telefono_catalogo,
     insertar_linea_proveedor4
 )
-from app.utils.crypto import encriptar_aes
+from app.services.proveedor_cliente import enviar_al_proveedor
+from app.utils.crypto import desencriptar_aes, encriptar_aes
 
 
 def _respuesta(codigo: str, mensaje: str) -> dict:
@@ -94,20 +95,23 @@ def procesar_registro_linea(trama: dict) -> dict:
     id_dispositivo = str(trama["identificador_dispositivo"]).strip()
     id_tarjeta = str(trama["identificador_tarjeta"]).strip()
     tipo = str(trama["tipo"]).strip().upper()
+    estado = str(trama.get("estado", "activo")).strip().lower()
+    activo = estado not in ("inactivo", "false", "0", "no")
+    existe_en_mysql = False
 
     # 2. Verificar duplicados (descifrando los números en MySQL)
     try:
-        if existe_telefono_catalogo(telefono):
-            return _respuesta("TEL_DUPLICADO", "Teléfono en uso")
+        telefono_plano = desencriptar_aes(telefono) or telefono
+        existe_en_mysql = existe_telefono_catalogo(telefono_plano)
     except Exception as e:
         print(f"[PROVEEDOR4] Error verificando duplicado: {e}")
         return _respuesta("ERROR", "ERROR")
 
     # 3. Cifrar con AES
     try:
-        telefono_cifrado = encriptar_aes(telefono)
-        sim_cifrada = encriptar_aes(id_tarjeta)
-        imei_cifrado = encriptar_aes(id_dispositivo)
+        telefono_cifrado = _asegurar_cifrado(telefono)
+        sim_cifrada = _asegurar_cifrado(id_tarjeta)
+        imei_cifrado = _asegurar_cifrado(id_dispositivo)
 
         if not telefono_cifrado or not sim_cifrada or not imei_cifrado:
             return _respuesta("ERROR", "ERROR")
@@ -115,6 +119,30 @@ def procesar_registro_linea(trama: dict) -> dict:
     except Exception as e:
         print(f"[PROVEEDOR4] Error en cifrado AES: {e}")
         return _respuesta("ERROR", "ERROR")
+
+    respuesta_proveedor = _registrar_en_proveedor(
+        telefono_plano=telefono_plano,
+        tipo=tipo,
+        activo=activo
+    )
+    codigo_proveedor = respuesta_proveedor.get("resultado", {}).get(
+        "codigo",
+        respuesta_proveedor.get("status", "ERROR")
+    )
+    mensaje_proveedor = respuesta_proveedor.get("resultado", {}).get(
+        "mensaje",
+        respuesta_proveedor.get("mensaje", "No fue posible registrar en SQL Server")
+    )
+    proveedor_duplicado = "existe en SQL Server" in mensaje_proveedor
+
+    if codigo_proveedor != "OK" and not proveedor_duplicado:
+        return _respuesta("ERROR", mensaje_proveedor)
+
+    if existe_en_mysql:
+        return _respuesta(
+            "TEL_DUPLICADO" if proveedor_duplicado else "OK",
+            "Telefono en uso" if proveedor_duplicado else "OK"
+        )
 
     # 4. Insertar en MySQL usando el nuevo método específico de PROVEEDOR4
     #    que NO depende de la tabla proveedores
@@ -125,7 +153,7 @@ def procesar_registro_linea(trama: dict) -> dict:
             pais="Costa Rica",
             sim_cifrado=sim_cifrada,
             imei_cifrado=imei_cifrado,
-            activo=True
+            activo=activo
         )
 
         if ok:
@@ -136,3 +164,21 @@ def procesar_registro_linea(trama: dict) -> dict:
     except Exception as e:
         print(f"[PROVEEDOR4] Error insertando en MySQL: {e}")
         return _respuesta("ERROR", "ERROR")
+
+
+def _asegurar_cifrado(valor: str) -> str:
+    return valor if desencriptar_aes(valor) else encriptar_aes(valor)
+
+
+def _registrar_en_proveedor(telefono_plano: str, tipo: str, activo: bool) -> dict:
+    saldo_inicial = 1000.00 if tipo == "PREPAGO" else 0
+
+    return enviar_al_proveedor({
+        "tipo_transaccion": "CONSULTA_PROVEEDOR",
+        "accion": "REGISTRAR_TELEFONO",
+        "telefono": telefono_plano,
+        "tipo_servicio": tipo,
+        "proveedor_codigo": "KOLBI",
+        "saldo_inicial": saldo_inicial,
+        "activo": activo
+    })

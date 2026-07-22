@@ -1,14 +1,11 @@
 ﻿using Newtonsoft.Json;
 using System;
-using WcfService1.Utils;
 using WS_Proveedor_1.Models;
 using WS_Proveedor_1.Services;
 using static WS_Proveedor_1.Models.Proovedor_telefono;
 
 namespace WS_Proveedor_1
 {
-    // NOTE: You can use the "Rename" command on the "Refactor" menu to change the class name "Service1" in code, svc and config file together.
-    // NOTE: In order to launch WCF Test Client for testing this service, please select Service1.svc or Service1.svc.cs at the Solution Explorer and start debugging.
     public class Service1 : IService1
     {
         public Registrar_linea RegistrarLinea(AgregarTelefono request)
@@ -36,19 +33,19 @@ namespace WS_Proveedor_1
                     RespuestaProveedor respuesta =
                         JsonConvert.DeserializeObject<RespuestaProveedor>(respuestaJson);
 
-                    if (respuesta?.resultado?.codigo == "OK")
+                    if (string.Equals(respuesta?.resultado?.codigo, "OK", StringComparison.OrdinalIgnoreCase))
                     {
                         return new Registrar_linea
                         {
                             Resultado = true,
-                            Mensaje = "Exitoso"
+                            Mensaje = respuesta.resultado.mensaje ?? "Exitoso"
                         };
                     }
 
                     return new Registrar_linea
                     {
                         Resultado = false,
-                        Mensaje = "Problemas al incluir la información."
+                        Mensaje = respuesta?.resultado?.mensaje ?? "Problemas al incluir la información."
                     };
                 }
                 catch (Exception ex)
@@ -62,10 +59,6 @@ namespace WS_Proveedor_1
             }
         }
 
-        public Registrar_linea RegistrarLinea(Registrar_linea request)
-        {
-            throw new NotImplementedException();
-        }
 
         public ConsultarSaldoResponse ConsultarSaldo(ConsultarSaldoRequest request)
         {

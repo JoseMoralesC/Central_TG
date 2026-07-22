@@ -99,8 +99,7 @@ def manejar_cliente(conexion_cliente, direccion_cliente):
             return
 
         trama = json.loads(trama_str)
-        print("TRAMA RECIBIDA:")
-        print(trama)
+        print(f"[Handler] Entrada: {_resumen_trama(trama)}")
         
         # Registrar trama de entrada en bitácora
         registrar_en_bitacora(trama, "ENTRADA")
@@ -140,8 +139,7 @@ def manejar_cliente(conexion_cliente, direccion_cliente):
         # Enviar respuesta con salto de línea (\n) como requiere el protocolo
         respuesta_json = json.dumps(resultado) + "\n"
         conexion_cliente.sendall(respuesta_json.encode('utf-8'))
-        print("RESPUESTA:")
-        print(resultado)
+        print(f"[Handler] Salida: {_resumen_trama(resultado)}")
 
     except json.JSONDecodeError:
         error_resp = {
@@ -166,3 +164,25 @@ def manejar_cliente(conexion_cliente, direccion_cliente):
         conexion_cliente.sendall((json.dumps(error_resp) + "\n").encode('utf-8'))
     finally:
         conexion_cliente.close()
+
+
+def _resumen_trama(trama: dict) -> str:
+    if not isinstance(trama, dict):
+        return str(type(trama).__name__)
+
+    tipo_tx = trama.get("tipo_transaccion", "SIN_TIPO")
+    resultado = trama.get("resultado", {})
+    codigo = resultado.get("codigo") if isinstance(resultado, dict) else None
+    estado = resultado.get("estado") if isinstance(resultado, dict) else None
+
+    partes = [tipo_tx]
+    if codigo:
+        partes.append(f"codigo={codigo}")
+    if estado:
+        partes.append(f"estado={estado}")
+
+    if tipo_tx == "RESPUESTA_CATALOGO_TELEFONOS":
+        telefonos = trama.get("telefonos", [])
+        partes.append(f"telefonos={len(telefonos) if isinstance(telefonos, list) else 0}")
+
+    return " | ".join(partes)

@@ -3,18 +3,22 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace WcfService1.Utils
+namespace WS_Proveedor_1.Services
 {
     public static class CryptoAES
     {
-        // Deben ser EXACTAMENTE iguales a los del .env de Python
-        private static readonly byte[] Key = Encoding.UTF8.GetBytes("ClaveSecreta1234");
-        private static readonly byte[] IV = Encoding.UTF8.GetBytes("VectorInicio1234");
+        private static readonly byte[] Key =
+            Encoding.UTF8.GetBytes("ClaveSecreta1234");
+
+        private static readonly byte[] IV =
+            Encoding.UTF8.GetBytes("VectorInicio1234");
 
         public static string Encriptar(string textoPlano)
         {
             if (string.IsNullOrWhiteSpace(textoPlano))
-                return "";
+            {
+                return string.Empty;
+            }
 
             using (Aes aes = Aes.Create())
             {
@@ -27,7 +31,10 @@ namespace WcfService1.Utils
 
                 using (MemoryStream ms = new MemoryStream())
                 {
-                    using (CryptoStream cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
+                    using (CryptoStream cs = new CryptoStream(
+                        ms,
+                        encryptor,
+                        CryptoStreamMode.Write))
                     using (StreamWriter sw = new StreamWriter(cs))
                     {
                         sw.Write(textoPlano);
@@ -41,7 +48,9 @@ namespace WcfService1.Utils
         public static string Desencriptar(string textoBase64)
         {
             if (string.IsNullOrWhiteSpace(textoBase64))
-                return "";
+            {
+                return string.Empty;
+            }
 
             byte[] cipherBytes = Convert.FromBase64String(textoBase64);
 
@@ -55,7 +64,10 @@ namespace WcfService1.Utils
                 ICryptoTransform decryptor = aes.CreateDecryptor();
 
                 using (MemoryStream ms = new MemoryStream(cipherBytes))
-                using (CryptoStream cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read))
+                using (CryptoStream cs = new CryptoStream(
+                    ms,
+                    decryptor,
+                    CryptoStreamMode.Read))
                 using (StreamReader sr = new StreamReader(cs))
                 {
                     return sr.ReadToEnd();
