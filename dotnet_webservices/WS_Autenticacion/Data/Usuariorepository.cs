@@ -39,9 +39,18 @@ namespace CentralTelefonica.WS_Autenticacion.Data
         public List<Usuario> ObtenerTodos() =>
             _coleccion.Find(FilterDefinition<Usuario>.Empty).ToList();
 
+        public List<Usuario> ObtenerPorTipo(int tipo) =>
+            _coleccion.Find(u => u.Tipo == tipo).ToList();
+
         public void Insertar(Usuario usuario) => _coleccion.InsertOne(usuario);
 
         public void Actualizar(Usuario usuario) =>
             _coleccion.ReplaceOne(u => u.Identificacion == usuario.Identificacion, usuario);
+
+        public bool EliminarPorIdentificacion(string identificacion)
+        {
+            var resultado = _coleccion.DeleteOne(u => u.Identificacion == identificacion);
+            return resultado.DeletedCount > 0;
+        }
     }
 }

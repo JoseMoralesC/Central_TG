@@ -54,7 +54,7 @@ namespace WS_Proveedor.Services
                 return "ACTIVAR";
             }
 
-            if (valor == "inactivo" || valor == "disponible")
+            if (valor == "disponible")
             {
                 return "DESACTIVAR";
             }

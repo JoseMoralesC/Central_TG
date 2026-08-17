@@ -1,0 +1,92 @@
+body {
+    margin: 0;
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: #1f2933;
+    background: #f4f7f9;
+}
+
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px;
+    background: #123047;
+    color: #fff;
+}
+
+.brand {
+    font-weight: 700;
+}
+
+.topbar a,
+.topbar input[type="submit"] {
+    margin-left: 16px;
+    color: #fff;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.shell {
+    max-width: 1060px;
+    margin: 28px auto;
+    padding: 0 20px;
+}
+
+.panel,
+.login-panel {
+    background: #fff;
+    border: 1px solid #d9e2ec;
+    border-radius: 6px;
+    padding: 22px;
+    margin-bottom: 18px;
+}
+
+.login-page {
+    display: grid;
+    min-height: 100vh;
+    place-items: center;
+}
+
+.login-panel {
+    width: min(420px, calc(100% - 32px));
+}
+
+label {
+    display: block;
+    margin-top: 12px;
+    font-weight: 600;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="date"] {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px;
+    margin-top: 6px;
+    border: 1px solid #bcccdc;
+    border-radius: 4px;
+}
+
+input[type="submit"] {
+    margin-top: 16px;
+    padding: 10px 14px;
+    border: 0;
+    border-radius: 4px;
+    background: #0f6b93;
+    color: #fff;
+    cursor: pointer;
+}
+
+.message {
+    display: block;
+    margin-top: 12px;
+}
+
+.footer {
+    padding: 18px;
+    text-align: center;
+    color: #52616b;
+}

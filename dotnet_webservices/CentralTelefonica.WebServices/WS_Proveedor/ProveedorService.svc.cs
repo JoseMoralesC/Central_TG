@@ -1,4 +1,7 @@
-﻿using System;
+using System;
+using System.Configuration;
+using System.Data;
+using System.Data.SqlClient;
 using System.Diagnostics;
 using WS_Proveedor.Infrastructure;
 using WS_Proveedor.Models;
@@ -115,6 +118,74 @@ namespace WS_Proveedor
             }
         }
 
+        public UltimaFacturacionResponse ObtenerUltimaFacturacion()
+        {
+            try
+            {
+                string connectionString =
+                    ConfigurationManager.ConnectionStrings["SqlServerProveedor"]?.ConnectionString;
+
+                if (string.IsNullOrWhiteSpace(connectionString))
+                {
+                    return CrearRespuestaErrorUltimaFacturacion(
+                        "No se configuro la conexion SqlServerProveedor.");
+                }
+
+                const string sql = @"
+SELECT TOP 1
+    fecha_calculo,
+    fecha_maxima_pago,
+    COUNT(*) AS total_lineas,
+    SUM(total_llamadas) AS total_llamadas,
+    SUM(total_facturar) AS total_facturar,
+    MAX(fecha_registro) AS fecha_registro
+FROM dbo.facturacion_postpago
+GROUP BY fecha_calculo, fecha_maxima_pago
+ORDER BY fecha_calculo DESC, MAX(fecha_registro) DESC;";
+
+                using (var conexion = new SqlConnection(connectionString))
+                using (var comando = new SqlCommand(sql, conexion))
+                {
+                    conexion.Open();
+
+                    using (var reader = comando.ExecuteReader(CommandBehavior.SingleRow))
+                    {
+                        if (!reader.Read())
+                        {
+                            return new UltimaFacturacionResponse
+                            {
+                                Resultado = true,
+                                Mensaje = "No existe facturacion previa.",
+                                HayFacturacion = false
+                            };
+                        }
+
+                        DateTime fechaCalculo = reader.GetDateTime(0);
+                        DateTime fechaMaximaPago = reader.GetDateTime(1);
+                        DateTime fechaRegistro = reader.GetDateTime(5);
+
+                        return new UltimaFacturacionResponse
+                        {
+                            Resultado = true,
+                            Mensaje = "Exitoso",
+                            HayFacturacion = true,
+                            FechaCalculo = fechaCalculo.ToString("yyyy-MM-dd"),
+                            FechaMaximaPago = fechaMaximaPago.ToString("yyyy-MM-dd"),
+                            TotalLineas = Convert.ToInt32(reader["total_lineas"]),
+                            TotalLlamadas = Convert.ToInt32(reader["total_llamadas"]),
+                            TotalFacturar = Convert.ToDecimal(reader["total_facturar"]),
+                            FechaRegistro = fechaRegistro.ToString("yyyy-MM-dd HH:mm:ss")
+                        };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Error en ObtenerUltimaFacturacion: " + ex);
+                return CrearRespuestaErrorUltimaFacturacion();
+            }
+        }
+
         private static RespuestaServicio CrearRespuestaErrorActivacion(
             string detalle = null)
         {
@@ -122,7 +193,7 @@ namespace WS_Proveedor
             {
                 Resultado = false,
                 Mensaje = string.IsNullOrWhiteSpace(detalle)
-                    ? "Problemas al activar/desactivar la línea."
+                    ? "Problemas al activar/desactivar la linea."
                     : detalle.Trim()
             };
         }
@@ -133,7 +204,20 @@ namespace WS_Proveedor
             {
                 Resultado = false,
                 Mensaje =
-                    "Problemas al realizar el cálculo."
+                    "Problemas al realizar el calculo."
+            };
+        }
+
+        private static UltimaFacturacionResponse CrearRespuestaErrorUltimaFacturacion(
+            string detalle = null)
+        {
+            return new UltimaFacturacionResponse
+            {
+                Resultado = false,
+                Mensaje = string.IsNullOrWhiteSpace(detalle)
+                    ? "Problemas al consultar la ultima facturacion."
+                    : detalle.Trim(),
+                HayFacturacion = false
             };
         }
     }

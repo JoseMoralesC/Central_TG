@@ -1,0 +1,30 @@
+<%@ Master Language="C#" AutoEventWireup="true" CodeBehind="Site.Master.cs" Inherits="WebCliente.SiteMaster" %>
+<!DOCTYPE html>
+<html lang="es">
+<head runat="server">
+    <meta charset="utf-8" />
+    <title>Central Telefonica - Cliente</title>
+    <link rel="stylesheet" href="Styles/site.css" />
+</head>
+<body>
+    <form id="form1" runat="server">
+        <header class="topbar">
+            <div class="brand">Central Telefonica</div>
+            <nav>
+                <asp:HyperLink runat="server" NavigateUrl="~/Lineas.aspx" Text="Lineas activas" />
+                <asp:HyperLink runat="server" NavigateUrl="~/Portal.aspx?op=recarga" Text="Cargar saldo" />
+                <asp:HyperLink runat="server" NavigateUrl="~/Portal.aspx?op=pago" Text="Pagar facturas" />
+                <asp:HyperLink runat="server" NavigateUrl="~/Portal.aspx?op=devolucion" Text="Devolver linea" />
+                <asp:LinkButton runat="server" ID="SalirLink" Text="Salir del sitio" OnClick="SalirLink_Click" />
+            </nav>
+        </header>
+        <div class="hello">
+            <asp:Label runat="server" ID="SaludoLabel" />
+        </div>
+        <main class="shell">
+            <asp:ContentPlaceHolder ID="MainContent" runat="server" />
+        </main>
+        <footer class="footer">Central Telefonica - Portal cliente</footer>
+    </form>
+</body>
+</html>

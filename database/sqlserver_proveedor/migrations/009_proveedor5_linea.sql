@@ -27,7 +27,7 @@ END;
 GO
 
 UPDATE dbo.servicios
-SET estado_linea = CASE WHEN activo = 1 THEN 'ACTIVO' ELSE 'INACTIVO' END
+SET estado_linea = CASE WHEN activo = 1 THEN 'ACTIVO' ELSE 'DISPONIBLE' END
 WHERE estado_linea IS NULL OR estado_linea = '';
 GO
 
