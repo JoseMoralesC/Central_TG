@@ -1,5 +1,6 @@
-﻿using System.ServiceModel;
+using System.Collections.Generic;
 using System.Runtime.Serialization;
+using System.ServiceModel;
 
 namespace CentralTelefonica.WS_Autenticacion
 {
@@ -19,11 +20,83 @@ namespace CentralTelefonica.WS_Autenticacion
             => new ResultadoOperacion { Resultado = false, Mensaje = mensaje };
     }
 
+    [DataContract(Namespace = "http://centraltelefonica.cr/ws/autenticacion")]
+    public class UsuarioServicio
+    {
+        [DataMember]
+        public string Identificacion { get; set; }
+
+        [DataMember]
+        public string Nombre { get; set; }
+
+        [DataMember]
+        public string PrimerApellido { get; set; }
+
+        [DataMember]
+        public string SegundoApellido { get; set; }
+
+        [DataMember]
+        public string CorreoElectronico { get; set; }
+
+        [DataMember]
+        public string UsuarioEncriptado { get; set; }
+
+        [DataMember]
+        public string ContrasenaEncriptada { get; set; }
+
+        [DataMember]
+        public string Estado { get; set; }
+
+        [DataMember]
+        public int Tipo { get; set; }
+    }
+
+    [DataContract(Namespace = "http://centraltelefonica.cr/ws/autenticacion")]
+    public class ResultadoAutenticacion
+    {
+        [DataMember]
+        public bool Resultado { get; set; }
+
+        [DataMember]
+        public string Mensaje { get; set; }
+
+        [DataMember]
+        public UsuarioServicio Usuario { get; set; }
+
+        public static ResultadoAutenticacion Ok(UsuarioServicio usuario, string mensaje = "Exitoso")
+            => new ResultadoAutenticacion { Resultado = true, Mensaje = mensaje, Usuario = usuario };
+
+        public static ResultadoAutenticacion Fallo(string mensaje)
+            => new ResultadoAutenticacion { Resultado = false, Mensaje = mensaje };
+    }
+
+    [DataContract(Namespace = "http://centraltelefonica.cr/ws/autenticacion")]
+    public class ResultadoListadoUsuarios
+    {
+        [DataMember]
+        public bool Resultado { get; set; }
+
+        [DataMember]
+        public string Mensaje { get; set; }
+
+        [DataMember]
+        public List<UsuarioServicio> Usuarios { get; set; }
+
+        public static ResultadoListadoUsuarios Ok(List<UsuarioServicio> usuarios)
+            => new ResultadoListadoUsuarios { Resultado = true, Mensaje = "Exitoso", Usuarios = usuarios };
+
+        public static ResultadoListadoUsuarios Fallo(string mensaje)
+            => new ResultadoListadoUsuarios { Resultado = false, Mensaje = mensaje, Usuarios = new List<UsuarioServicio>() };
+    }
+
     [ServiceContract(Namespace = "http://centraltelefonica.cr/ws/autenticacion")]
     public interface IAutenticacionService
     {
         [OperationContract]
         ResultadoOperacion AutenticarUsuario(string usuarioEncriptado, string contrasenaEncriptada, int tipo);
+
+        [OperationContract]
+        ResultadoAutenticacion AutenticarUsuarioDetalle(string usuarioEncriptado, string contrasenaEncriptada, int tipo);
 
         [OperationContract]
         ResultadoOperacion CrearUsuario(
@@ -49,5 +122,11 @@ namespace CentralTelefonica.WS_Autenticacion
 
         [OperationContract]
         ResultadoOperacion CambiarEstadoUsuario(string identificacion, string estado);
+
+        [OperationContract]
+        ResultadoListadoUsuarios ListarUsuariosPorTipo(int tipo);
+
+        [OperationContract]
+        ResultadoOperacion EliminarUsuario(string identificacion);
     }
 }

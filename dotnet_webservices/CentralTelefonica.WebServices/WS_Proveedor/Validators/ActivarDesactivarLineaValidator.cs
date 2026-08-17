@@ -37,7 +37,6 @@ namespace WS_Proveedor.Validators
                 .ToLowerInvariant();
 
             if (estadoNormalizado != "activo" &&
-                estadoNormalizado != "inactivo" &&
                 estadoNormalizado != "disponible")
             {
                 return false;

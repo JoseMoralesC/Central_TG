@@ -1,0 +1,10 @@
+@model IEnumerable<WebAdministrativa.Models.Linea>
+@{ ViewBag.Title = "Nuevas lineas"; }
+<main>
+    <div class="d-flex justify-content-between align-items-center mb-3"><div><h1>Nuevas lineas disponibles</h1><p class="text-muted">Lineas sin vender que pueden ponerse a disposicion.</p></div>@Html.ActionLink("Nueva linea", "Crear", "Lineas", null, new { @class = "btn btn-primary" })</div>
+    @if (TempData["Mensaje"] != null) { <div class="alert alert-info">@TempData["Mensaje"]</div> }
+    <table class="table table-striped"><thead><tr><th>Telefono</th><th>Tarjeta</th><th>Tipo</th><th>Estado</th><th></th></tr></thead><tbody>
+    @if (!Model.Any()) { <tr><td colspan="5" class="text-center">El listado se cargara desde el Web Service en la siguiente etapa.</td></tr> }
+    @foreach (var linea in Model) { <tr><td>@linea.NumeroTelefono</td><td>@linea.IdentificadorTarjeta</td><td>@linea.Tipo</td><td>@linea.Estado</td><td>@using (Html.BeginForm("Eliminar", "Lineas", new { id = linea.Id }, FormMethod.Post, new { onsubmit = "return confirm('Desea eliminar esta linea?');" })) { @Html.AntiForgeryToken()<button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button> }</td></tr> }
+    </tbody></table>
+</main>
