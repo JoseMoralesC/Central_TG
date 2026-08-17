@@ -1370,3 +1370,4 @@
 17/08/2026: {"telefono": "", "identificadorTel": "", "identificadorChip": "", "coordenadas": "", "Transaccion": "RESPUESTA_CATALOGO_TELEFONOS", "Destino": "", "Tiempo": "", "tipo_registro": "SALIDA"}
 17/08/2026: {"telefono": "", "identificadorTel": "", "identificadorChip": "", "coordenadas": "", "Transaccion": "CONSULTA_CATALOGO_TELEFONOS", "Destino": "", "Tiempo": "", "tipo_registro": "ENTRADA"}
 17/08/2026: {"telefono": "", "identificadorTel": "", "identificadorChip": "", "coordenadas": "", "Transaccion": "RESPUESTA_CATALOGO_TELEFONOS", "Destino": "", "Tiempo": "", "tipo_registro": "SALIDA"}
+17/08/2026: {"telefono": "", "identificadorTel": "", "identificadorChip": "", "coordenadas": "", "Transaccion": "CONSULTA_CATALOGO_TELEFONOS", "Destino": "", "Tiempo": "", "tipo_registro": "ENTRADA"}
