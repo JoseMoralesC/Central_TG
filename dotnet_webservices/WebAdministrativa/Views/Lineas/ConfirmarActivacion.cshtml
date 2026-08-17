@@ -1,0 +1,8 @@
+@model WebAdministrativa.Models.ActivarLineaViewModel
+@{ ViewBag.Title = "Confirmar activacion"; }
+<main class="col-md-6"><h1>Activar linea</h1><p>Indique la identificacion del cliente que compro la linea.</p>
+@using (Html.BeginForm()) { @Html.AntiForgeryToken() @Html.HiddenFor(m => m.IdLinea)
+<div class="mb-3">@Html.LabelFor(m => m.IdentificacionCliente, new { @class = "form-label" })@Html.TextBoxFor(m => m.IdentificacionCliente, new { @class = "form-control" })@Html.ValidationMessageFor(m => m.IdentificacionCliente, "", new { @class = "text-danger" })</div>
+<button type="submit" class="btn btn-primary">Activar linea</button> @Html.ActionLink("Cancelar", "Activar", null, new { @class = "btn btn-outline-secondary" }) }
+</main>
+@section scripts { @Scripts.Render("~/bundles/jqueryval") }

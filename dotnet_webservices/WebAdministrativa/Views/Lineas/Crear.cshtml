@@ -1,0 +1,11 @@
+@model WebAdministrativa.Models.NuevaLineaViewModel
+@{ ViewBag.Title = "Nueva linea"; }
+<main class="col-md-7"><h1>Registrar nueva linea</h1><p class="text-muted">La linea se registrara inicialmente como disponible.</p>
+@using (Html.BeginForm()) { @Html.AntiForgeryToken() @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+<div class="mb-3">@Html.LabelFor(m => m.NumeroTelefono, new { @class = "form-label" })@Html.TextBoxFor(m => m.NumeroTelefono, new { @class = "form-control" })@Html.ValidationMessageFor(m => m.NumeroTelefono, "", new { @class = "text-danger" })</div>
+<div class="mb-3">@Html.LabelFor(m => m.IdentificadorTelefono, new { @class = "form-label" })@Html.TextBoxFor(m => m.IdentificadorTelefono, new { @class = "form-control" })@Html.ValidationMessageFor(m => m.IdentificadorTelefono, "", new { @class = "text-danger" })</div>
+<div class="mb-3">@Html.LabelFor(m => m.IdentificadorTarjeta, new { @class = "form-label" })@Html.TextBoxFor(m => m.IdentificadorTarjeta, new { @class = "form-control" })@Html.ValidationMessageFor(m => m.IdentificadorTarjeta, "", new { @class = "text-danger" })</div>
+<div class="mb-3">@Html.LabelFor(m => m.Tipo, new { @class = "form-label" })@Html.DropDownListFor(m => m.Tipo, new SelectList(new[] { "PREPAGO", "POSTPAGO" }), "Seleccione un tipo", new { @class = "form-select" })@Html.ValidationMessageFor(m => m.Tipo, "", new { @class = "text-danger" })</div>
+<button type="submit" class="btn btn-primary">Registrar</button> @Html.ActionLink("Cancelar", "Nuevas", null, new { @class = "btn btn-outline-secondary" }) }
+</main>
+@section scripts { @Scripts.Render("~/bundles/jqueryval") }

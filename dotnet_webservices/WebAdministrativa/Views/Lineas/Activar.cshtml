@@ -1,0 +1,8 @@
+@model IEnumerable<WebAdministrativa.Models.Linea>
+@{ ViewBag.Title = "Activar linea"; }
+<main><h1>Activar linea vendida</h1><p class="text-muted">Seleccione una linea disponible y asociela a un cliente.</p>
+@if (TempData["Mensaje"] != null) { <div class="alert alert-info">@TempData["Mensaje"]</div> }
+<table class="table table-striped"><thead><tr><th>Telefono</th><th>Tarjeta</th><th>Tipo</th><th></th></tr></thead><tbody>
+@if (!Model.Any()) { <tr><td colspan="4" class="text-center">El listado se cargara desde el Web Service en la siguiente etapa.</td></tr> }
+@foreach (var linea in Model) { <tr><td>@linea.NumeroTelefono</td><td>@linea.IdentificadorTarjeta</td><td>@linea.Tipo</td><td>@Html.ActionLink("Activar", "ConfirmarActivacion", new { id = linea.Id }, new { @class = "btn btn-sm btn-primary" })</td></tr> }
+</tbody></table></main>
