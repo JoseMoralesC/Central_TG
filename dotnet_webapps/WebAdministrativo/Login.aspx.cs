@@ -42,7 +42,7 @@ namespace WebAdministrativo
                 Session["UsuarioAdmin"] = UsuarioText.Text.Trim();
                 Session["NombreAdmin"] = respuesta.Usuario.Nombre;
                 Session["IdentificacionAdmin"] = respuesta.Usuario.Identificacion;
-                Response.Redirect("~/Facturacion.aspx", false);
+                Response.Redirect("~/LineasNuevas.aspx", false);
                 Context.ApplicationInstance.CompleteRequest();
             }
             catch (Exception)

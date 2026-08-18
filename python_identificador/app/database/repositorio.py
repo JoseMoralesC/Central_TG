@@ -32,7 +32,7 @@ def listar_telefonos_catalogo() -> list[dict]:
                 d.identificador_dispositivo_cifrado,
                 d.activo AS dispositivo_activo
             FROM telefonos t
-            JOIN proveedores p ON t.proveedor_id = p.proveedor_id
+            LEFT JOIN proveedores p ON t.proveedor_id = p.proveedor_id
             LEFT JOIN tarjetas_telefonicas tt ON tt.telefono_id = t.telefono_id
             LEFT JOIN dispositivos d ON d.telefono_id = t.telefono_id
             ORDER BY t.telefono_id

@@ -28,19 +28,28 @@ public class ClienteController : Controller
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        string? identificacion = HttpContext.Session.GetString(SessionIdentificacion);
+        string? identificacion = Request.Query["identificacion"].FirstOrDefault();
 
-        if (string.IsNullOrWhiteSpace(identificacion))
+        if (!string.IsNullOrWhiteSpace(identificacion))
+        {
+            HttpContext.Session.SetString(
+                SessionIdentificacion,
+                identificacion.Trim());
+        }
+
+        string? identificacionSesion = HttpContext.Session.GetString(SessionIdentificacion);
+
+        if (string.IsNullOrWhiteSpace(identificacionSesion))
         {
             return View(IndexViewModel.SinIdentificacion());
         }
 
         ConsultarLineasClienteResult resultado =
-            await _proveedorClienteService.ConsultarLineasClienteAsync(identificacion);
+            await _proveedorClienteService.ConsultarLineasClienteAsync(identificacionSesion);
 
         var modelo = new IndexViewModel
         {
-            Identificacion = identificacion,
+            Identificacion = identificacionSesion,
             Resultado = resultado.Resultado,
             Mensaje = resultado.Mensaje,
             Lineas = resultado.Lineas

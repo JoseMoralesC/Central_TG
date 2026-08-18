@@ -61,7 +61,8 @@ label {
 
 input[type="text"],
 input[type="password"],
-input[type="date"] {
+input[type="date"],
+select {
     width: 100%;
     box-sizing: border-box;
     padding: 10px;
@@ -83,6 +84,15 @@ input[type="submit"] {
 .message {
     display: block;
     margin-top: 12px;
+}
+
+.grid-actions a,
+.grid-actions input[type="submit"] {
+    margin-right: 10px;
+}
+
+.danger-link {
+    color: #b42318;
 }
 
 .footer {

@@ -1,4 +1,6 @@
 using System;
+using System.Configuration;
+using System.Web;
 using WebCliente.Services;
 
 namespace WebCliente
@@ -42,13 +44,26 @@ namespace WebCliente
                 Session["UsuarioCliente"] = UsuarioText.Text.Trim();
                 Session["IdentificacionCliente"] = respuesta.Usuario.Identificacion;
                 Session["NombreCliente"] = respuesta.Usuario.Nombre;
-                Response.Redirect("~/Lineas.aspx", false);
+                Response.Redirect(ConstruirUrlPortal(respuesta.Usuario.Identificacion), false);
                 Context.ApplicationInstance.CompleteRequest();
             }
             catch (Exception)
             {
                 MensajeLabel.Text = "Usuario y/o contrasena incorrectos";
             }
+        }
+
+        private static string ConstruirUrlPortal(string identificacion)
+        {
+            string baseUrl = ConfigurationManager.AppSettings["PortalClienteUrl"];
+
+            if (string.IsNullOrWhiteSpace(baseUrl))
+            {
+                return "~/Lineas.aspx";
+            }
+
+            string separador = baseUrl.Contains("?") ? "&" : "?";
+            return baseUrl + separador + "identificacion=" + HttpUtility.UrlEncode(identificacion ?? string.Empty);
         }
     }
 }

@@ -16,6 +16,7 @@ PAISES = {
 
 def procesar_catalogo_telefonos(_: dict) -> dict:
     telefonos = []
+    consultar_proveedor = True
 
     for item in listar_telefonos_catalogo():
         numero = desencriptar_aes(item.get("numero_cifrado", ""))
@@ -25,11 +26,16 @@ def procesar_catalogo_telefonos(_: dict) -> dict:
         if not numero:
             continue
 
-        detalle = enviar_al_proveedor({
-            "tipo_transaccion": "CONSULTA_PROVEEDOR",
-            "accion": "DETALLE_TELEFONO",
-            "telefono_origen": numero
-        })
+        detalle = {}
+        if consultar_proveedor:
+            detalle = enviar_al_proveedor({
+                "tipo_transaccion": "CONSULTA_PROVEEDOR",
+                "accion": "DETALLE_TELEFONO",
+                "telefono_origen": numero
+            })
+            codigo_detalle = detalle.get("resultado", {}).get("codigo", detalle.get("status", "ERROR"))
+            if codigo_detalle != "OK":
+                consultar_proveedor = False
 
         detalle_tel = detalle.get("telefono", {})
         pais = item.get("pais") or "Costa Rica"

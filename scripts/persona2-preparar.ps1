@@ -48,14 +48,13 @@ function Find-MSBuild {
 }
 
 if ($ApplyMongoSeed) {
-    Write-Host "[MongoDB] Iniciando servicio y aplicando seed persona 2..."
-    Start-Service MongoDB -ErrorAction SilentlyContinue
+    Write-Host "[MongoDB] Aplicando seed de usuarios sobre MongoDB ya iniciado..."
     Require-Command mongosh
     mongosh --host localhost --port 27017 -u $MongoUser -p $MongoPassword --authenticationDatabase central_tg_mongo --eval "load('database/mongodb/crear_coleccion_usuarios.js'); load('database/mongodb/indices_usuarios.js'); load('database/mongodb/datos_semilla_persona_2.js');"
 }
 
 if ($ApplySqlMigrations) {
-    Write-Host "[SQL Server] Aplicando migraciones persona 2..."
+    Write-Host "[SQL Server] Aplicando migraciones de facturacion y lineas..."
     Require-Command sqlcmd
 
     $sqlFiles = @(
@@ -81,9 +80,13 @@ if (-not $SkipBuild) {
     & $msbuild "dotnet_webapps/CentralTelefonica.WebApps.sln" /t:Build /p:Configuration=Debug /p:Platform="Any CPU" /m
     & $msbuild "dotnet_webservices/WS_Autenticacion/WS_Autenticacion.sln" /t:Build /p:Configuration=Debug /p:Platform="Any CPU" /m
     & $msbuild "dotnet_webservices/CentralTelefonica.WebServices/WS_Proveedor/WS_Proveedor.csproj" /t:Build /p:Configuration=Debug /p:Platform="AnyCPU" /m
+    & $msbuild "dotnet_webservices/CentralTelefonica.WebServices/WS_ProveedorCliente/WS_ProveedorCliente.sln" /t:Build /p:Configuration=Debug /p:Platform="Any CPU" /m
+
+    Write-Host "[Build] Compilando PortalCliente..."
+    Require-Command dotnet
+    dotnet build "dotnet_webservices/PortalCliente/PortalCliente.csproj"
 
     Write-Host "[Build] Compilando simulador C#..."
-    Require-Command dotnet
     dotnet build "csharp_simulador/SimuladorTelefonico/SimuladorTelefonico.csproj"
 
     Write-Host "[Build] Compilando Java proveedor..."
@@ -94,9 +97,9 @@ if (-not $SkipBuild) {
 }
 
 Write-Host ""
-Write-Host "Preparacion persona 2 completada."
+Write-Host "Preparacion de componentes completada."
 if (-not $ApplyMongoSeed -and -not $ApplySqlMigrations) {
-    Write-Host "No se aplicaron seeds ni migraciones. Para aplicarlos use -ApplyMongoSeed y/o -ApplySqlMigrations."
+    Write-Host "No se aplicaron seeds ni migraciones. Para SQL use -ApplySqlMigrations; Mongo se maneja manualmente con datos reales."
 }
 Write-Host "Credenciales admin:   adminp2 / AdminPersona2!"
 Write-Host "Credenciales cliente: clientep2 / ClienteUser2!!"

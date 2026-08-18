@@ -13,6 +13,21 @@ namespace WebAdministrativo.Services
 
         [OperationContract]
         UltimaFacturacionResponse ObtenerUltimaFacturacion();
+
+        [OperationContract]
+        ListadoLineasResponse ListarLineasDisponibles();
+
+        [OperationContract]
+        ListadoLineasResponse ListarLineasActivas();
+
+        [OperationContract]
+        RespuestaServicio RegistrarLinea(RegistrarLineaAdministrativaRequest solicitud);
+
+        [OperationContract]
+        RespuestaServicio EliminarLineaDisponible(int servicioId);
+
+        [OperationContract]
+        RespuestaServicio ActivarDesactivarLinea(ActivarDesactivarLineaRequest solicitud);
     }
 
     [DataContract(Namespace = "http://schemas.datacontract.org/2004/07/WS_Proveedor.Models")]
@@ -33,6 +48,91 @@ namespace WebAdministrativo.Services
 
         [DataMember(Order = 2)]
         public string Mensaje { get; set; }
+    }
+
+    [DataContract(Namespace = "http://schemas.datacontract.org/2004/07/WS_Proveedor.Models")]
+    public class LineaAdministrativaDto
+    {
+        [DataMember(Order = 1)]
+        public int ServicioId { get; set; }
+
+        [DataMember(Order = 2)]
+        public string NumeroTelefono { get; set; }
+
+        [DataMember(Order = 3)]
+        public string IdentificadorTelefono { get; set; }
+
+        [DataMember(Order = 4)]
+        public string IdentificadorTarjeta { get; set; }
+
+        [DataMember(Order = 5)]
+        public string TipoServicio { get; set; }
+
+        [DataMember(Order = 6)]
+        public string IdentificacionCliente { get; set; }
+
+        [DataMember(Order = 7)]
+        public string NombreCliente { get; set; }
+
+        [DataMember(Order = 8)]
+        public string EstadoLinea { get; set; }
+
+        [DataMember(Order = 9)]
+        public bool Activo { get; set; }
+
+        [DataMember(Order = 10)]
+        public string ProveedorCodigo { get; set; }
+    }
+
+    [DataContract(Namespace = "http://schemas.datacontract.org/2004/07/WS_Proveedor.Models")]
+    public class ListadoLineasResponse
+    {
+        [DataMember(Order = 1)]
+        public bool Resultado { get; set; }
+
+        [DataMember(Order = 2)]
+        public string Mensaje { get; set; }
+
+        [DataMember(Order = 3)]
+        public LineaAdministrativaDto[] Lineas { get; set; }
+    }
+
+    [DataContract(Namespace = "http://schemas.datacontract.org/2004/07/WS_Proveedor.Models")]
+    public class RegistrarLineaAdministrativaRequest
+    {
+        [DataMember(Order = 1, IsRequired = true)]
+        public string NumeroTelefono { get; set; }
+
+        [DataMember(Order = 2, IsRequired = true)]
+        public string IdentificadorTelefono { get; set; }
+
+        [DataMember(Order = 3, IsRequired = true)]
+        public string IdentificadorTarjeta { get; set; }
+
+        [DataMember(Order = 4, IsRequired = true)]
+        public string TipoServicio { get; set; }
+    }
+
+    [DataContract(Namespace = "http://schemas.datacontract.org/2004/07/WS_Proveedor.Models")]
+    public class ActivarDesactivarLineaRequest
+    {
+        [DataMember(Order = 1, IsRequired = true)]
+        public string NumeroTelefono { get; set; }
+
+        [DataMember(Order = 2, IsRequired = true)]
+        public string IdentificadorTelefono { get; set; }
+
+        [DataMember(Order = 3, IsRequired = true)]
+        public string IdentificadorTarjeta { get; set; }
+
+        [DataMember(Order = 4, IsRequired = true)]
+        public string Tipo { get; set; }
+
+        [DataMember(Order = 5, IsRequired = true)]
+        public string IdentificacionCliente { get; set; }
+
+        [DataMember(Order = 6, IsRequired = true)]
+        public string Estado { get; set; }
     }
 
     [DataContract(Namespace = "http://schemas.datacontract.org/2004/07/WS_Proveedor.Models")]
@@ -82,6 +182,43 @@ namespace WebAdministrativo.Services
             };
 
             return Ejecutar(servicio => servicio.CalcularFacturacion(solicitud));
+        }
+
+        public ListadoLineasResponse ListarLineasDisponibles()
+        {
+            return Ejecutar(servicio => servicio.ListarLineasDisponibles());
+        }
+
+        public ListadoLineasResponse ListarLineasActivas()
+        {
+            return Ejecutar(servicio => servicio.ListarLineasActivas());
+        }
+
+        public RespuestaServicio RegistrarLinea(
+            string numeroTelefono,
+            string identificadorTelefono,
+            string identificadorTarjeta,
+            string tipoServicio)
+        {
+            var solicitud = new RegistrarLineaAdministrativaRequest
+            {
+                NumeroTelefono = numeroTelefono,
+                IdentificadorTelefono = identificadorTelefono,
+                IdentificadorTarjeta = identificadorTarjeta,
+                TipoServicio = tipoServicio
+            };
+
+            return Ejecutar(servicio => servicio.RegistrarLinea(solicitud));
+        }
+
+        public RespuestaServicio EliminarLineaDisponible(int servicioId)
+        {
+            return Ejecutar(servicio => servicio.EliminarLineaDisponible(servicioId));
+        }
+
+        public RespuestaServicio ActivarDesactivarLinea(ActivarDesactivarLineaRequest solicitud)
+        {
+            return Ejecutar(servicio => servicio.ActivarDesactivarLinea(solicitud));
         }
 
         private static T Ejecutar<T>(Func<IProveedorService, T> accion)

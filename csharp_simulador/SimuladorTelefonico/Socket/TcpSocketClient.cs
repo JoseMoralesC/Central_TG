@@ -46,17 +46,27 @@ namespace SimuladorTelefonico.Socket
                 await stream.FlushAsync();
 
                 byte[] buffer = new byte[AppConfig.BufferRespuestaBytes];
+                using MemoryStream respuestaCompleta = new();
                 using CancellationTokenSource ctsLectura =
                     new(AppConfig.TimeoutLecturaMs);
 
-                int bytesLeidos = await stream.ReadAsync(buffer, ctsLectura.Token);
+                int bytesLeidos;
+                do
+                {
+                    bytesLeidos = await stream.ReadAsync(buffer, ctsLectura.Token);
+                    if (bytesLeidos > 0)
+                    {
+                        respuestaCompleta.Write(buffer, 0, bytesLeidos);
+                    }
+                }
+                while (bytesLeidos > 0 && !ContieneFinDeTrama(buffer, bytesLeidos));
 
-                if (bytesLeidos <= 0)
+                if (respuestaCompleta.Length <= 0)
                 {
                     return "ERROR: No se recibio respuesta del Identificador Python.";
                 }
 
-                string respuesta = encoding.GetString(buffer, 0, bytesLeidos);
+                string respuesta = encoding.GetString(respuestaCompleta.ToArray());
 
                 return respuesta.Trim();
             }
@@ -90,6 +100,19 @@ namespace SimuladorTelefonico.Socket
             {
                 return Encoding.UTF8;
             }
+        }
+
+        private static bool ContieneFinDeTrama(byte[] buffer, int bytesLeidos)
+        {
+            for (int i = 0; i < bytesLeidos; i++)
+            {
+                if (buffer[i] == (byte)'\n')
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

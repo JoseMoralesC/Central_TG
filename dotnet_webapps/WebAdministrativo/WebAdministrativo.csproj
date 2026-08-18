@@ -43,6 +43,9 @@
     <Content Include="Default.aspx" />
     <Content Include="Facturacion.aspx" />
     <Content Include="Global.asax" />
+    <Content Include="LineasActivar.aspx" />
+    <Content Include="LineasDevolucion.aspx" />
+    <Content Include="LineasNuevas.aspx" />
     <Content Include="Login.aspx" />
     <Content Include="Site.Master" />
     <Content Include="Styles\site.css" />
@@ -67,6 +70,24 @@
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
+    <Compile Include="LineasActivar.aspx.cs">
+      <DependentUpon>LineasActivar.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="LineasActivar.aspx.designer.cs">
+      <DependentUpon>LineasActivar.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="LineasDevolucion.aspx.cs">
+      <DependentUpon>LineasDevolucion.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="LineasDevolucion.aspx.designer.cs">
+      <DependentUpon>LineasDevolucion.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="LineasNuevas.aspx.cs">
+      <DependentUpon>LineasNuevas.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="LineasNuevas.aspx.designer.cs">
+      <DependentUpon>LineasNuevas.aspx</DependentUpon>
+    </Compile>
     <Compile Include="Login.aspx.cs">
       <DependentUpon>Login.aspx</DependentUpon>
     </Compile>
@@ -76,6 +97,7 @@
     <Compile Include="Services\AutenticacionSoapClient.cs" />
     <Compile Include="Services\CryptoHelper.cs" />
     <Compile Include="Services\ProveedorSoapClient.cs" />
+    <Compile Include="Services\ProveedorCryptoHelper.cs" />
     <Compile Include="Site.Master.cs">
       <DependentUpon>Site.Master</DependentUpon>
     </Compile>

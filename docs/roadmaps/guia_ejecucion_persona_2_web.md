@@ -9,6 +9,10 @@ Levantar los componentes necesarios para probar:
 - `CLIENTE1`: login cliente.
 - `CLIENTE2`: plantilla portal cliente.
 - `CLIENTE3`: registro cliente.
+- `CLIENTE4`: consulta de lineas en PortalCliente.
+- `CLIENTE5`: recarga prepago en PortalCliente.
+- `CLIENTE6`: pago postpago y correo en PortalCliente.
+- `CLIENTE7`: devolucion de linea en PortalCliente.
 
 ## 1. Preparar MongoDB
 
@@ -18,7 +22,12 @@ MongoDB debe estar activo en:
 localhost:27017
 ```
 
-Aplicar coleccion, indices y datos de prueba:
+La instalacion como servicio de Windows puede requerir PowerShell como
+administrador. Para esta demo MongoDB se levanta manualmente, fuera de
+`persona2-levantar.ps1`, usando los datos reales existentes.
+
+Solo aplicar seeds si se esta preparando un ambiente vacio de prueba. Para la
+demo final con datos reales, no ejecutar este comando:
 
 ```powershell
 mongosh --host localhost --port 27017 -u charlie -p charlie1234 --authenticationDatabase central_tg_mongo --eval "load('database/mongodb/crear_coleccion_usuarios.js'); load('database/mongodb/indices_usuarios.js'); load('database/mongodb/datos_semilla_persona_2.js');"
@@ -43,7 +52,8 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 El primer script compila WebApps, servicios WCF, simulador C# y Java. Por defecto no aplica seeds ni migraciones.
 
-El segundo script levanta MongoDB, Java proveedor, Python identificador, simulador C# y cuatro ventanas de IIS Express:
+El segundo script verifica si MongoDB responde en `localhost:27017` y levanta
+Java proveedor, Python identificador, simulador C# y las ventanas Web/IIS:
 
 ```txt
 Java Proveedor:     puerto 6000
@@ -51,8 +61,10 @@ Python Identificador: python_identificador/main.py
 Simulador C#:       csharp_simulador/SimuladorTelefonico
 WS_Autenticacion:   http://localhost:59113/Service1.svc?wsdl
 WS_Proveedor:       http://localhost:55254/ProveedorService.svc?wsdl
+WS_ProveedorCliente:http://localhost:55260/ProveedorClienteService.svc?wsdl
 WebAdministrativo:  http://localhost:56121/Login.aspx
 WebCliente:         http://localhost:56122/Login.aspx
+PortalCliente:      http://localhost:56123/Cliente/Index (destino despues del login)
 ```
 
 El arranque espera a que Java responda en el puerto `6000` antes de iniciar Python, y espera a que Python responda en el puerto `5000` antes de iniciar el simulador C#.
@@ -107,6 +119,9 @@ La conexion configurada en `WS_Proveedor/Web.config` debe coincidir con:
 ```txt
 Server=localhost,49172;Database=CentralProveedor;User Id=charlie_dev;Password=Charlie1234;TrustServerCertificate=True;
 ```
+
+La conexion configurada en `WS_ProveedorCliente/Web.config` tambien debe apuntar
+a la base `CentralProveedor`.
 
 Regla oficial para lineas telefonicas:
 
@@ -224,14 +239,22 @@ Contrasena: ClienteUser2!!
 Debe entrar a:
 
 ```txt
-Lineas.aspx
+PortalCliente / Cliente/Index
 ```
 
 Y mostrar:
 
 ```txt
-Hola Cliente
+Las lineas prepago y postpago del cliente autenticado
 ```
+
+El portal transaccional oficial para CLIENTE4-CLIENTE7 es:
+
+```txt
+http://localhost:56123/Cliente/Index
+```
+
+`WebCliente/Login.aspx` redirige a ese portal con la identificacion del cliente.
 
 ### CLIENTE3
 
@@ -314,6 +337,8 @@ Comandos usados desde la raiz del repositorio:
 & 'C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe' dotnet_webapps/CentralTelefonica.WebApps.sln /t:Build /p:Configuration=Debug /p:Platform="Any CPU" /m
 & 'C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe' dotnet_webservices/WS_Autenticacion/WS_Autenticacion.sln /t:Build /p:Configuration=Debug /p:Platform="Any CPU" /m
 & 'C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe' dotnet_webservices/CentralTelefonica.WebServices/WS_Proveedor/WS_Proveedor.csproj /t:Build /p:Configuration=Debug /p:Platform="AnyCPU" /m
+& 'C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe' dotnet_webservices/CentralTelefonica.WebServices/WS_ProveedorCliente/WS_ProveedorCliente.sln /t:Build /p:Configuration=Debug /p:Platform="Any CPU" /m
+dotnet build dotnet_webservices/PortalCliente/PortalCliente.csproj
 ```
 
 Resultado esperado:

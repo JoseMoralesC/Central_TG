@@ -14,13 +14,11 @@ anterior, el cambio mas importante es que ya existe un `PortalCliente`
 independiente para CLIENTE4-CLIENTE7 y un `WS_ProveedorCliente` que compila y
 expone consulta de lineas, recarga y pago de factura.
 
-La deuda principal ya no es solamente falta de codigo, sino fragmentacion e
-integracion: la Web Cliente principal en `dotnet_webapps/WebCliente` todavia
-tiene CLIENTE4-CLIENTE7 como pantallas vacias/reservadas, mientras que la
-implementacion mas completa vive en `dotnet_webservices/PortalCliente` y no esta
-conectada al login/registro de la Web Cliente principal. En administrativo,
-ADM3-ADM5 siguen en una Web MVC separada que no compila por paquete NuGet
-faltante y cuyos controladores aun son placeholders.
+La deuda principal detectada era fragmentacion e integracion. En esta revision
+se comenzo a cerrar: `WebCliente` redirige al `PortalCliente` oficial despues
+del login, y la Web administrativa principal incorporo ADM3-ADM5 consumiendo
+operaciones nuevas del WS Proveedor. La WebAdministrativa MVC separada sigue
+siendo no oficial y no debe usarse como ruta de demo.
 
 La revision contra `estrategia_3.md` mantiene el reparto:
 
@@ -35,21 +33,23 @@ Estado global estimado:
 | Area | Estado | Comentario |
 |---|---|---|
 | Simulador C# | Cumple como base | Compila y forma parte del flujo integrado. |
-| Identificador Python | Parcial alto | Atiende llamadas, saldo, bitacora, catalogo y sincronizacion. |
-| Proveedor Java | Parcial alto | Tiene verificacion, movimientos, bitacora, recarga, registro/cambio de estado y facturacion. |
+| Identificador Python | Parcial alto | Atiende llamadas, saldo, bitacora, catalogo y sincronizacion; el catalogo consulta MySQL real y ya no queda limitado a datos locales del simulador. |
+| Proveedor Java | Parcial alto | Tiene verificacion, movimientos, bitacora, recarga, registro/cambio de estado y facturacion; el arranque local quedo estabilizado en puerto 6000. |
 | WS Autenticacion | Cumple funcionalmente | Login, creacion, modificacion, cambio de estado, listado y eliminacion de usuarios en MongoDB. |
-| WS Proveedor WCF | Parcial funcional | Expone activar/desactivar, calcular facturacion y ultima facturacion; no expone todos los listados administrativos. |
+| WS Proveedor WCF | Parcial alto | Expone activar/desactivar, calcular facturacion, ultima facturacion, listados administrativos, registro y eliminacion de lineas disponibles. |
 | WS ProveedorCliente WCF | Parcial alto | Compila y expone consulta de lineas, recarga y pago; no expone devolucion propia ni correo directo. |
-| Web Administrativo principal | Parcial medio | Tiene ADM1, parte de ADM2, ADM6 y ADM7; faltan ADM3-ADM5 en la Web final integrada. |
-| Web Cliente principal | Parcial medio-bajo | Tiene CLIENTE1, CLIENTE2 basico y CLIENTE3; CLIENTE4-CLIENTE7 siguen en placeholder. |
-| PortalCliente ASP.NET Core | Parcial alto para Gabriel | Implementa CLIENTE4-CLIENTE7 con WS, pero sin login/registro integrado de cliente. |
+| Web Administrativo principal | Parcial alto | Tiene ADM1-ADM7 en la Web final integrada; ADM3-ADM5 dependen de prueba con datos reales. |
+| Web Cliente principal | Parcial alto | Tiene CLIENTE1-CLIENTE3 y redirige a PortalCliente para CLIENTE4-CLIENTE7. |
+| PortalCliente ASP.NET Core | Parcial alto para Gabriel | Implementa CLIENTE4-CLIENTE7 con WS y acepta identificacion enviada por WebCliente. |
 | WebAdministrativa MVC | Parcial bajo | Existe para ADM3-ADM5, pero no compila y no consume WS real. |
 | Documentacion y evidencias | Parcial alto | Hay guias y evidencias; falta consolidar una ruta oficial de demo por historia. |
 
-Resultado general: Jose sigue siendo el bloque mas defendible. Gabriel mejora de
-forma relevante gracias a `PortalCliente`, pero debe integrarse o presentarse
-claramente como portal oficial para no chocar con `WebCliente`. Charlie mantiene
-el mayor riesgo administrativo: ADM3-ADM5 no estan cerradas.
+Resultado general: Jose sigue siendo el bloque mas defendible. Gabriel queda con
+ruta oficial mas clara gracias al puente `WebCliente -> PortalCliente`. Charlie
+sube de riesgo alto a medio porque ADM3-ADM5 ya existen en la Web principal,
+aunque deben validarse con datos reales y procesos levantados. El cierre ahora
+depende menos de construir piezas nuevas y mas de estabilizar la corrida
+integrada, usar MongoDB real levantado manualmente y documentar evidencia.
 
 ## 2. Requerimientos fuente revisados
 
@@ -85,13 +85,18 @@ Reglas tecnicas obligatorias del PDF:
 | Build de `dotnet_webservices/PortalCliente/PortalCliente.csproj` | Correcto, 0 errores. |
 | Build de `dotnet_webservices/CentralTelefonica.WebServices/CentralTelefonica.WebServices.csproj` | Correcto despues de restaurar NuGet con acceso de red. |
 | Build de `dotnet_webservices/WebAdministrativa/WebAdministrativa.sln` | Falla por paquete faltante `Microsoft.CodeDom.Providers.DotNetCompilerPlatform.2.0.1`. |
-| Revision de `dotnet_webapps/WebCliente` | CLIENTE4-CLIENTE7 siguen como listas vacias o pantalla reservada. |
+| Revision de `dotnet_webapps/WebCliente` | CLIENTE1-CLIENTE3 compilan y el login redirige a `PortalCliente` para CLIENTE4-CLIENTE7. |
 | Revision de `dotnet_webservices/PortalCliente` | CLIENTE4-CLIENTE7 tienen implementacion funcional parcial/alta. |
 | Revision de `dotnet_webservices/WebAdministrativa` | Acciones de ADM3-ADM5 son placeholders y no consumen WS real. |
+| `python -m py_compile` sobre configuracion/repositorio/servicio del Identificador | Correcto; no hay errores de sintaxis en los cambios de catalogo. |
+| Prueba directa de catalogo Python contra MySQL `central_identificador` | Correcta; devuelve 20 telefonos reales y no se cae si Java esta temporalmente no disponible. |
+| Prueba de proveedor Java en primer plano | Correcta; conecta a SQL Server y escucha en `127.0.0.1:6000`. |
+| Build del simulador C# con `--no-restore` | Correcto; la lectura de socket queda preparada para respuestas completas con salto de linea. |
+| Revision de `scripts/persona2-levantar.ps1` | Correcta; MongoDB ya no se levanta ni aplica datos semilla desde el script, las ventanas usan el nombre real del proceso e IIS Express evita duplicar puertos activos. |
 
-Observacion: `scripts/persona2-preparar.ps1` no aplico seeds ni migraciones de
-base de datos porque no se ejecuto con `-ApplyMongoSeed` ni
-`-ApplySqlMigrations`.
+Observacion: la corrida oficial debe usar bases reales ya preparadas. MongoDB se
+mantiene fuera del script de levantamiento y debe estar iniciado manualmente en
+`localhost:27017`; el script solo valida si el puerto responde.
 
 ## 4. Hallazgos transversales
 
@@ -103,11 +108,24 @@ El sistema ya tiene varios flujos operativos:
 WebApps / PortalCliente / Simulador C# -> WS -> Python Identificador / Java Proveedor -> Bases de datos
 ```
 
+Puerto operativo recomendado para `PortalCliente`: `http://localhost:56123`. El
+puerto `5000` queda reservado para el socket TCP del Identificador Python.
+Por eso `http://localhost:5000/Cliente/Index` no es una URL valida del portal y
+puede mostrar `ERR_INVALID_HTTP_RESPONSE` en navegador.
+
+Ruta cliente recomendada para demo:
+
+```text
+WebCliente Login: http://localhost:56122/Login.aspx
+Destino posterior: http://localhost:56123/Cliente/Index
+```
+
 Tambien existen scripts y guias de apoyo:
 
 - `scripts/persona2-preparar.ps1`
 - `scripts/persona2-levantar.ps1`
 - `docs/roadmaps/guia_ejecucion_persona_2_web.md`
+- `docs/entrega_final/Ruta_demo_alcance_final.md`
 - `docs/evidencias/gabriel/CLIENTE7/CLIENTE7_devolucion_linea.md`
 
 ### 4.2 Hay aplicaciones duplicadas para cubrir el alcance
@@ -127,16 +145,37 @@ historias duplicadas, incompletas o desconectadas.
 ### 4.3 El backend tiene mas capacidad que algunas pantallas finales
 
 Java, Python, `WS_Proveedor`, `WS_Proveedor_1` y `WS_ProveedorCliente` contienen
-capacidades que no siempre llegan a la Web principal. El caso mas claro es
-Gabriel: el backend y el portal separado avanzaron, pero `WebCliente` sigue
-mostrando placeholders para esas historias.
+capacidades que ahora llegan a las rutas oficiales principales. El caso cliente
+se resolvio mediante redireccion desde `WebCliente` hacia `PortalCliente`.
 
-### 4.4 El punto debil administrativo sigue siendo ADM3-ADM5
+### 4.4 ADM3-ADM5 ya estan en la Web oficial, pero requieren evidencia
 
 La WebAdministrativa MVC tiene pantallas visuales para nuevas lineas, activar y
 desactivar, pero no compila y sus acciones dicen que la integracion con Web
-Service sera en una siguiente etapa. En la WebAdministrativo principal no existen
-esas opciones en el menu ni pantallas funcionales equivalentes.
+Service sera en una siguiente etapa. Esa aplicacion no debe usarse como ruta de
+demo.
+
+La ruta oficial actual es `dotnet_webapps/WebAdministrativo`, donde ya existen
+las paginas `LineasNuevas.aspx`, `LineasActivar.aspx` y
+`LineasDevolucion.aspx`, conectadas al `WS_Proveedor`. El riesgo que queda no es
+de ausencia de pantalla, sino de prueba integral con SQL Server, Java, Python y
+datos reales.
+
+### 4.5 Datos reales y arranque local
+
+La configuracion de demo quedo mas cercana a datos reales:
+
+- Python Identificador apunta por defecto a MySQL `central_identificador`.
+- El catalogo telefonico usa `LEFT JOIN` con proveedores para no perder
+  telefonos cuando falte detalle de proveedor.
+- El simulador C# lee respuestas completas del socket; esto evita mostrar solo
+  los 4 telefonos locales cuando Python devuelve un catalogo mas grande.
+- El proveedor Java queda en `127.0.0.1:6000` y el script lo espera antes de la
+  prueba.
+- MongoDB debe levantarse manualmente con la base real. No se debe depender de
+  seeds automaticos para defensa.
+- IIS Express ya no intenta abrir otra instancia cuando el puerto esta ocupado;
+  reporta el proceso como activo.
 
 ## 5. Charlie - ADM1, ADM2, ADM3, ADM4, ADM5
 
@@ -167,14 +206,14 @@ Pendientes o riesgos:
 
 - El PDF indica que despues del login debe ir a ADM2, pantalla de administracion
   de clientes. Actualmente el flujo real se apoya en las paginas disponibles del
-  sitio, pero ADM2 no esta completa.
+  sitio y ya incluye las opciones administrativas principales.
 - Falta evidencia final formal de login exitoso y fallido.
 
 Nivel de cumplimiento estimado: 85%.
 
 ### 5.2 ADM2 - Plantilla y administracion de clientes
 
-Estado encontrado: Parcial.
+Estado encontrado: Parcial alto.
 
 Evidencia:
 
@@ -187,21 +226,20 @@ Lo que ya esta:
 - Existe opcion de salir del sitio.
 - Existe footer.
 - El menu esta disponible en paginas administrativas actuales.
+- El menu oficial ya incluye nuevas lineas, activar linea, devolucion de linea,
+  calcular facturacion y administradores.
+- ADM3-ADM7 quedan accesibles desde la Web Administrativa principal.
 
 Pendientes o riesgos:
 
-- El menu oficial debe incluir ADM3, ADM4, ADM5, ADM6 y ADM7.
-- Actualmente la Web principal solo muestra `Calcular facturacion`,
-  `Administradores` y `Salir del sitio`.
 - No se observa icono/logo de empresa como imagen; solo marca textual.
-- No existe pantalla administrativa principal de clientes/lineas dentro de esta
-  Web.
+- Falta evidencia final de navegacion completa por el menu.
 
-Nivel de cumplimiento estimado: 45%.
+Nivel de cumplimiento estimado: 72%.
 
 ### 5.3 ADM3 - Poner nuevas lineas a disposicion
 
-Estado encontrado: Parcial bajo.
+Estado encontrado: Parcial medio/alto.
 
 Evidencia:
 
@@ -218,22 +256,21 @@ Lo que ya esta:
 - Existen clases Java para registrar telefonos.
 - Existe un servicio .NET alterno con metodo `RegistrarLinea` en el host
   `CentralTelefonica.WebServices`.
+- La WebAdministrativo principal ahora incluye `LineasNuevas.aspx`.
+- `WS_Proveedor` expone `ListarLineasDisponibles`, `RegistrarLinea` y
+  `EliminarLineaDisponible`.
 
 Pendientes o riesgos:
 
-- La WebAdministrativa MVC no compila por paquete NuGet faltante.
-- La accion `Crear` solo muestra mensaje de que se conectara al Web Service en
-  una siguiente etapa.
-- No se consume WS_PROVEEDOR1 desde la pantalla MVC.
-- No se lista realmente lineas disponibles desde WS.
-- No se elimina linea con confirmacion usando WS.
-- Esta funcionalidad no esta en la WebAdministrativo principal.
+- La MVC separada no compila y queda fuera de la ruta oficial.
+- Falta prueba integral con SQL Server real y datos de defensa.
+- Falta evidencia visual de alta y eliminacion.
 
-Nivel de cumplimiento estimado: 25%.
+Nivel de cumplimiento estimado: 70%.
 
 ### 5.4 ADM4 - Activar linea vendida
 
-Estado encontrado: Parcial bajo/medio.
+Estado encontrado: Parcial medio/alto.
 
 Evidencia:
 
@@ -248,20 +285,19 @@ Lo que ya esta:
 - Backend WCF `ActivarDesactivarLinea` existe.
 - Java `Proveedor5Service` soporta activacion y sincroniza con Identificador.
 - MVC tiene pantallas visuales iniciales.
+- La WebAdministrativo principal ahora incluye `LineasActivar.aspx`.
+- La pantalla lista disponibles desde WS y permite ingresar cedula del cliente.
 
 Pendientes o riesgos:
 
-- La pantalla MVC no consume realmente el WS.
-- La Web principal no contiene ADM4.
-- Falta listado real de lineas disponibles.
-- Falta asociar cedula de cliente desde pantalla final funcional.
 - Falta prueba integral desde Web -> WS -> Java -> Python -> SQL/MySQL.
+- Falta evidencia visual de activacion exitosa y error.
 
-Nivel de cumplimiento estimado: 35%.
+Nivel de cumplimiento estimado: 72%.
 
 ### 5.5 ADM5 - Devolucion/desactivacion administrativa de linea
 
-Estado encontrado: Parcial bajo/medio.
+Estado encontrado: Parcial medio/alto.
 
 Evidencia:
 
@@ -275,29 +311,29 @@ Lo que ya esta:
 
 - Backend soporta desactivacion.
 - Se normalizo el estado de linea hacia `ACTIVO` y `DISPONIBLE`.
+- La WebAdministrativo principal ahora incluye `LineasDevolucion.aspx`.
+- La pantalla lista lineas activas desde WS y confirma antes de devolver.
 
 Pendientes o riesgos:
 
-- La pantalla administrativa final no esta conectada.
-- Falta listado real de lineas en uso.
-- Falta confirmacion real desde Web administrativa.
 - El PDF habla de estado inactivo; el proyecto usa `DISPONIBLE` para devolver
   lineas. Esto debe explicarse en defensa.
+- Falta prueba integral con Java/Python levantados.
 
-Nivel de cumplimiento estimado: 35%.
+Nivel de cumplimiento estimado: 72%.
 
 ### 5.6 Resultado Charlie
 
 | Historia | Estado | Avance estimado | Que falta |
 |---|---|---:|---|
 | ADM1 | Funcional | 85% | Evidencia final y ajustar destino/documentacion del flujo. |
-| ADM2 | Parcial | 45% | Menu completo ADM3-ADM7, logo/icono y pantalla base administrativa. |
-| ADM3 | Parcial bajo | 25% | Conectar pantalla con WS_PROVEEDOR1/listados/eliminacion o integrarla en Web principal. |
-| ADM4 | Parcial | 35% | Listado disponible, formulario cedula y consumo real de WS_PROVEEDOR2. |
-| ADM5 | Parcial | 35% | Listado en uso, confirmacion y desactivacion/devolucion via WS. |
+| ADM2 | Parcial alto | 72% | Logo/icono real y evidencia de navegacion completa por el menu. |
+| ADM3 | Parcial alto | 70% | Prueba integral con datos reales y evidencia final. |
+| ADM4 | Parcial alto | 72% | Prueba integral Web -> WS -> Java/Python y evidencia final. |
+| ADM5 | Parcial alto | 72% | Prueba integral Web -> WS -> Java/Python y explicar estado DISPONIBLE. |
 
-Riesgo principal: alto. El login existe, pero el bloque de administracion de
-lineas no esta cerrado en la Web final.
+Riesgo principal: medio. El bloque de administracion de lineas ya esta en la Web
+final, pero requiere validacion integral con servicios y bases levantadas.
 
 ## 6. Jose - ADM6, ADM7, CLIENTE1, CLIENTE2, CLIENTE3
 
@@ -345,7 +381,7 @@ Evidencia:
 - `dotnet_webapps/WebAdministrativo/Administradores.aspx.cs`
 - `dotnet_webapps/WebAdministrativo/Services/AutenticacionSoapClient.cs`
 - `dotnet_webservices/WS_Autenticacion/Service1.svc.cs`
-- `database/mongodb/datos_semilla_persona_2.js`
+- MongoDB real en `localhost:27017`
 
 Lo que ya esta:
 
@@ -383,20 +419,19 @@ Lo que ya esta:
 - Enlace a registro.
 - Usa tipo cliente internamente.
 - Envia contrasena cifrada.
-- Si credenciales son correctas entra a `Lineas.aspx`.
+- Si credenciales son correctas redirige al `PortalCliente` con la
+  identificacion autenticada.
 - Si son incorrectas muestra mensaje esperado.
 
 Pendientes o riesgos:
 
-- `PortalCliente`, donde viven CLIENTE4-CLIENTE7, no consume esta sesion ni este
-  login; pide identificacion manual.
 - Falta evidencia final de caso exitoso y fallido.
 
-Nivel de cumplimiento estimado: 88%.
+Nivel de cumplimiento estimado: 90%.
 
 ### 6.4 CLIENTE2 - Plantilla portal cliente
 
-Estado encontrado: Parcial medio.
+Estado encontrado: Parcial alto.
 
 Evidencia:
 
@@ -413,16 +448,18 @@ Lo que ya esta:
 - `WebCliente` muestra saludo `Hola` + nombre del cliente.
 - Existe footer y navegacion persistente.
 - `PortalCliente` tambien tiene layout con menu CLIENTE4-CLIENTE7 y footer.
+- El login de `WebCliente` funciona como puerta de entrada oficial.
+- `PortalCliente` funciona como pantalla transaccional posterior al login, no
+  como duplicado de `WebCliente`.
 
 Pendientes o riesgos:
 
-- `WebCliente` tiene la plantilla conectada al login, pero sus opciones
-  transaccionales son placeholders.
-- `PortalCliente` tiene las historias transaccionales, pero no tiene login real
-  ni saludo del cliente autenticado desde WS Autenticacion.
+- `WebCliente` tiene la plantilla conectada al login y envia al portal oficial.
+- `PortalCliente` tiene las historias transaccionales y acepta identificacion
+  recibida desde `WebCliente`.
 - Falta icono/logo real de empresa; se usa marca textual.
 
-Nivel de cumplimiento estimado: 65%.
+Nivel de cumplimiento estimado: 82%.
 
 ### 6.5 CLIENTE3 - Registro cliente
 
@@ -448,8 +485,8 @@ Pendientes o riesgos:
 - Falta evidencia final.
 - Segundo apellido es opcional en implementacion; validar si el profesor lo exige
   como campo obligatorio absoluto.
-- El registro no queda enlazado con `PortalCliente` salvo por identificacion
-  ingresada manualmente.
+- El registro queda enlazado indirectamente: despues de login, `WebCliente`
+  redirige a `PortalCliente` con la identificacion autenticada.
 
 Nivel de cumplimiento estimado: 86%.
 
@@ -459,12 +496,13 @@ Nivel de cumplimiento estimado: 86%.
 |---|---|---:|---|
 | ADM6 | Funcional | 90% | Evidencia final y asegurar migraciones aplicadas. |
 | ADM7 | Funcional | 90% | Evidencia final CRUD completo. |
-| CLIENTE1 | Funcional | 88% | Evidencia login exitoso/fallido e integracion con PortalCliente si se usa como portal oficial. |
-| CLIENTE2 | Parcial medio/alto | 65% | Unificar plantilla/portal funcional, logo real y salida de sesion en la ruta oficial. |
+| CLIENTE1 | Funcional | 90% | Evidencia login exitoso/fallido. |
+| CLIENTE2 | Parcial alto | 82% | Logo real y evidencia de navegacion WebCliente -> PortalCliente. |
 | CLIENTE3 | Funcional | 86% | Evidencia final y confirmar segundo apellido. |
 
-Riesgo principal: medio. El bloque de Jose funciona, pero CLIENTE1-CLIENTE3 y
-CLIENTE4-CLIENTE7 estan partidos entre dos aplicaciones.
+Riesgo principal: bajo/medio. El bloque de Jose funciona y el salto hacia
+`PortalCliente` ya esta definido; falta evidencia formal y confirmar MongoDB
+real levantado con las credenciales esperadas por el WS.
 
 ## 7. Gabriel - CLIENTE4, CLIENTE5, CLIENTE6, CLIENTE7
 
@@ -472,7 +510,7 @@ Responsabilidad segun estrategia 3: autogestion transaccional del cliente.
 
 ### 7.1 CLIENTE4 - Mostrar lineas asociadas al cliente
 
-Estado encontrado: Parcial alto en `PortalCliente`; no completo en `WebCliente`.
+Estado encontrado: Parcial alto en `PortalCliente`, integrado como ruta oficial desde `WebCliente`.
 
 Evidencia:
 
@@ -496,17 +534,16 @@ Lo que ya esta:
 
 Pendientes o riesgos:
 
-- La implementacion completa no esta integrada a `WebCliente`.
-- `PortalCliente` solicita identificacion manual, no reutiliza la sesion del
-  login cliente.
+- `WebCliente` redirige a `PortalCliente` con la identificacion autenticada.
+- `PortalCliente` aun conserva formulario manual como respaldo si entra directo.
 - Se debe confirmar en demo que el servicio tiene datos reales y cifrado
   compatible para `identificacion_dueno_cifrada`.
 
-Nivel de cumplimiento estimado: 70%.
+Nivel de cumplimiento estimado: 82%.
 
 ### 7.2 CLIENTE5 - Cargar saldo a linea prepago
 
-Estado encontrado: Parcial alto en `PortalCliente`; no completo en `WebCliente`.
+Estado encontrado: Parcial alto en `PortalCliente`, integrado como ruta oficial desde `WebCliente`.
 
 Evidencia:
 
@@ -530,17 +567,16 @@ Lo que ya esta:
 
 Pendientes o riesgos:
 
-- `WebCliente` solo muestra pantalla reservada para esta historia.
 - El PDF pide que el proceso se realice por WS; esto se cumple en
   `PortalCliente`, pero debe declararse como ruta oficial.
 - La validacion de monto dice "sin decimales", pero en backend solo valida
   `monto > 0`; la restriccion de entero depende del input HTML `step=1`.
 
-Nivel de cumplimiento estimado: 75%.
+Nivel de cumplimiento estimado: 82%.
 
 ### 7.3 CLIENTE6 - Pagar factura postpago
 
-Estado encontrado: Parcial alto en `PortalCliente`; no completo en `WebCliente`.
+Estado encontrado: Parcial alto en `PortalCliente`, integrado como ruta oficial desde `WebCliente`.
 
 Evidencia:
 
@@ -564,17 +600,16 @@ Lo que ya esta:
 
 Pendientes o riesgos:
 
-- `WebCliente` solo muestra pantalla reservada.
 - SMTP esta sin credenciales en `appsettings.json`, por lo que el correo no
   saldra en demo a menos que se configure.
 - El pago cancela la deuda en SQL Server, pero no se observo una tabla historica
   de pagos separada.
 
-Nivel de cumplimiento estimado: 70%.
+Nivel de cumplimiento estimado: 78%.
 
 ### 7.4 CLIENTE7 - Devolucion de linea por cliente
 
-Estado encontrado: Parcial alto en `PortalCliente`; no completo en `WebCliente`.
+Estado encontrado: Parcial alto en `PortalCliente`, integrado como ruta oficial desde `WebCliente`.
 
 Evidencia:
 
@@ -601,26 +636,25 @@ Lo que ya esta:
 
 Pendientes o riesgos:
 
-- `WebCliente` solo muestra pantalla reservada.
 - El PDF habla de desactivar/inactivo; el proyecto devuelve a `disponible`. Debe
   explicarse como regla interna de inventario.
 - La confirmacion se hace con `confirm()` del navegador; funcionalmente cumple,
   pero es basica.
 
-Nivel de cumplimiento estimado: 75%.
+Nivel de cumplimiento estimado: 82%.
 
 ### 7.5 Resultado Gabriel
 
 | Historia | Estado | Avance estimado | Que falta |
 |---|---|---:|---|
-| CLIENTE4 | Parcial alto en portal separado | 70% | Integrar con login/plantilla oficial o declarar `PortalCliente` como portal oficial. |
-| CLIENTE5 | Parcial alto en portal separado | 75% | Configurar demo real, reforzar validacion de monto entero en backend e integrar ruta oficial. |
-| CLIENTE6 | Parcial alto en portal separado | 70% | Configurar SMTP/evidencia de correo e integrar ruta oficial. |
-| CLIENTE7 | Parcial alto en portal separado | 75% | Evidencia integral y explicar estado `disponible` frente al PDF. |
+| CLIENTE4 | Parcial alto integrado | 82% | Evidencia con datos reales. |
+| CLIENTE5 | Parcial alto integrado | 82% | Configurar demo real y reforzar validacion de monto entero en backend si se desea. |
+| CLIENTE6 | Parcial alto integrado | 78% | Configurar SMTP/evidencia de correo. |
+| CLIENTE7 | Parcial alto integrado | 82% | Evidencia integral y explicar estado `disponible` frente al PDF. |
 
-Riesgo principal: medio-alto. Gabriel ya tiene implementacion defendible en
-`PortalCliente`, pero debe evitar que el evaluador abra `WebCliente` y encuentre
-solo placeholders.
+Riesgo principal: medio. Gabriel ya tiene implementacion defendible en
+`PortalCliente` y `WebCliente` redirige hacia esa ruta; falta evidencia integral
+con datos reales.
 
 ## 8. Estado de Web Services requeridos por estrategia 3
 
@@ -628,19 +662,19 @@ solo placeholders.
 |---|---|---|
 | WS_AUTENTICACION1 - login por tipo | Funcional | ADM1, CLIENTE1 |
 | WS_AUTENTICACION2 - CRUD/cambio estado usuarios | Funcional | ADM7, CLIENTE3 |
-| WS_PROVEEDOR1 - registrar nueva linea | Parcial/no integrado a ADM3 | ADM3 |
-| WS_PROVEEDOR2 - activar/desactivar linea | Funcional en backend; usado por PortalCliente para CLIENTE7 | ADM4, ADM5, CLIENTE7 |
+| WS_PROVEEDOR1 - registrar nueva linea | Integrado en WS Proveedor/WebAdministrativo | ADM3 |
+| WS_PROVEEDOR2 - activar/desactivar linea | Funcional en backend; usado por WebAdministrativo y PortalCliente | ADM4, ADM5, CLIENTE7 |
 | WS_PROVEEDOR3 - calcular facturacion | Funcional para ADM6 | ADM6 |
 | WS_ProveedorCliente - consultar lineas | Funcional parcial y compila | CLIENTE4, CLIENTE5, CLIENTE6, CLIENTE7 |
 | WS_ProveedorCliente - recargar saldo | Funcional parcial y compila | CLIENTE5 |
 | WS_ProveedorCliente - pagar factura | Funcional parcial y compila | CLIENTE6 |
 | Enviar correo de factura | Parcial | CLIENTE6 |
-| Eliminar linea disponible | Faltante/no integrado | ADM3 |
-| Listados administrativos de lineas disponibles/en uso | Faltante/no integrado en Web final | ADM3, ADM4, ADM5 |
+| Eliminar linea disponible | Integrado en WS Proveedor/WebAdministrativo | ADM3 |
+| Listados administrativos de lineas disponibles/en uso | Integrado en WS Proveedor/WebAdministrativo | ADM3, ADM4, ADM5 |
 
 ## 9. Lo que ya esta defendible
 
-- Compilacion principal de WebApps y servicios usados por persona 2.
+- Compilacion principal de WebApps y servicios del alcance final.
 - Compilacion de `WS_ProveedorCliente` y `PortalCliente`.
 - Login administrativo y cliente con MongoDB por WS Autenticacion.
 - Registro de cliente.
@@ -650,25 +684,30 @@ solo placeholders.
 - Proveedor Java con movimientos, bitacora y facturacion.
 - Identificador Python con bitacora, consulta de saldo y sincronizacion.
 - Scripts de preparacion y levantamiento de procesos.
-- Seed de persona 2 y guia de ejecucion documentada.
+- Guia de ejecucion y ruta oficial de demo documentadas.
+- MongoDB separado del script de levantamiento para trabajar con datos reales.
+- IIS Express protegido contra puertos ya ocupados.
+- Catalogo telefonico desde MySQL real, sin fallback visible a 4 telefonos del
+  simulador cuando Python devuelve mas registros.
 
 ## 10. Lo que falta para cierre defendible
 
 Prioridad alta:
 
-1. Definir oficialmente si el portal cliente final sera `WebCliente` o
-   `PortalCliente`.
-2. Si se usa `PortalCliente`, enlazarlo desde el login de `WebCliente` o migrar
-   CLIENTE1-CLIENTE3 al portal ASP.NET Core.
-3. Si se mantiene `WebCliente`, reemplazar `Lineas.aspx` y `Portal.aspx` por
-   consumo real de `WS_ProveedorCliente`.
-4. Decidir si ADM3-ADM5 se terminan en `dotnet_webapps/WebAdministrativo` o en
-   `dotnet_webservices/WebAdministrativa`.
-5. Restaurar/corregir build de `WebAdministrativa` si sera la ruta oficial.
-6. Conectar ADM3-ADM5 a WS Proveedor real.
-7. Agregar o exponer listados administrativos de lineas disponibles/en uso.
-8. Configurar SMTP real para CLIENTE6 o documentar evidencia controlada.
-9. Capturar evidencias finales por historia y por responsable.
+1. Levantar MongoDB manualmente como administrador con datos reales y confirmar
+   que `localhost:27017` responde antes de probar login/usuarios.
+2. Ejecutar la demo cliente desde `http://localhost:56122/Login.aspx`; el
+   `PortalCliente` en `http://localhost:56123/Cliente/Index` es el destino
+   transaccional posterior al login.
+3. Confirmar en cada corrida que Java proveedor escuche en `127.0.0.1:6000` y
+   que Python Identificador escuche en `127.0.0.1:5000`.
+4. Ejecutar prueba integral de ADM3-ADM5 con SQL Server, Java proveedor, Python
+   identificador y MySQL levantados.
+5. Ejecutar prueba integral de CLIENTE4-CLIENTE7 desde login de WebCliente hasta
+   PortalCliente con datos reales.
+6. Configurar SMTP real para CLIENTE6 o usar la evidencia controlada del mensaje
+   de falta de configuracion SMTP.
+7. Capturar evidencias finales por historia y por responsable.
 
 Prioridad media:
 
@@ -677,7 +716,7 @@ Prioridad media:
 3. Documentar que las WebApps no acceden directo a BD/socket.
 4. Explicar que las lineas devueltas pasan a `DISPONIBLE` aunque el PDF use el
    termino inactivo.
-5. Preparar una guia unica de demo para evitar abrir aplicaciones incompletas.
+5. Mantener una guia unica de demo para evitar abrir aplicaciones incompletas.
 
 ## 11. Recomendacion por responsable
 
@@ -685,11 +724,10 @@ Prioridad media:
 
 Ruta corta para cierre:
 
-1. Completar el menu ADM2 con ADM3, ADM4 y ADM5.
-2. Elegir una sola Web Administrativa oficial.
-3. Conectar nuevas lineas, activacion y devolucion administrativa contra WS
-   Proveedor.
-4. Validar que cada pantalla muestre los mensajes exactos del PDF.
+1. Usar `dotnet_webapps/WebAdministrativo` como Web Administrativa oficial.
+2. Validar ADM3, ADM4 y ADM5 contra `WS_Proveedor`, Java, Python y bases reales.
+3. Verificar que ADM2 muestre todas las opciones esperadas del menu.
+4. Ajustar mensajes visibles que no coincidan con el PDF.
 5. Tomar evidencia de login, plantilla, nueva linea, activacion y devolucion.
 
 ### Jose
@@ -698,51 +736,53 @@ Ruta corta para cierre:
 
 1. Mantener estables ADM6, ADM7, CLIENTE1, CLIENTE2 y CLIENTE3.
 2. Completar evidencias de pruebas exitosas y fallidas.
-3. Decidir junto con Gabriel como se hara el salto de CLIENTE1 a CLIENTE4.
-4. Ajustar CLIENTE2 si `PortalCliente` pasa a ser el portal oficial.
+3. Validar que `WS_Autenticacion` conecte contra MongoDB real levantado
+   manualmente.
+4. Documentar que `WebCliente` es entrada/login y `PortalCliente` es la pantalla
+   transaccional posterior.
 
 ### Gabriel
 
 Ruta corta para cierre:
 
-1. Declarar `PortalCliente` como implementacion oficial de CLIENTE4-CLIENTE7 o
-   integrar su logica en `WebCliente`.
-2. Hacer que el portal reciba/reuse la identificacion del cliente autenticado.
+1. Usar `PortalCliente` como implementacion oficial de CLIENTE4-CLIENTE7.
+2. Entrar desde `WebCliente/Login.aspx` para demostrar la integracion.
 3. Configurar SMTP y generar evidencia del correo de CLIENTE6.
 4. Ejecutar prueba integral con `WS_ProveedorCliente`, `WS_PROVEEDOR2` y datos
    reales.
-5. Documentar claramente que `WebCliente/Portal.aspx` ya no es la ruta de demo si
-   se mantiene como placeholder.
+5. Mantener `PortalCliente` como destino de navegacion, evitando demostrar rutas
+   placeholder antiguas de `WebCliente`.
 
 ## 12. Nivel de cumplimiento por integrante
 
 Estimacion de avance contra historias asignadas en `estrategia_3.md`:
 
 ```text
-Charlie : [#####-----] 45% de 100
-Jose    : [########--] 84% de 100
-Gabriel : [#######---] 73% de 100
+Charlie : [########--] 76% de 100
+Jose    : [#########-] 89% de 100
+Gabriel : [########--] 84% de 100
 ```
 
 Lectura rapida:
 
-- Charlie: tiene login y parte de plantilla, pero debe cerrar ADM3-ADM5.
-- Jose: tiene el bloque mas completo; su mayor riesgo es la integracion del
-  portal cliente oficial.
-- Gabriel: subio mucho por `PortalCliente`, pero debe unificar o declarar la
-  ruta oficial y cerrar evidencia de correo/datos reales.
+- Charlie: ya tiene ADM3-ADM5 en la Web final y ADM2 enlaza las opciones clave;
+  falta prueba integral y evidencia.
+- Jose: tiene el bloque mas completo; su mayor riesgo es MongoDB real y la
+  evidencia formal de flujo cliente.
+- Gabriel: tiene ruta oficial desde `WebCliente` hacia `PortalCliente`; falta
+  evidencia de correo/datos reales.
 
 ## 13. Conclusion
 
 El proyecto esta mas avanzado de lo que indicaba el informe anterior porque
 `PortalCliente` y `WS_ProveedorCliente` agregan una implementacion real para gran
-parte de CLIENTE4-CLIENTE7. Aun asi, el proyecto no debe presentarse como
-cerrado sin antes resolver la fragmentacion: la Web Cliente principal muestra
-placeholders, la Web Administrativa MVC no compila y ADM3-ADM5 no consumen WS
-real.
+parte de CLIENTE4-CLIENTE7. En esta revision tambien se cerro la fragmentacion
+principal: `WebCliente` redirige al portal transaccional y `WebAdministrativo`
+incluye ADM3-ADM5 contra WS Proveedor.
 
 La prioridad real para el cierre ya no es rehacer el backend. La prioridad es
-ordenar la ruta oficial de demo, integrar o retirar las pantallas incompletas y
-cerrar el bloque administrativo de lineas. Si el equipo enfoca el esfuerzo en
-ADM3-ADM5, integracion WebCliente/PortalCliente y evidencias finales, el estado
-puede pasar de parcial avanzado a defendible integral.
+ejecutar pruebas integrales con datos reales y capturar evidencias finales. El
+proyecto ya tiene una ruta defendible: WebAdministrativo para ADM1-ADM7,
+WebCliente para login/registro cliente y PortalCliente para transacciones. Si el
+equipo enfoca el esfuerzo en validar ADM3-ADM5, CLIENTE4-CLIENTE7, MongoDB real
+y SMTP, el estado puede pasar de parcial avanzado a defendible integral.

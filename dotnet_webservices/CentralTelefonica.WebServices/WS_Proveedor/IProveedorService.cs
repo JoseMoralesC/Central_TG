@@ -18,5 +18,17 @@ namespace WS_Proveedor
 
         [OperationContract]
         UltimaFacturacionResponse ObtenerUltimaFacturacion();
+
+        [OperationContract]
+        ListadoLineasResponse ListarLineasDisponibles();
+
+        [OperationContract]
+        ListadoLineasResponse ListarLineasActivas();
+
+        [OperationContract]
+        RespuestaServicio RegistrarLinea(RegistrarLineaAdministrativaRequest solicitud);
+
+        [OperationContract]
+        RespuestaServicio EliminarLineaDisponible(int servicioId);
     }
 }

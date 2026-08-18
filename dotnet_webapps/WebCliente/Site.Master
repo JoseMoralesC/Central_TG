@@ -11,10 +11,10 @@
         <header class="topbar">
             <div class="brand">Central Telefonica</div>
             <nav>
-                <asp:HyperLink runat="server" NavigateUrl="~/Lineas.aspx" Text="Lineas activas" />
-                <asp:HyperLink runat="server" NavigateUrl="~/Portal.aspx?op=recarga" Text="Cargar saldo" />
-                <asp:HyperLink runat="server" NavigateUrl="~/Portal.aspx?op=pago" Text="Pagar facturas" />
-                <asp:HyperLink runat="server" NavigateUrl="~/Portal.aspx?op=devolucion" Text="Devolver linea" />
+                <asp:HyperLink runat="server" ID="LineasLink" NavigateUrl="~/Lineas.aspx" Text="Lineas activas" />
+                <asp:HyperLink runat="server" ID="RecargaLink" NavigateUrl="~/Portal.aspx?op=recarga" Text="Cargar saldo" />
+                <asp:HyperLink runat="server" ID="PagoLink" NavigateUrl="~/Portal.aspx?op=pago" Text="Pagar facturas" />
+                <asp:HyperLink runat="server" ID="DevolucionLink" NavigateUrl="~/Portal.aspx?op=devolucion" Text="Devolver linea" />
                 <asp:LinkButton runat="server" ID="SalirLink" Text="Salir del sitio" OnClick="SalirLink_Click" />
             </nav>
         </header>
