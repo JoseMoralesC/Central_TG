@@ -1,20 +1,28 @@
 # Informe 6 de avance - Alcance final contra proyecto actual
 
-Fecha de analisis: 2026-08-17  
+Fecha de analisis: 2026-08-18  
 Rama revisada: arbol local actual del repositorio `Central_TG`  
 Documentos base: PDF `docs/Proyecto/Proyecto final.pdf`, `docs/estrategia/estrategia_3.md`, diagnostico tecnico actual del proyecto
 
 ## 1. Resumen ejecutivo
 
-El proyecto se encuentra en un estado funcional parcial avanzado. La integracion
-base del sistema ya existe y varios componentes principales compilan: simulador
-C#, identificador Python, proveedor Java, WS Autenticacion, WS Proveedor WCF y
-las WebApps principales de persona 2. Sin embargo, comparado contra el alcance
-final del PDF, el proyecto todavia no esta listo como entrega completa porque
-faltan pantallas y endpoints Web para una parte importante de las historias.
+El proyecto se encuentra en un estado funcional parcial avanzado. La base tecnica
+principal existe y compila en varios frentes: WebApps Web Forms, WS
+Autenticacion, WS Proveedor WCF, WS ProveedorCliente WCF, PortalCliente ASP.NET
+Core, simulador C#, identificador Python y proveedor Java. Frente al informe
+anterior, el cambio mas importante es que ya existe un `PortalCliente`
+independiente para CLIENTE4-CLIENTE7 y un `WS_ProveedorCliente` que compila y
+expone consulta de lineas, recarga y pago de factura.
 
-La revision contra `estrategia_3.md` muestra que el reparto acordado para el
-alcance final es:
+La deuda principal ya no es solamente falta de codigo, sino fragmentacion e
+integracion: la Web Cliente principal en `dotnet_webapps/WebCliente` todavia
+tiene CLIENTE4-CLIENTE7 como pantallas vacias/reservadas, mientras que la
+implementacion mas completa vive en `dotnet_webservices/PortalCliente` y no esta
+conectada al login/registro de la Web Cliente principal. En administrativo,
+ADM3-ADM5 siguen en una Web MVC separada que no compila por paquete NuGet
+faltante y cuyos controladores aun son placeholders.
+
+La revision contra `estrategia_3.md` mantiene el reparto:
 
 | Companero | Nombre | Historias asignadas |
 |---|---|---|
@@ -26,20 +34,22 @@ Estado global estimado:
 
 | Area | Estado | Comentario |
 |---|---|---|
-| Simulador C# | Cumple como base | Compila y forma parte del flujo integrado C# -> Python -> Java. |
-| Identificador Python | Parcial alto | Atiende llamadas, saldo, bitacora, catalogo y sincronizacion de lineas. |
+| Simulador C# | Cumple como base | Compila y forma parte del flujo integrado. |
+| Identificador Python | Parcial alto | Atiende llamadas, saldo, bitacora, catalogo y sincronizacion. |
 | Proveedor Java | Parcial alto | Tiene verificacion, movimientos, bitacora, recarga, registro/cambio de estado y facturacion. |
-| WS Autenticacion | Cumple funcionalmente para WebApps | Login, creacion, modificacion, cambio de estado, listado y eliminacion de usuarios en MongoDB. |
-| WS Proveedor WCF | Parcial | Expone activacion/desactivacion, calculo de facturacion y ultima facturacion; faltan consultas/recarga/pago/devolucion para cliente. |
+| WS Autenticacion | Cumple funcionalmente | Login, creacion, modificacion, cambio de estado, listado y eliminacion de usuarios en MongoDB. |
+| WS Proveedor WCF | Parcial funcional | Expone activar/desactivar, calcular facturacion y ultima facturacion; no expone todos los listados administrativos. |
+| WS ProveedorCliente WCF | Parcial alto | Compila y expone consulta de lineas, recarga y pago; no expone devolucion propia ni correo directo. |
 | Web Administrativo principal | Parcial medio | Tiene ADM1, parte de ADM2, ADM6 y ADM7; faltan ADM3-ADM5 en la Web final integrada. |
-| Web Cliente principal | Parcial medio-bajo | Tiene CLIENTE1, CLIENTE2 basico y CLIENTE3; CLIENTE4-CLIENTE7 estan en placeholder. |
-| WebAdministrativa MVC integrada | Parcial bajo | Existe para ADM3-ADM5, pero no compila por paquete NuGet faltante y sus acciones no consumen WS real. |
-| Documentacion y scripts | Parcial alto | Hay guias, scripts de preparacion/arranque y pruebas de persona 2; falta consolidar evidencia final por historia. |
+| Web Cliente principal | Parcial medio-bajo | Tiene CLIENTE1, CLIENTE2 basico y CLIENTE3; CLIENTE4-CLIENTE7 siguen en placeholder. |
+| PortalCliente ASP.NET Core | Parcial alto para Gabriel | Implementa CLIENTE4-CLIENTE7 con WS, pero sin login/registro integrado de cliente. |
+| WebAdministrativa MVC | Parcial bajo | Existe para ADM3-ADM5, pero no compila y no consume WS real. |
+| Documentacion y evidencias | Parcial alto | Hay guias y evidencias; falta consolidar una ruta oficial de demo por historia. |
 
-Resultado general: el bloque de Jose es el mas defendible actualmente. Charlie
-tiene parte de su alcance final cubierto por login/plantilla, pero ADM3-ADM5
-requieren integracion real. Gabriel tiene el bloque con mayor deuda actual:
-CLIENTE4-CLIENTE7 aun no estan implementadas en la Web Cliente.
+Resultado general: Jose sigue siendo el bloque mas defendible. Gabriel mejora de
+forma relevante gracias a `PortalCliente`, pero debe integrarse o presentarse
+claramente como portal oficial para no chocar con `WebCliente`. Charlie mantiene
+el mayor riesgo administrativo: ADM3-ADM5 no estan cerradas.
 
 ## 2. Requerimientos fuente revisados
 
@@ -54,79 +64,79 @@ El PDF de alcance final exige catorce historias principales:
 Reglas tecnicas obligatorias del PDF:
 
 - La aplicacion Web Administrativa debe estar desarrollada en C#.
-- La aplicacion Web Cliente puede estar en C# u otro lenguaje; el proyecto actual la tiene en C# Web Forms.
+- La aplicacion Web Cliente puede estar en C# u otro lenguaje; el proyecto tiene
+  una Web Cliente Web Forms y un PortalCliente ASP.NET Core.
 - Las aplicaciones Web no deben acceder directo a base de datos ni a sockets.
 - Toda operacion Web debe pasar por Web Services.
 - Los Web Services pueden ampliarse o crearse segun necesidad.
-- Deben mantenerse actualizados Proveedor, Identificador, Simulador, WS Proveedor y WS Autenticacion.
-- Debe existir documentacion completa de analisis, diseno, diagramas y evidencias.
+- Deben mantenerse actualizados Proveedor, Identificador, Simulador, WS
+  Proveedor y WS Autenticacion.
+- Debe existir documentacion completa de analisis, diseno, diagramas y
+  evidencias.
 
 ## 3. Verificaciones ejecutadas
 
 | Verificacion | Resultado |
 |---|---|
-| Extraccion del PDF `Proyecto final.pdf` con `pypdf` | Correcta; se confirmaron ADM1-ADM7 y CLIENTE1-CLIENTE7. |
+| Extraccion del PDF `Proyecto final.pdf` con `pypdf` | Correcta; 19 paginas, se confirmaron ADM1-ADM7 y CLIENTE1-CLIENTE7. |
 | Lectura de `docs/estrategia/estrategia_3.md` | Correcta; se confirmo reparto Companero 1/2/3. |
 | `powershell -File scripts/persona2-preparar.ps1` | Correcto para WebApps, WS Autenticacion, WS Proveedor WCF, simulador C# y Java. |
-| Build de `dotnet_webservices/WebAdministrativa/WebAdministrativa.sln` | Falla por paquete NuGet faltante `Microsoft.CodeDom.Providers.DotNetCompilerPlatform.2.0.1`. |
-| Revision de WebCliente | CLIENTE4-CLIENTE7 estan como listas vacias o pantalla reservada. |
-| Revision de WebAdministrativa MVC | Acciones de ADM3-ADM5 son placeholders y no consumen Web Service real. |
+| Build de `dotnet_webservices/CentralTelefonica.WebServices/WS_ProveedorCliente/WS_ProveedorCliente.sln` | Correcto, 0 errores. |
+| Build de `dotnet_webservices/PortalCliente/PortalCliente.csproj` | Correcto, 0 errores. |
+| Build de `dotnet_webservices/CentralTelefonica.WebServices/CentralTelefonica.WebServices.csproj` | Correcto despues de restaurar NuGet con acceso de red. |
+| Build de `dotnet_webservices/WebAdministrativa/WebAdministrativa.sln` | Falla por paquete faltante `Microsoft.CodeDom.Providers.DotNetCompilerPlatform.2.0.1`. |
+| Revision de `dotnet_webapps/WebCliente` | CLIENTE4-CLIENTE7 siguen como listas vacias o pantalla reservada. |
+| Revision de `dotnet_webservices/PortalCliente` | CLIENTE4-CLIENTE7 tienen implementacion funcional parcial/alta. |
+| Revision de `dotnet_webservices/WebAdministrativa` | Acciones de ADM3-ADM5 son placeholders y no consumen WS real. |
 
-Observacion: la ejecucion de `scripts/persona2-preparar.ps1` no aplico seeds ni
-migraciones, de acuerdo con la configuracion actual del script.
+Observacion: `scripts/persona2-preparar.ps1` no aplico seeds ni migraciones de
+base de datos porque no se ejecuto con `-ApplyMongoSeed` ni
+`-ApplySqlMigrations`.
 
 ## 4. Hallazgos transversales
 
 ### 4.1 La arquitectura base esta viva
 
-El sistema ya tiene flujo operativo entre componentes:
+El sistema ya tiene varios flujos operativos:
 
 ```text
-WebApps / Simulador C# -> WS / Python Identificador -> Java Proveedor -> Bases de datos
+WebApps / PortalCliente / Simulador C# -> WS -> Python Identificador / Java Proveedor -> Bases de datos
 ```
 
-Tambien existen scripts de apoyo:
+Tambien existen scripts y guias de apoyo:
 
 - `scripts/persona2-preparar.ps1`
 - `scripts/persona2-levantar.ps1`
 - `docs/roadmaps/guia_ejecucion_persona_2_web.md`
+- `docs/evidencias/gabriel/CLIENTE7/CLIENTE7_devolucion_linea.md`
 
-Esto facilita defensa y pruebas, siempre que los procesos se levanten en orden.
-
-### 4.2 Hay dos frentes Web administrativos
+### 4.2 Hay aplicaciones duplicadas para cubrir el alcance
 
 Actualmente hay:
 
-- Web final principal: `dotnet_webapps/WebAdministrativo`.
-- Web MVC integrada: `dotnet_webservices/WebAdministrativa`.
+- Web Administrativo principal: `dotnet_webapps/WebAdministrativo`.
+- Web Cliente principal: `dotnet_webapps/WebCliente`.
+- WebAdministrativa MVC: `dotnet_webservices/WebAdministrativa`.
+- PortalCliente ASP.NET Core: `dotnet_webservices/PortalCliente`.
 
-La Web final principal compila y ya se usa para ADM6/ADM7. La MVC parece apuntar
-a ADM3-ADM5, pero no compila sin restaurar NuGet y sus controladores aun dicen
-que la integracion con Web Service sera en una siguiente etapa.
+Esto no es necesariamente invalido, porque el PDF permite ampliar o crear
+servicios y aplicaciones Web. El riesgo es de presentacion: si el equipo no
+declara cual es el sitio oficial para cada bloque, la evaluacion puede ver
+historias duplicadas, incompletas o desconectadas.
 
-Riesgo: si el equipo presenta ambas sin aclarar cual es la oficial, puede generar
-confusion. Conviene elegir una ruta: integrar ADM3-ADM5 en `dotnet_webapps` o
-terminar la MVC y conectarla realmente.
+### 4.3 El backend tiene mas capacidad que algunas pantallas finales
 
-### 4.3 El mayor hueco del alcance final esta en Web Cliente
+Java, Python, `WS_Proveedor`, `WS_Proveedor_1` y `WS_ProveedorCliente` contienen
+capacidades que no siempre llegan a la Web principal. El caso mas claro es
+Gabriel: el backend y el portal separado avanzaron, pero `WebCliente` sigue
+mostrando placeholders para esas historias.
 
-La Web Cliente cumple login, plantilla basica y registro. Pero las operaciones
-transaccionales del cliente no estan listas:
+### 4.4 El punto debil administrativo sigue siendo ADM3-ADM5
 
-- CLIENTE4: listas reales de lineas prepago/postpago.
-- CLIENTE5: recarga con tarjeta.
-- CLIENTE6: pago de factura y correo.
-- CLIENTE7: devolucion de linea con validacion de deuda.
-
-Estas historias dependen de ampliar `WS_Proveedor` con operaciones que todavia no
-estan expuestas para las WebApps.
-
-### 4.4 El backend tiene mas capacidad que la capa Web
-
-Java y Python ya tienen soporte para varias operaciones que no estan visibles en
-las aplicaciones Web finales: catalogo de telefonos, recarga, registro, cambio
-de estado, consulta de saldo y movimientos. El trabajo pendiente no es partir de
-cero, sino exponer y consumir esas funciones desde Web Services correctos.
+La WebAdministrativa MVC tiene pantallas visuales para nuevas lineas, activar y
+desactivar, pero no compila y sus acciones dicen que la integracion con Web
+Service sera en una siguiente etapa. En la WebAdministrativo principal no existen
+esas opciones en el menu ni pantallas funcionales equivalentes.
 
 ## 5. Charlie - ADM1, ADM2, ADM3, ADM4, ADM5
 
@@ -149,16 +159,16 @@ Lo que ya esta:
 - Pantalla de login administrativo.
 - Envia usuario y contrasena al WS Autenticacion.
 - Usa tipo administrador de forma interna.
-- Contraseña viaja cifrada desde el cliente SOAP.
+- Contrasena viaja cifrada desde el cliente SOAP.
 - Si credenciales son incorrectas, muestra mensaje equivalente a lo solicitado.
 - Al autenticar redirige al area administrativa.
 
 Pendientes o riesgos:
 
 - El PDF indica que despues del login debe ir a ADM2, pantalla de administracion
-  de clientes. Actualmente redirige a `Facturacion.aspx`, no a una pagina base
-  con ADM3-ADM5.
-- Falta evidencia final capturada de login exitoso y fallido.
+  de clientes. Actualmente el flujo real se apoya en las paginas disponibles del
+  sitio, pero ADM2 no esta completa.
+- Falta evidencia final formal de login exitoso y fallido.
 
 Nivel de cumplimiento estimado: 85%.
 
@@ -183,8 +193,9 @@ Pendientes o riesgos:
 - El menu oficial debe incluir ADM3, ADM4, ADM5, ADM6 y ADM7.
 - Actualmente la Web principal solo muestra `Calcular facturacion`,
   `Administradores` y `Salir del sitio`.
-- No se observa icono/logo de empresa como imagen; solo texto de marca.
-- No existe pantalla administrativa principal de clientes/lineas dentro de esta Web.
+- No se observa icono/logo de empresa como imagen; solo marca textual.
+- No existe pantalla administrativa principal de clientes/lineas dentro de esta
+  Web.
 
 Nivel de cumplimiento estimado: 45%.
 
@@ -199,24 +210,24 @@ Evidencia:
 - `dotnet_webservices/WebAdministrativa/Views/Lineas/Crear.cshtml`
 - `java_proveedor/src/services/AdministracionTelefonica.java`
 - `java_proveedor/src/database/ServicioDAO.java`
+- `dotnet_webservices/CentralTelefonica.WebServices/WS_Proveedor/Services/ProveedorService.cs`
 
 Lo que ya esta:
 
 - Existe una WebAdministrativa MVC con rutas visuales para nuevas lineas.
-- Existen clases de apoyo para registrar telefonos en Java.
-- Existen contratos y servicios internos para catalogo/registro desde el flujo
-  C# -> Python -> Java.
+- Existen clases Java para registrar telefonos.
+- Existe un servicio .NET alterno con metodo `RegistrarLinea` en el host
+  `CentralTelefonica.WebServices`.
 
 Pendientes o riesgos:
 
 - La WebAdministrativa MVC no compila por paquete NuGet faltante.
 - La accion `Crear` solo muestra mensaje de que se conectara al Web Service en
   una siguiente etapa.
-- No se consume WS_PROVEEDOR1 desde la pantalla.
+- No se consume WS_PROVEEDOR1 desde la pantalla MVC.
 - No se lista realmente lineas disponibles desde WS.
 - No se elimina linea con confirmacion usando WS.
-- Esta funcionalidad no esta en la WebAdministrativo principal que se esta
-  levantando con IIS Express.
+- Esta funcionalidad no esta en la WebAdministrativo principal.
 
 Nivel de cumplimiento estimado: 25%.
 
@@ -243,7 +254,7 @@ Pendientes o riesgos:
 - La pantalla MVC no consume realmente el WS.
 - La Web principal no contiene ADM4.
 - Falta listado real de lineas disponibles.
-- Falta asociar cedula de cliente desde pantalla final.
+- Falta asociar cedula de cliente desde pantalla final funcional.
 - Falta prueba integral desde Web -> WS -> Java -> Python -> SQL/MySQL.
 
 Nivel de cumplimiento estimado: 35%.
@@ -263,16 +274,15 @@ Evidencia:
 Lo que ya esta:
 
 - Backend soporta desactivacion.
-- Se corrigio la regla de estado de linea a `ACTIVO` y `DISPONIBLE`.
-- Existe normalizacion SQL para evitar `INACTIVO` como estado de linea.
+- Se normalizo el estado de linea hacia `ACTIVO` y `DISPONIBLE`.
 
 Pendientes o riesgos:
 
-- El PDF usa texto de desactivar/inactivo, pero por alcance 2 se definio que la
-  linea debe quedar disponible; esto debe explicarse en defensa.
-- Falta pantalla final conectada.
+- La pantalla administrativa final no esta conectada.
 - Falta listado real de lineas en uso.
-- Falta confirmacion real antes de desactivar desde Web.
+- Falta confirmacion real desde Web administrativa.
+- El PDF habla de estado inactivo; el proyecto usa `DISPONIBLE` para devolver
+  lineas. Esto debe explicarse en defensa.
 
 Nivel de cumplimiento estimado: 35%.
 
@@ -280,7 +290,7 @@ Nivel de cumplimiento estimado: 35%.
 
 | Historia | Estado | Avance estimado | Que falta |
 |---|---|---:|---|
-| ADM1 | Funcional | 85% | Ajustar redireccion/documentar destino y tomar evidencia final. |
+| ADM1 | Funcional | 85% | Evidencia final y ajustar destino/documentacion del flujo. |
 | ADM2 | Parcial | 45% | Menu completo ADM3-ADM7, logo/icono y pantalla base administrativa. |
 | ADM3 | Parcial bajo | 25% | Conectar pantalla con WS_PROVEEDOR1/listados/eliminacion o integrarla en Web principal. |
 | ADM4 | Parcial | 35% | Listado disponible, formulario cedula y consumo real de WS_PROVEEDOR2. |
@@ -316,7 +326,6 @@ Lo que ya esta:
 - Valida continuidad contra la ultima fecha calculada.
 - Consume WS Proveedor para calcular facturacion.
 - Java ejecuta procedimiento almacenado SQL Server.
-- Se probo visualmente con ultima facturacion cargada.
 
 Pendientes o riesgos:
 
@@ -351,15 +360,15 @@ Lo que ya esta:
 
 Pendientes o riesgos:
 
-- La grilla muestra usuario/contrasena cifrados segun contrato; puede ser
-  visualmente raro, pero coincide con datos almacenados cifrados.
+- La grilla muestra usuario/contrasena cifrados segun contrato; puede ser raro
+  visualmente, pero coincide con datos almacenados cifrados.
 - Falta evidencia formal final de CRUD completo.
 
 Nivel de cumplimiento estimado: 90%.
 
 ### 6.3 CLIENTE1 - Login cliente
 
-Estado encontrado: Cumple funcionalmente.
+Estado encontrado: Cumple funcionalmente en WebCliente.
 
 Evidencia:
 
@@ -379,13 +388,15 @@ Lo que ya esta:
 
 Pendientes o riesgos:
 
+- `PortalCliente`, donde viven CLIENTE4-CLIENTE7, no consume esta sesion ni este
+  login; pide identificacion manual.
 - Falta evidencia final de caso exitoso y fallido.
 
-Nivel de cumplimiento estimado: 90%.
+Nivel de cumplimiento estimado: 88%.
 
 ### 6.4 CLIENTE2 - Plantilla portal cliente
 
-Estado encontrado: Parcial medio/alto.
+Estado encontrado: Parcial medio.
 
 Evidencia:
 
@@ -393,26 +404,29 @@ Evidencia:
 - `dotnet_webapps/WebCliente/Site.Master.cs`
 - `dotnet_webapps/WebCliente/Lineas.aspx`
 - `dotnet_webapps/WebCliente/Portal.aspx`
+- `dotnet_webservices/PortalCliente/Views/Shared/_Layout.cshtml`
 
 Lo que ya esta:
 
-- Menu con lineas activas, cargar saldo, pagar facturas, devolver linea y salir.
-- Saludo `Hola` + nombre del cliente.
-- Footer visible.
-- Al ingresar redirige a `Lineas.aspx`, que corresponde a CLIENTE4.
-- Navegacion persistente por Master Page.
+- `WebCliente` tiene menu con lineas activas, cargar saldo, pagar facturas,
+  devolver linea y salir.
+- `WebCliente` muestra saludo `Hola` + nombre del cliente.
+- Existe footer y navegacion persistente.
+- `PortalCliente` tambien tiene layout con menu CLIENTE4-CLIENTE7 y footer.
 
 Pendientes o riesgos:
 
-- Falta icono/logo real de empresa; actualmente se ve marca textual.
-- Las opciones del menu apuntan a pantallas placeholder para CLIENTE5-CLIENTE7.
-- CLIENTE4 carga grids vacios.
+- `WebCliente` tiene la plantilla conectada al login, pero sus opciones
+  transaccionales son placeholders.
+- `PortalCliente` tiene las historias transaccionales, pero no tiene login real
+  ni saludo del cliente autenticado desde WS Autenticacion.
+- Falta icono/logo real de empresa; se usa marca textual.
 
-Nivel de cumplimiento estimado: 70%.
+Nivel de cumplimiento estimado: 65%.
 
 ### 6.5 CLIENTE3 - Registro cliente
 
-Estado encontrado: Cumple funcionalmente.
+Estado encontrado: Cumple funcionalmente en WebCliente.
 
 Evidencia:
 
@@ -434,8 +448,10 @@ Pendientes o riesgos:
 - Falta evidencia final.
 - Segundo apellido es opcional en implementacion; validar si el profesor lo exige
   como campo obligatorio absoluto.
+- El registro no queda enlazado con `PortalCliente` salvo por identificacion
+  ingresada manualmente.
 
-Nivel de cumplimiento estimado: 88%.
+Nivel de cumplimiento estimado: 86%.
 
 ### 6.6 Resultado Jose
 
@@ -443,13 +459,12 @@ Nivel de cumplimiento estimado: 88%.
 |---|---|---:|---|
 | ADM6 | Funcional | 90% | Evidencia final y asegurar migraciones aplicadas. |
 | ADM7 | Funcional | 90% | Evidencia final CRUD completo. |
-| CLIENTE1 | Funcional | 90% | Evidencia login exitoso/fallido. |
-| CLIENTE2 | Parcial alto | 70% | Logo/icono real y que sus opciones apunten a pantallas funcionales. |
-| CLIENTE3 | Funcional | 88% | Evidencia final y confirmar obligatoriedad de segundo apellido. |
+| CLIENTE1 | Funcional | 88% | Evidencia login exitoso/fallido e integracion con PortalCliente si se usa como portal oficial. |
+| CLIENTE2 | Parcial medio/alto | 65% | Unificar plantilla/portal funcional, logo real y salida de sesion en la ruta oficial. |
+| CLIENTE3 | Funcional | 86% | Evidencia final y confirmar segundo apellido. |
 
-Riesgo principal: medio-bajo. El bloque de Jose esta mayormente defendible; su
-dependencia mas fuerte es que Gabriel cierre CLIENTE4-CLIENTE7 para que CLIENTE2
-no sea solo plantilla.
+Riesgo principal: medio. El bloque de Jose funciona, pero CLIENTE1-CLIENTE3 y
+CLIENTE4-CLIENTE7 estan partidos entre dos aplicaciones.
 
 ## 7. Gabriel - CLIENTE4, CLIENTE5, CLIENTE6, CLIENTE7
 
@@ -457,121 +472,155 @@ Responsabilidad segun estrategia 3: autogestion transaccional del cliente.
 
 ### 7.1 CLIENTE4 - Mostrar lineas asociadas al cliente
 
-Estado encontrado: No completo.
+Estado encontrado: Parcial alto en `PortalCliente`; no completo en `WebCliente`.
 
 Evidencia:
 
 - `dotnet_webapps/WebCliente/Lineas.aspx`
 - `dotnet_webapps/WebCliente/Lineas.aspx.cs`
+- `dotnet_webservices/PortalCliente/Controllers/ClienteController.cs`
+- `dotnet_webservices/PortalCliente/Views/Cliente/Index.cshtml`
+- `dotnet_webservices/PortalCliente/Services/ProveedorClienteSoapClient.cs`
+- `dotnet_webservices/CentralTelefonica.WebServices/WS_ProveedorCliente/IProveedorClienteService.cs`
+- `dotnet_webservices/CentralTelefonica.WebServices/WS_ProveedorCliente/Services/LineaClienteService.cs`
 
 Lo que ya esta:
 
-- Existe pantalla `Lineas.aspx`.
-- Existe estructura visual con grids para prepago y postpago.
-- La pagina protege sesion de cliente.
+- `WebCliente` tiene pantalla `Lineas.aspx`, pero carga grids vacios.
+- `PortalCliente` consulta lineas por identificacion usando
+  `WS_ProveedorCliente`.
+- Separa prepago y postpago.
+- Muestra saldo prepago y factura pendiente postpago.
+- Implementa doble clic hacia recarga o pago.
+- `WS_ProveedorCliente` compila y consulta SQL Server desde el servicio.
 
 Pendientes o riesgos:
 
-- Los grids se cargan con `new List<object>()`, es decir, sin datos reales.
-- No consume WS Proveedor.
-- No muestra saldo prepago real.
-- No muestra monto pendiente postpago real.
-- No implementa doble click/navegacion hacia recarga o pago.
+- La implementacion completa no esta integrada a `WebCliente`.
+- `PortalCliente` solicita identificacion manual, no reutiliza la sesion del
+  login cliente.
+- Se debe confirmar en demo que el servicio tiene datos reales y cifrado
+  compatible para `identificacion_dueno_cifrada`.
 
-Nivel de cumplimiento estimado: 20%.
+Nivel de cumplimiento estimado: 70%.
 
 ### 7.2 CLIENTE5 - Cargar saldo a linea prepago
 
-Estado encontrado: No completo.
+Estado encontrado: Parcial alto en `PortalCliente`; no completo en `WebCliente`.
 
 Evidencia:
 
 - `dotnet_webapps/WebCliente/Portal.aspx`
 - `dotnet_webapps/WebCliente/Portal.aspx.cs`
+- `dotnet_webservices/PortalCliente/Controllers/ClienteController.cs`
+- `dotnet_webservices/PortalCliente/Views/Cliente/CargarSaldo.cshtml`
+- `dotnet_webservices/CentralTelefonica.WebServices/WS_ProveedorCliente/Services/LineaClienteService.cs`
 - `java_proveedor/src/database/ServicioDAO.java`
-- `java_proveedor/src/services/AdministracionTelefonica.java`
+- `python_identificador/app/sockets/handler.py`
 
 Lo que ya esta:
 
-- Existe ruta visual `Portal.aspx?op=recarga`.
-- Java tiene capacidad de recargar saldo internamente.
-- Python tambien enruta `RECARGAR_SALDO`.
+- `PortalCliente` lista lineas prepago del cliente.
+- Valida que la linea pertenezca al cliente.
+- Tiene formulario de tarjeta.
+- Valida numero de tarjeta de 12 digitos, nombre, vencimiento MM/AA no vencido,
+  CVV de 3 digitos y monto positivo.
+- Consume `WS_ProveedorCliente.RecargarSaldo`.
+- `LineaClienteService.Recargar` actualiza saldo en SQL Server.
 
 Pendientes o riesgos:
 
-- La Web solo muestra texto de pantalla reservada.
-- No lista lineas prepago.
-- No tiene formulario de tarjeta.
-- No valida tarjeta, fecha, CVV ni monto.
-- No consume WS Proveedor desde Web.
-- El WS Proveedor WCF principal no expone una operacion de recarga para cliente.
+- `WebCliente` solo muestra pantalla reservada para esta historia.
+- El PDF pide que el proceso se realice por WS; esto se cumple en
+  `PortalCliente`, pero debe declararse como ruta oficial.
+- La validacion de monto dice "sin decimales", pero en backend solo valida
+  `monto > 0`; la restriccion de entero depende del input HTML `step=1`.
 
-Nivel de cumplimiento estimado: 15%.
+Nivel de cumplimiento estimado: 75%.
 
 ### 7.3 CLIENTE6 - Pagar factura postpago
 
-Estado encontrado: No completo.
+Estado encontrado: Parcial alto en `PortalCliente`; no completo en `WebCliente`.
 
 Evidencia:
 
 - `dotnet_webapps/WebCliente/Portal.aspx`
 - `dotnet_webapps/WebCliente/Portal.aspx.cs`
-- `database/sqlserver_proveedor/migrations/010_proveedor6_facturacion.sql`
+- `dotnet_webservices/PortalCliente/Controllers/ClienteController.cs`
+- `dotnet_webservices/PortalCliente/Views/Cliente/PagarFactura.cshtml`
+- `dotnet_webservices/PortalCliente/Services/EmailService.cs`
+- `dotnet_webservices/CentralTelefonica.WebServices/WS_ProveedorCliente/Services/LineaClienteService.cs`
 
 Lo que ya esta:
 
-- Existe ruta visual `Portal.aspx?op=pago`.
-- Existe tabla/proceso de facturacion postpago.
+- `PortalCliente` lista lineas postpago.
+- Permite pagar solo si hay factura pendiente.
+- El monto se toma del servicio y se muestra como no editable.
+- Valida datos de tarjeta con la misma funcion de validacion usada para recarga.
+- Consume `WS_ProveedorCliente.PagarFactura`.
+- `LineaClienteService.PagarFactura` cancela la factura poniendo
+  `total_facturar = 0.00`.
+- `EmailService` intenta enviar correo SMTP con detalle de pago.
 
 Pendientes o riesgos:
 
-- No hay pantalla funcional de pago.
-- No lista facturas pendientes por cliente.
-- No bloquea edicion del monto de factura.
-- No valida datos de tarjeta.
-- No existe endpoint WCF final para cancelar factura.
-- No se observa envio de correo electronico con detalle de facturacion.
+- `WebCliente` solo muestra pantalla reservada.
+- SMTP esta sin credenciales en `appsettings.json`, por lo que el correo no
+  saldra en demo a menos que se configure.
+- El pago cancela la deuda en SQL Server, pero no se observo una tabla historica
+  de pagos separada.
 
-Nivel de cumplimiento estimado: 10%.
+Nivel de cumplimiento estimado: 70%.
 
 ### 7.4 CLIENTE7 - Devolucion de linea por cliente
 
-Estado encontrado: No completo.
+Estado encontrado: Parcial alto en `PortalCliente`; no completo en `WebCliente`.
 
 Evidencia:
 
 - `dotnet_webapps/WebCliente/Portal.aspx`
 - `dotnet_webapps/WebCliente/Portal.aspx.cs`
+- `dotnet_webservices/PortalCliente/Controllers/ClienteController.cs`
+- `dotnet_webservices/PortalCliente/Views/Cliente/DevolverLinea.cshtml`
+- `dotnet_webservices/PortalCliente/Services/Proveedor2SoapClient.cs`
+- `dotnet_webservices/PortalCliente/Services/ProveedorPortalSoapClient.cs`
+- `docs/evidencias/gabriel/CLIENTE7/CLIENTE7_devolucion_linea.md`
 - `dotnet_webservices/CentralTelefonica.WebServices/WS_Proveedor/ProveedorService.svc.cs`
 - `java_proveedor/src/services/Proveedor5Service.java`
 
 Lo que ya esta:
 
-- Existe ruta visual `Portal.aspx?op=devolucion`.
-- Backend puede desactivar linea mediante WS_PROVEEDOR2/Proveedor5.
+- `PortalCliente` lista lineas prepago y postpago.
+- Consulta saldo prepago por WS Proveedor.
+- Para postpago valida factura pendiente antes de devolver.
+- Si hay deuda bloquea la devolucion con mensaje.
+- Construye solicitud con numero, identificadores, tipo, identificacion cifrada y
+  estado `disponible`.
+- Consume `WS_PROVEEDOR2` mediante `Proveedor2SoapClient`.
+- Existe evidencia especifica de CLIENTE7.
 
 Pendientes o riesgos:
 
-- La pantalla no lista lineas del cliente.
-- No valida si la linea postpago tiene factura pendiente.
-- No muestra confirmacion real.
-- No consume WS_PROVEEDOR2 desde WebCliente.
-- Falta enviar datos ocultos requeridos por el PDF al WS.
+- `WebCliente` solo muestra pantalla reservada.
+- El PDF habla de desactivar/inactivo; el proyecto devuelve a `disponible`. Debe
+  explicarse como regla interna de inventario.
+- La confirmacion se hace con `confirm()` del navegador; funcionalmente cumple,
+  pero es basica.
 
-Nivel de cumplimiento estimado: 15%.
+Nivel de cumplimiento estimado: 75%.
 
 ### 7.5 Resultado Gabriel
 
 | Historia | Estado | Avance estimado | Que falta |
 |---|---|---:|---|
-| CLIENTE4 | No completo | 20% | Listar lineas reales por cliente via WS Proveedor, separar prepago/postpago y enlazar acciones. |
-| CLIENTE5 | No completo | 15% | Pantalla de recarga, validaciones de tarjeta/monto y endpoint WS de recarga. |
-| CLIENTE6 | No completo | 10% | Pago de factura, consulta deuda, endpoint de cancelacion y correo. |
-| CLIENTE7 | No completo | 15% | Devolucion con validacion de deuda y consumo de WS_PROVEEDOR2. |
+| CLIENTE4 | Parcial alto en portal separado | 70% | Integrar con login/plantilla oficial o declarar `PortalCliente` como portal oficial. |
+| CLIENTE5 | Parcial alto en portal separado | 75% | Configurar demo real, reforzar validacion de monto entero en backend e integrar ruta oficial. |
+| CLIENTE6 | Parcial alto en portal separado | 70% | Configurar SMTP/evidencia de correo e integrar ruta oficial. |
+| CLIENTE7 | Parcial alto en portal separado | 75% | Evidencia integral y explicar estado `disponible` frente al PDF. |
 
-Riesgo principal: muy alto. Este bloque es el mayor pendiente del alcance final.
-Aunque existen capacidades en Java/Python, todavia no estan expuestas ni usadas
-por WebCliente.
+Riesgo principal: medio-alto. Gabriel ya tiene implementacion defendible en
+`PortalCliente`, pero debe evitar que el evaluador abra `WebCliente` y encuentre
+solo placeholders.
 
 ## 8. Estado de Web Services requeridos por estrategia 3
 
@@ -579,22 +628,25 @@ por WebCliente.
 |---|---|---|
 | WS_AUTENTICACION1 - login por tipo | Funcional | ADM1, CLIENTE1 |
 | WS_AUTENTICACION2 - CRUD/cambio estado usuarios | Funcional | ADM7, CLIENTE3 |
-| WS_PROVEEDOR1 - registrar nueva linea | Parcial/no integrado | ADM3 |
-| WS_PROVEEDOR2 - activar/desactivar linea | Funcional en backend, falta uso Web ADM3-ADM5/CLIENTE7 | ADM4, ADM5, CLIENTE7 |
+| WS_PROVEEDOR1 - registrar nueva linea | Parcial/no integrado a ADM3 | ADM3 |
+| WS_PROVEEDOR2 - activar/desactivar linea | Funcional en backend; usado por PortalCliente para CLIENTE7 | ADM4, ADM5, CLIENTE7 |
 | WS_PROVEEDOR3 - calcular facturacion | Funcional para ADM6 | ADM6 |
-| Consultar lineas por cliente | Faltante en WCF final | CLIENTE4, CLIENTE5, CLIENTE6, CLIENTE7 |
-| Recargar saldo | Backend interno existe, endpoint Web final faltante | CLIENTE5 |
-| Cancelar factura | Faltante | CLIENTE6 |
-| Enviar correo de factura | Faltante | CLIENTE6 |
+| WS_ProveedorCliente - consultar lineas | Funcional parcial y compila | CLIENTE4, CLIENTE5, CLIENTE6, CLIENTE7 |
+| WS_ProveedorCliente - recargar saldo | Funcional parcial y compila | CLIENTE5 |
+| WS_ProveedorCliente - pagar factura | Funcional parcial y compila | CLIENTE6 |
+| Enviar correo de factura | Parcial | CLIENTE6 |
 | Eliminar linea disponible | Faltante/no integrado | ADM3 |
+| Listados administrativos de lineas disponibles/en uso | Faltante/no integrado en Web final | ADM3, ADM4, ADM5 |
 
 ## 9. Lo que ya esta defendible
 
 - Compilacion principal de WebApps y servicios usados por persona 2.
+- Compilacion de `WS_ProveedorCliente` y `PortalCliente`.
 - Login administrativo y cliente con MongoDB por WS Autenticacion.
 - Registro de cliente.
 - CRUD de administradores.
 - Calculo de facturacion postpago.
+- Consulta, recarga, pago y devolucion de cliente en `PortalCliente`.
 - Proveedor Java con movimientos, bitacora y facturacion.
 - Identificador Python con bitacora, consulta de saldo y sincronizacion.
 - Scripts de preparacion y levantamiento de procesos.
@@ -604,24 +656,28 @@ por WebCliente.
 
 Prioridad alta:
 
-1. Decidir si ADM3-ADM5 se terminan en `dotnet_webapps/WebAdministrativo` o en
+1. Definir oficialmente si el portal cliente final sera `WebCliente` o
+   `PortalCliente`.
+2. Si se usa `PortalCliente`, enlazarlo desde el login de `WebCliente` o migrar
+   CLIENTE1-CLIENTE3 al portal ASP.NET Core.
+3. Si se mantiene `WebCliente`, reemplazar `Lineas.aspx` y `Portal.aspx` por
+   consumo real de `WS_ProveedorCliente`.
+4. Decidir si ADM3-ADM5 se terminan en `dotnet_webapps/WebAdministrativo` o en
    `dotnet_webservices/WebAdministrativa`.
-2. Si se usa la MVC de Charlie/companero 1, restaurar NuGet y corregir build.
-3. Conectar ADM3-ADM5 a WS Proveedor real.
-4. Agregar en WS Proveedor operaciones de consulta de lineas disponibles/en uso.
-5. Implementar CLIENTE4 con datos reales por identificacion del cliente.
-6. Implementar CLIENTE5 con recarga y validaciones de tarjeta.
-7. Implementar CLIENTE6 con pago de factura, cancelacion en backend y correo.
-8. Implementar CLIENTE7 con validacion de deuda y devolucion por WS_PROVEEDOR2.
+5. Restaurar/corregir build de `WebAdministrativa` si sera la ruta oficial.
+6. Conectar ADM3-ADM5 a WS Proveedor real.
+7. Agregar o exponer listados administrativos de lineas disponibles/en uso.
+8. Configurar SMTP real para CLIENTE6 o documentar evidencia controlada.
 9. Capturar evidencias finales por historia y por responsable.
 
 Prioridad media:
 
-1. Agregar logo/icono real a ambas plantillas.
+1. Agregar logo/icono real a plantillas.
 2. Homologar textos visibles con los mensajes exactos del PDF.
 3. Documentar que las WebApps no acceden directo a BD/socket.
-4. Revisar que los estados de linea se expliquen como `ACTIVO` y `DISPONIBLE`.
-5. Preparar una guia unica de demo para el dia de defensa.
+4. Explicar que las lineas devueltas pasan a `DISPONIBLE` aunque el PDF use el
+   termino inactivo.
+5. Preparar una guia unica de demo para evitar abrir aplicaciones incompletas.
 
 ## 11. Recomendacion por responsable
 
@@ -642,19 +698,21 @@ Ruta corta para cierre:
 
 1. Mantener estables ADM6, ADM7, CLIENTE1, CLIENTE2 y CLIENTE3.
 2. Completar evidencias de pruebas exitosas y fallidas.
-3. Apoyar la integracion de WS Autenticacion si Charlie/Gabriel requieren datos
-   de cliente autenticado.
-4. Ajustar CLIENTE2 si Gabriel agrega nuevas paginas para CLIENTE4-CLIENTE7.
+3. Decidir junto con Gabriel como se hara el salto de CLIENTE1 a CLIENTE4.
+4. Ajustar CLIENTE2 si `PortalCliente` pasa a ser el portal oficial.
 
 ### Gabriel
 
 Ruta corta para cierre:
 
-1. Implementar primero CLIENTE4 porque alimenta CLIENTE5, CLIENTE6 y CLIENTE7.
-2. Pedir/agregar endpoints WCF para listar lineas y facturas por cliente.
-3. Implementar recarga prepago y validaciones de tarjeta.
-4. Implementar pago postpago con correo.
-5. Implementar devolucion bloqueando lineas con deuda pendiente.
+1. Declarar `PortalCliente` como implementacion oficial de CLIENTE4-CLIENTE7 o
+   integrar su logica en `WebCliente`.
+2. Hacer que el portal reciba/reuse la identificacion del cliente autenticado.
+3. Configurar SMTP y generar evidencia del correo de CLIENTE6.
+4. Ejecutar prueba integral con `WS_ProveedorCliente`, `WS_PROVEEDOR2` y datos
+   reales.
+5. Documentar claramente que `WebCliente/Portal.aspx` ya no es la ruta de demo si
+   se mantiene como placeholder.
 
 ## 12. Nivel de cumplimiento por integrante
 
@@ -662,25 +720,29 @@ Estimacion de avance contra historias asignadas en `estrategia_3.md`:
 
 ```text
 Charlie : [#####-----] 45% de 100
-Jose    : [########--] 86% de 100
-Gabriel : [##--------] 15% de 100
+Jose    : [########--] 84% de 100
+Gabriel : [#######---] 73% de 100
 ```
 
 Lectura rapida:
 
 - Charlie: tiene login y parte de plantilla, pero debe cerrar ADM3-ADM5.
-- Jose: tiene el bloque mas completo; faltan evidencias y pequenos ajustes.
-- Gabriel: necesita desarrollar la autogestion cliente casi completa.
+- Jose: tiene el bloque mas completo; su mayor riesgo es la integracion del
+  portal cliente oficial.
+- Gabriel: subio mucho por `PortalCliente`, pero debe unificar o declarar la
+  ruta oficial y cerrar evidencia de correo/datos reales.
 
 ## 13. Conclusion
 
-El proyecto avanzo mucho en infraestructura y en el bloque de persona 2, pero el
-alcance final todavia depende de cerrar las operaciones Web faltantes. La
-estrategia 3 sigue siendo valida: separar administrativo de lineas, bloque de
-facturacion/autenticacion y autogestion cliente ayuda a ordenar el cierre.
+El proyecto esta mas avanzado de lo que indicaba el informe anterior porque
+`PortalCliente` y `WS_ProveedorCliente` agregan una implementacion real para gran
+parte de CLIENTE4-CLIENTE7. Aun asi, el proyecto no debe presentarse como
+cerrado sin antes resolver la fragmentacion: la Web Cliente principal muestra
+placeholders, la Web Administrativa MVC no compila y ADM3-ADM5 no consumen WS
+real.
 
-La prioridad real no es rehacer el backend, porque Java/Python ya tienen mucho
-del trabajo operativo. La prioridad es exponer esas capacidades mediante Web
-Services y conectarlas a las pantallas finales. Si el equipo se enfoca en ADM3,
-ADM4, ADM5 y CLIENTE4-CLIENTE7, el proyecto puede pasar de funcional parcial a
-defendible integral.
+La prioridad real para el cierre ya no es rehacer el backend. La prioridad es
+ordenar la ruta oficial de demo, integrar o retirar las pantallas incompletas y
+cerrar el bloque administrativo de lineas. Si el equipo enfoca el esfuerzo en
+ADM3-ADM5, integracion WebCliente/PortalCliente y evidencias finales, el estado
+puede pasar de parcial avanzado a defendible integral.
