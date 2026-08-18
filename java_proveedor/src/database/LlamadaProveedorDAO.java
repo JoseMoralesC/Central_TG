@@ -20,6 +20,7 @@ public class LlamadaProveedorDAO
     public ResultadoRegistro registrarMovimiento(
         Servicio servicio,
         Tarifa tarifa,
+        String idLlamadaExterna,
         String telefonoDestino,
         LocalDateTime fechaInicio,
         LocalDateTime fechaFin,
@@ -54,10 +55,15 @@ public class LlamadaProveedorDAO
                     conn,
                     servicio,
                     tarifa,
+                    idLlamadaExterna,
                     telefonoDestino,
                     fechaInicio,
                     fechaFin,
                     duracionSegundos,
+                    duracionMinutos,
+                    tarifa.getTipoLlamada(),
+                    motivoFinalizacion,
+                    moneda,
                     montoTotal
                 );
 
@@ -93,9 +99,71 @@ public class LlamadaProveedorDAO
         Connection conn,
         Servicio servicio,
         Tarifa tarifa,
+        String idLlamadaExterna,
         String telefonoDestino,
         LocalDateTime fechaInicio,
         LocalDateTime fechaFin,
+        int duracionSegundos,
+        int duracionMinutos,
+        String tipoLlamada,
+        String motivoFinalizacion,
+        String moneda,
+        BigDecimal montoTotal
+    ) throws Exception {
+        if (!tieneColumnasExtendidas(conn)) {
+            return insertarLlamadaBasica(
+                conn,
+                servicio,
+                tarifa,
+                telefonoDestino,
+                fechaInicio,
+                duracionSegundos,
+                montoTotal
+            );
+        }
+
+        String sql =
+            "INSERT INTO llamadas_proveedor " +
+            "(servicio_id, tarifa_id, telefono_destino, fecha_llamada, hora_llamada, costo, duracion, " +
+            "id_llamada, telefono_origen, fecha_inicio, fecha_fin, duracion_segundos, duracion_minutos, " +
+            "tipo_llamada, motivo_finalizacion, estado, moneda) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'FINALIZADA', ?)";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setInt(1, servicio.getServicioId());
+            ps.setInt(2, tarifa.getTarifaId());
+            ps.setString(3, telefonoDestino);
+            ps.setDate(4, Date.valueOf(fechaInicio.toLocalDate()));
+            ps.setString(5, fechaInicio.format(DateTimeFormatter.ofPattern("HHmmss")));
+            ps.setBigDecimal(6, montoTotal);
+            ps.setString(7, formatearDuracion(duracionSegundos));
+            ps.setString(8, valorSeguro(idLlamadaExterna));
+            ps.setString(9, servicio.getNumeroTelefono());
+            ps.setTimestamp(10, Timestamp.valueOf(fechaInicio));
+            ps.setTimestamp(11, Timestamp.valueOf(fechaFin));
+            ps.setInt(12, duracionSegundos);
+            ps.setInt(13, duracionMinutos);
+            ps.setString(14, valorSeguro(tipoLlamada));
+            ps.setString(15, valorSeguro(motivoFinalizacion));
+            ps.setString(16, valorSeguro(moneda));
+            ps.executeUpdate();
+
+            try (ResultSet rs = ps.getGeneratedKeys()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+
+        throw new IllegalStateException("No se pudo obtener el ID de la llamada registrada");
+    }
+
+    private int insertarLlamadaBasica(
+        Connection conn,
+        Servicio servicio,
+        Tarifa tarifa,
+        String telefonoDestino,
+        LocalDateTime fechaInicio,
         int duracionSegundos,
         BigDecimal montoTotal
     ) throws Exception {
@@ -122,6 +190,28 @@ public class LlamadaProveedorDAO
         }
 
         throw new IllegalStateException("No se pudo obtener el ID de la llamada registrada");
+    }
+
+    private boolean tieneColumnasExtendidas(Connection conn) throws Exception
+    {
+        String sql =
+            "SELECT CASE WHEN " +
+            "COL_LENGTH('dbo.llamadas_proveedor', 'id_llamada') IS NOT NULL AND " +
+            "COL_LENGTH('dbo.llamadas_proveedor', 'telefono_origen') IS NOT NULL AND " +
+            "COL_LENGTH('dbo.llamadas_proveedor', 'fecha_inicio') IS NOT NULL AND " +
+            "COL_LENGTH('dbo.llamadas_proveedor', 'fecha_fin') IS NOT NULL AND " +
+            "COL_LENGTH('dbo.llamadas_proveedor', 'duracion_segundos') IS NOT NULL AND " +
+            "COL_LENGTH('dbo.llamadas_proveedor', 'duracion_minutos') IS NOT NULL AND " +
+            "COL_LENGTH('dbo.llamadas_proveedor', 'tipo_llamada') IS NOT NULL AND " +
+            "COL_LENGTH('dbo.llamadas_proveedor', 'motivo_finalizacion') IS NOT NULL AND " +
+            "COL_LENGTH('dbo.llamadas_proveedor', 'estado') IS NOT NULL AND " +
+            "COL_LENGTH('dbo.llamadas_proveedor', 'moneda') IS NOT NULL " +
+            "THEN 1 ELSE 0 END AS columnas_ok";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            return rs.next() && rs.getInt("columnas_ok") == 1;
+        }
     }
 
     private void insertarMovimiento(
@@ -220,6 +310,11 @@ public class LlamadaProveedorDAO
             : moneda;
 
         return "Movimiento por llamada a " + destino + " (" + motivo + ") en " + monedaMovimiento;
+    }
+
+    private String valorSeguro(String valor)
+    {
+        return valor == null ? "" : valor.trim();
     }
 
     public static class ResultadoRegistro

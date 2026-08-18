@@ -10,5 +10,8 @@ namespace WS_Proveedor.Models
 
         [DataMember]
         public string FechaMaximaPago { get; set; }
+
+        [DataMember]
+        public string NumeroTelefono { get; set; }
     }
 }

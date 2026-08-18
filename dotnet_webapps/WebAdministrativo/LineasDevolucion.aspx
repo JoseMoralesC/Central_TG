@@ -6,8 +6,8 @@
         <asp:GridView runat="server" ID="LineasGrid" AutoGenerateColumns="false" OnRowCommand="LineasGrid_RowCommand">
             <Columns>
                 <asp:BoundField HeaderText="Telefono" DataField="NumeroTelefono" />
-                <asp:BoundField HeaderText="Identificador tarjeta" DataField="IdentificadorTarjeta" />
-                <asp:BoundField HeaderText="Identificador telefono" DataField="IdentificadorTelefono" />
+                <asp:BoundField HeaderText="Identificador tarjeta" DataField="IdentificadorTarjetaVisible" />
+                <asp:BoundField HeaderText="Identificador telefono" DataField="IdentificadorTelefonoVisible" />
                 <asp:BoundField HeaderText="Identificacion cliente" DataField="IdentificacionClienteVisible" />
                 <asp:BoundField HeaderText="Nombre cliente" DataField="NombreCliente" />
                 <asp:BoundField HeaderText="Tipo servicio" DataField="TipoServicio" />

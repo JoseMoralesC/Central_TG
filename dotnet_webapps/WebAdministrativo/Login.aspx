@@ -3,6 +3,7 @@
 <html lang="es">
 <head runat="server">
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Ingreso administrativo</title>
     <link rel="stylesheet" href="Styles/site.css" />
 </head>

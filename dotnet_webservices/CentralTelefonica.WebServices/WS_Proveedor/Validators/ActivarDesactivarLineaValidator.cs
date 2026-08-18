@@ -43,9 +43,58 @@ namespace WS_Proveedor.Validators
             }
 
             return EsBase64(solicitud.NumeroTelefono) &&
-                EsBase64(solicitud.IdentificadorTelefono) &&
-                EsBase64(solicitud.IdentificadorTarjeta) &&
+                EsIdentificadorTelefonoValido(solicitud.IdentificadorTelefono) &&
+                EsIdentificadorTarjetaValido(solicitud.IdentificadorTarjeta) &&
                 EsBase64(solicitud.IdentificacionCliente);
+        }
+
+        private static bool EsIdentificadorTelefonoValido(string valor)
+        {
+            return EsBase64(valor) ||
+                TienePrefijoYDigitos(valor, "ENC_IMEI_", 15, 16);
+        }
+
+        private static bool EsIdentificadorTarjetaValido(string valor)
+        {
+            return EsBase64(valor) ||
+                TienePrefijoYDigitos(valor, "ENC_SIM_", 19, 19);
+        }
+
+        private static bool TienePrefijoYDigitos(
+            string valor,
+            string prefijo,
+            int minimoDigitos,
+            int maximoDigitos)
+        {
+            if (string.IsNullOrWhiteSpace(valor))
+            {
+                return false;
+            }
+
+            string normalizado = valor.Trim();
+
+            if (!normalizado.StartsWith(prefijo, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            string digitos = normalizado.Substring(prefijo.Length);
+
+            if (digitos.Length < minimoDigitos ||
+                digitos.Length > maximoDigitos)
+            {
+                return false;
+            }
+
+            foreach (char caracter in digitos)
+            {
+                if (!char.IsDigit(caracter))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private static bool EsBase64(string valor)

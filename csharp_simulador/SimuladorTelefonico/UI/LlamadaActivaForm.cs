@@ -321,8 +321,12 @@ namespace SimuladorTelefonico.UI
                 ? "La llamada finalizo porque se agoto el saldo disponible."
                 : "Llamada finalizada correctamente.";
 
+            string detalleCobro = AppConfig.TipoServicio.Equals("POSTPAGO", StringComparison.OrdinalIgnoreCase)
+                ? $"Consumo facturable: {montoTotal:N2} {AppConfig.Moneda}."
+                : $"Saldo actual: {UiTheme.FormatearSaldo(AppConfig.TipoServicio, AppConfig.TelefonoActual.SaldoDisponible)}";
+
             MessageBox.Show(
-                $"{motivoMensaje}\nDuracion cobrada: {duracionMinutos} minuto(s).\nMonto: {montoTotal:N2} {AppConfig.Moneda}.\nSaldo actual: {UiTheme.FormatearSaldo(AppConfig.TipoServicio, AppConfig.TelefonoActual.SaldoDisponible)}",
+                $"{motivoMensaje}\nDuracion cobrada: {duracionMinutos} minuto(s).\nMonto: {montoTotal:N2} {AppConfig.Moneda}.\n{detalleCobro}",
                 "Llamada finalizada",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);

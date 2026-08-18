@@ -104,6 +104,10 @@ namespace WebAdministrativo.Services
         [DataMember]
         public string ContrasenaEncriptada { get; set; }
 
+        public string UsuarioVisible { get; set; }
+
+        public string ContrasenaVisible { get; set; }
+
         [DataMember]
         public string Estado { get; set; }
 

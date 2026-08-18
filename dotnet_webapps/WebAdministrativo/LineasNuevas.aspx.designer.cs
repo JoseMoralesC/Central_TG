@@ -10,6 +10,7 @@ namespace WebAdministrativo
         protected global::System.Web.UI.WebControls.TextBox IdentificadorTelefonoText;
         protected global::System.Web.UI.WebControls.TextBox IdentificadorTarjetaText;
         protected global::System.Web.UI.WebControls.DropDownList TipoServicioList;
+        protected global::System.Web.UI.WebControls.Button GenerarIdsButton;
         protected global::System.Web.UI.WebControls.Button GuardarButton;
     }
 }

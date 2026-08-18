@@ -70,6 +70,7 @@ public class RegistrarMovimiento
                 llamadaProveedorDAO.registrarMovimiento(
                     servicio,
                     tarifa,
+                    request.idLlamada,
                     request.telefonoDestino,
                     request.fechaInicio,
                     request.fechaFin,
@@ -115,6 +116,7 @@ public class RegistrarMovimiento
                 + "\"llamada_id\":" + resultado.getLlamadaId() + ","
                 + "\"saldo_anterior\":" + decimal(resultado.getSaldoAnterior()) + ","
                 + "\"monto_rebajado\":" + decimal(resultado.getMontoRebajado()) + ","
+                + "\"monto_facturable\":" + decimal(resultado.getMontoRebajado()) + ","
                 + "\"saldo_actual\":" + decimal(resultado.getSaldoPosterior()) + ","
                 + "\"moneda\":\"CRC\""
             + "}"
@@ -155,6 +157,7 @@ public class RegistrarMovimiento
     private static class MovimientoRequest
     {
         private String telefonoOrigen;
+        private String idLlamada;
         private String telefonoDestino;
         private String tipoLlamada;
         private String motivoFinalizacion;
@@ -168,6 +171,7 @@ public class RegistrarMovimiento
         static MovimientoRequest desdeJson(String json)
         {
             MovimientoRequest request = new MovimientoRequest();
+            request.idLlamada = leerTexto(json, "id_llamada");
             request.telefonoOrigen = leerTexto(json, "telefono_origen");
             request.telefonoDestino = leerTexto(json, "telefono_destino");
             request.tipoLlamada = valorPorDefecto(leerTexto(json, "tipo_llamada"), "NACIONAL");

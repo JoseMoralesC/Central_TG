@@ -15,7 +15,8 @@ namespace WS_Proveedor.Services
             TipoTransaccion = "PROVEEDOR6",
             Accion = "CALCULAR_FACTURACION",
             FechaCalculo = solicitud.FechaCalculo,
-            FechaMaximaPago = solicitud.FechaMaximaPago
+            FechaMaximaPago = solicitud.FechaMaximaPago,
+            NumeroTelefono = solicitud.NumeroTelefono
         };
 
         var serializer = new DataContractJsonSerializer(typeof(TramaProveedor6));

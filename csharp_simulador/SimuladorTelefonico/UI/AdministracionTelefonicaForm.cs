@@ -773,8 +773,9 @@ namespace SimuladorTelefonico.UI
             }
             else
             {
-                CargarGrid(AppConfig.TelefonosVirtuales);
-                _estado.Text = "No se pudo consultar backend; mostrando catalogo local disponible.";
+                AppConfig.ActualizarCatalogoTelefonos(telefonos);
+                CargarGrid(telefonos);
+                _estado.Text = "No hay telefonos confirmados por el backend.";
             }
         }
 
@@ -812,7 +813,8 @@ namespace SimuladorTelefonico.UI
                     Estado = t.Activo ? "Activa/asignada" : "Disponible",
                     t.Proveedor,
                     t.Pais,
-                    Saldo = UiTheme.FormatearSaldo(t.TipoServicio, t.SaldoDisponible)
+                    Saldo = UiTheme.FormatearSaldo(t.TipoServicio, t.SaldoDisponible),
+                    ConsumoFacturable = FormatearConsumoFacturable(t)
                 })
                 .ToList();
 
@@ -832,8 +834,24 @@ namespace SimuladorTelefonico.UI
             AjustarAnchoColumna("Proveedor", 145);
             AjustarAnchoColumna("Pais", 130);
             AjustarAnchoColumna("Saldo", 140);
+            AjustarAnchoColumna("ConsumoFacturable", 155);
+
+            if (_grid.Columns["ConsumoFacturable"] is DataGridViewColumn consumoColumn)
+            {
+                consumoColumn.HeaderText = "Consumo facturable";
+            }
 
             SincronizarSeleccion();
+        }
+
+        private static string FormatearConsumoFacturable(TelefonoVirtual telefono)
+        {
+            if (!telefono.TipoServicio.Equals("POSTPAGO", StringComparison.OrdinalIgnoreCase))
+            {
+                return "-";
+            }
+
+            return telefono.ConsumoPostpago.ToString("N2", CultureInfo.CurrentCulture) + " CRC";
         }
 
         private void AjustarAnchoColumna(string nombre, int ancho)

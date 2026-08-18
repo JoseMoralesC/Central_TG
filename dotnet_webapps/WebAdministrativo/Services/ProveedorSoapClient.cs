@@ -38,6 +38,9 @@ namespace WebAdministrativo.Services
 
         [DataMember]
         public string FechaMaximaPago { get; set; }
+
+        [DataMember]
+        public string NumeroTelefono { get; set; }
     }
 
     [DataContract(Namespace = "http://schemas.datacontract.org/2004/07/WS_Proveedor.Models")]
@@ -64,6 +67,12 @@ namespace WebAdministrativo.Services
 
         [DataMember(Order = 4)]
         public string IdentificadorTarjeta { get; set; }
+
+        [DataMember(Order = 12)]
+        public string IdentificadorTelefonoVisible { get; set; }
+
+        [DataMember(Order = 13)]
+        public string IdentificadorTarjetaVisible { get; set; }
 
         [DataMember(Order = 5)]
         public string TipoServicio { get; set; }
@@ -182,12 +191,16 @@ namespace WebAdministrativo.Services
             return Ejecutar(servicio => servicio.ObtenerUltimaFacturacion());
         }
 
-        public RespuestaServicio CalcularFacturacion(DateTime fechaCalculo, DateTime fechaMaximaPago)
+        public RespuestaServicio CalcularFacturacion(
+            DateTime fechaCalculo,
+            DateTime fechaMaximaPago,
+            string numeroTelefono)
         {
             var solicitud = new CalcularFacturacionRequest
             {
                 FechaCalculo = fechaCalculo.ToString("yyyy-MM-dd"),
-                FechaMaximaPago = fechaMaximaPago.ToString("yyyy-MM-dd")
+                FechaMaximaPago = fechaMaximaPago.ToString("yyyy-MM-dd"),
+                NumeroTelefono = numeroTelefono
             };
 
             return Ejecutar(servicio => servicio.CalcularFacturacion(solicitud));
@@ -195,12 +208,14 @@ namespace WebAdministrativo.Services
 
         public ListadoLineasResponse ListarLineasDisponibles()
         {
-            return Ejecutar(servicio => servicio.ListarLineasDisponibles());
+            return PrepararLineasVisibles(
+                Ejecutar(servicio => servicio.ListarLineasDisponibles()));
         }
 
         public ListadoLineasResponse ListarLineasActivas()
         {
-            return Ejecutar(servicio => servicio.ListarLineasActivas());
+            return PrepararLineasVisibles(
+                Ejecutar(servicio => servicio.ListarLineasActivas()));
         }
 
         public RespuestaServicio RegistrarLinea(
@@ -267,6 +282,31 @@ namespace WebAdministrativo.Services
                 factory.Abort();
                 throw;
             }
+        }
+
+        private static ListadoLineasResponse PrepararLineasVisibles(ListadoLineasResponse respuesta)
+        {
+            if (respuesta?.Lineas == null)
+            {
+                return respuesta;
+            }
+
+            foreach (LineaAdministrativaDto linea in respuesta.Lineas)
+            {
+                if (string.IsNullOrWhiteSpace(linea.IdentificadorTelefonoVisible))
+                {
+                    linea.IdentificadorTelefonoVisible =
+                        ProveedorCryptoHelper.DecryptOrSummary(linea.IdentificadorTelefono);
+                }
+
+                if (string.IsNullOrWhiteSpace(linea.IdentificadorTarjetaVisible))
+                {
+                    linea.IdentificadorTarjetaVisible =
+                        ProveedorCryptoHelper.DecryptOrSummary(linea.IdentificadorTarjeta);
+                }
+            }
+
+            return respuesta;
         }
     }
 }

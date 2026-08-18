@@ -141,7 +141,15 @@ namespace WebAdministrativo
             try
             {
                 var respuesta = _autenticacionClient.ListarAdministradores();
-                AdministradoresGrid.DataSource = respuesta?.Usuarios ?? Enumerable.Empty<UsuarioServicio>();
+                var usuarios = respuesta?.Usuarios ?? Enumerable.Empty<UsuarioServicio>();
+
+                foreach (UsuarioServicio usuario in usuarios)
+                {
+                    usuario.UsuarioVisible = CryptoHelper.DecryptOrSummary(usuario.UsuarioEncriptado);
+                    usuario.ContrasenaVisible = "********";
+                }
+
+                AdministradoresGrid.DataSource = usuarios;
                 AdministradoresGrid.DataBind();
             }
             catch (Exception)

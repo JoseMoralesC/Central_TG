@@ -485,15 +485,25 @@ def buscar_tarjeta_por_telefono_id(telefono_id: int, identificador_cifrado: str)
     try:
         cursor = conn.cursor(dictionary=True, buffered=True)
         query = """
-            SELECT tarjeta_id, activa
+            SELECT tarjeta_id, activa, identificador_tarjeta_cifrado
             FROM tarjetas_telefonicas
-            WHERE telefono_id = %s AND identificador_tarjeta_cifrado = %s
-            LIMIT 1
+            WHERE telefono_id = %s
         """
-        cursor.execute(query, (telefono_id, identificador_cifrado))
-        resultado = cursor.fetchone()
+        cursor.execute(query, (telefono_id,))
+        filas = cursor.fetchall()
         cursor.close()
-        return resultado
+
+        for fila in filas:
+            if _identificador_coincide(
+                fila.get("identificador_tarjeta_cifrado", ""),
+                identificador_cifrado
+            ):
+                return {
+                    "tarjeta_id": fila.get("tarjeta_id"),
+                    "activa": fila.get("activa")
+                }
+
+        return None
     except Exception as e:
         print(f"[DB Error] buscar_tarjeta_por_telefono_id: {e}")
         return None
@@ -511,20 +521,63 @@ def buscar_dispositivo_por_telefono_id(telefono_id: int, dispositivo_cifrado: st
     try:
         cursor = conn.cursor(dictionary=True, buffered=True)
         query = """
-            SELECT dispositivo_id, activo
+            SELECT dispositivo_id, activo, identificador_dispositivo_cifrado
             FROM dispositivos
-            WHERE telefono_id = %s AND identificador_dispositivo_cifrado = %s
-            LIMIT 1
+            WHERE telefono_id = %s
         """
-        cursor.execute(query, (telefono_id, dispositivo_cifrado))
-        resultado = cursor.fetchone()
+        cursor.execute(query, (telefono_id,))
+        filas = cursor.fetchall()
         cursor.close()
-        return resultado
+
+        for fila in filas:
+            if _identificador_coincide(
+                fila.get("identificador_dispositivo_cifrado", ""),
+                dispositivo_cifrado
+            ):
+                return {
+                    "dispositivo_id": fila.get("dispositivo_id"),
+                    "activo": fila.get("activo")
+                }
+
+        return None
     except Exception as e:
         print(f"[DB Error] buscar_dispositivo_por_telefono_id: {e}")
         return None
     finally:
         cerrar_conexion(conn)
+
+def _identificador_coincide(valor_guardado: str, valor_recibido: str) -> bool:
+    from app.utils.crypto import desencriptar_aes
+
+    guardados = _variantes_identificador(valor_guardado, desencriptar_aes)
+    recibidos = _variantes_identificador(valor_recibido, desencriptar_aes)
+
+    return bool(guardados.intersection(recibidos))
+
+def _variantes_identificador(valor: str, desencriptar) -> set[str]:
+    texto = str(valor or "").strip()
+    variantes = set()
+
+    if texto:
+        variantes.add(texto.lower())
+        variantes.add(_normalizar_identificador(texto))
+
+    texto_descifrado = desencriptar(texto)
+
+    if texto_descifrado:
+        variantes.add(texto_descifrado.strip().lower())
+        variantes.add(_normalizar_identificador(texto_descifrado))
+
+    return {variante for variante in variantes if variante}
+
+def _normalizar_identificador(valor: str) -> str:
+    texto = str(valor or "").strip().lower()
+
+    for prefijo in ("enc_sim_", "enc_imei_", "enc_"):
+        if texto.startswith(prefijo):
+            return texto[len(prefijo):].strip()
+
+    return texto
 
 def eliminar_llamada_activa_por_telefono_id(telefono_id: int) -> bool:
     """

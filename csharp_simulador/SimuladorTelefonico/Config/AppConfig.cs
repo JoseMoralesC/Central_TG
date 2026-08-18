@@ -63,15 +63,11 @@ namespace SimuladorTelefonico.Config
 
         public static void ActualizarCatalogoTelefonos(List<TelefonoVirtual> telefonos)
         {
-            if (telefonos.Count == 0)
-            {
-                return;
-            }
-
             string idActual = TelefonoActual.Id;
             TelefonosVirtuales = telefonos;
             TelefonoActual = TelefonosVirtuales.FirstOrDefault(t => t.Id == idActual)
-                ?? TelefonosVirtuales.First();
+                ?? TelefonosVirtuales.FirstOrDefault()
+                ?? CrearTelefonoNoDisponible();
         }
 
         public static void ActualizarSaldoTelefonoActual(decimal saldoDisponible)
@@ -212,6 +208,26 @@ namespace SimuladorTelefonico.Config
             }
 
             return null;
+        }
+
+        private static TelefonoVirtual CrearTelefonoNoDisponible()
+        {
+            return new TelefonoVirtual
+            {
+                Id = "SIN-DATOS",
+                Nombre = "Sin telefonos disponibles",
+                Cliente = "Catalogo real vacio",
+                Numero = string.Empty,
+                Proveedor = "No disponible",
+                ProveedorCodigo = string.Empty,
+                Pais = "Costa Rica",
+                CodigoArea = "+506",
+                Nacionalidad = "NACIONAL",
+                TipoServicio = "PREPAGO",
+                TipoLlamada = "NACIONAL",
+                Activo = false,
+                OrigenDatos = FuenteDatosTelefonos
+            };
         }
     }
 }

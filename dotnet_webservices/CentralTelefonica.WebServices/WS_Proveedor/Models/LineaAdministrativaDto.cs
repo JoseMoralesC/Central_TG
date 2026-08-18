@@ -17,6 +17,12 @@ namespace WS_Proveedor.Models
         [DataMember(Order = 4)]
         public string IdentificadorTarjeta { get; set; }
 
+        [DataMember(Order = 12)]
+        public string IdentificadorTelefonoVisible { get; set; }
+
+        [DataMember(Order = 13)]
+        public string IdentificadorTarjetaVisible { get; set; }
+
         [DataMember(Order = 5)]
         public string TipoServicio { get; set; }
 

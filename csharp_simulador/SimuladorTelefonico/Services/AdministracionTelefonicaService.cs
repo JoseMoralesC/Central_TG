@@ -150,6 +150,7 @@ namespace SimuladorTelefonico.Services
                         TipoServicio = LeerTexto(item, "tipo_servicio", "PREPAGO"),
                         TipoLlamada = tipoLlamada,
                         SaldoDisponible = LeerDecimal(item, "saldo"),
+                        ConsumoPostpago = LeerDecimal(item, "consumo_postpago"),
                         Activo = LeerBooleano(item, "activo", true),
                         OrigenDatos = "Socket C# -> Python -> Java"
                     });

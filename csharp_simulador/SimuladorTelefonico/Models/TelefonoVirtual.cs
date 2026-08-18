@@ -17,6 +17,7 @@ namespace SimuladorTelefonico.Models
         public string Nacionalidad { get; set; } = "NACIONAL";
         public string Cliente { get; set; } = string.Empty;
         public decimal SaldoDisponible { get; set; }
+        public decimal ConsumoPostpago { get; set; }
         public bool Activo { get; set; } = true;
         public string OrigenDatos { get; set; } = string.Empty;
     }

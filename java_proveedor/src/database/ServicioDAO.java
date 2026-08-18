@@ -75,6 +75,7 @@ public class ServicioDAO {
             "s.numero_telefono, s.tipo_servicio, s.activo, " +
             "COALESCE(s.proveedor_codigo, 'KOLBI') AS proveedor_codigo, " +
             "COALESCE(sa.saldo_disponible, 0) AS saldo_disponible, " +
+            "COALESCE(consumo.total_consumido, 0) AS consumo_postpago, " +
             "COALESCE(p.nombre, 'Costa Rica') AS pais, " +
             "COALESCE(p.codigo_area, '+506') AS codigo_area, " +
             "COALESCE(p.clasificacion, 'NACIONAL') AS nacionalidad, " +
@@ -82,6 +83,12 @@ public class ServicioDAO {
             "FROM servicios s " +
             "JOIN clientes c ON c.cliente_id = s.cliente_id " +
             "LEFT JOIN saldos sa ON s.servicio_id = sa.servicio_id " +
+            "LEFT JOIN ( " +
+            "    SELECT servicio_id, SUM(costo) AS total_consumido " +
+            "    FROM llamadas_proveedor " +
+            "    WHERE COALESCE(estado, 'FINALIZADA') = 'FINALIZADA' " +
+            "    GROUP BY servicio_id " +
+            ") consumo ON consumo.servicio_id = s.servicio_id " +
             "LEFT JOIN paises p ON p.pais_id = s.pais_id " +
             "LEFT JOIN tarifas t ON t.pais_id = p.pais_id AND t.activa = 1 " +
             "WHERE s.numero_telefono = ? " +
@@ -109,7 +116,8 @@ public class ServicioDAO {
                         + "\"codigo_area\":\"" + sanitizar(rs.getString("codigo_area")) + "\","
                         + "\"nacionalidad\":\"" + sanitizar(rs.getString("nacionalidad")) + "\","
                         + "\"tipo_llamada\":\"" + sanitizar(rs.getString("tipo_llamada")) + "\","
-                        + "\"saldo\":\"" + rs.getBigDecimal("saldo_disponible").toString() + "\""
+                        + "\"saldo\":\"" + rs.getBigDecimal("saldo_disponible").toString() + "\","
+                        + "\"consumo_postpago\":\"" + rs.getBigDecimal("consumo_postpago").toString() + "\""
                         + "}";
                 }
             }

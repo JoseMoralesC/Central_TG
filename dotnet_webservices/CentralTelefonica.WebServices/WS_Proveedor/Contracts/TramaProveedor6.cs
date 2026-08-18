@@ -16,5 +16,8 @@ namespace WS_Proveedor.Contracts
 
         [DataMember(Name = "fecha_maxima_pago")]
         public string FechaMaximaPago { get; set; }
+
+        [DataMember(Name = "telefono_origen")]
+        public string NumeroTelefono { get; set; }
     }
 }

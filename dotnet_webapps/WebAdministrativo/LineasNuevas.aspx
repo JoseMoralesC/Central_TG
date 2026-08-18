@@ -7,8 +7,8 @@
         <asp:GridView runat="server" ID="LineasGrid" AutoGenerateColumns="false" OnRowCommand="LineasGrid_RowCommand">
             <Columns>
                 <asp:BoundField HeaderText="Telefono" DataField="NumeroTelefono" />
-                <asp:BoundField HeaderText="Identificador telefono" DataField="IdentificadorTelefono" />
-                <asp:BoundField HeaderText="Identificador tarjeta" DataField="IdentificadorTarjeta" />
+                <asp:BoundField HeaderText="Identificador telefono" DataField="IdentificadorTelefonoVisible" />
+                <asp:BoundField HeaderText="Identificador tarjeta" DataField="IdentificadorTarjetaVisible" />
                 <asp:BoundField HeaderText="Tipo servicio" DataField="TipoServicio" />
                 <asp:TemplateField HeaderText="Acciones">
                     <ItemTemplate>
@@ -25,14 +25,15 @@
         <label>Nuevo numero de telefono</label>
         <asp:TextBox runat="server" ID="NumeroText" MaxLength="30" />
         <label>Identificador del telefono</label>
-        <asp:TextBox runat="server" ID="IdentificadorTelefonoText" MaxLength="120" />
+        <asp:TextBox runat="server" ID="IdentificadorTelefonoText" MaxLength="120" ReadOnly="true" />
         <label>Identificador de la tarjeta</label>
-        <asp:TextBox runat="server" ID="IdentificadorTarjetaText" MaxLength="120" />
+        <asp:TextBox runat="server" ID="IdentificadorTarjetaText" MaxLength="120" ReadOnly="true" />
         <label>Tipo de servicio</label>
         <asp:DropDownList runat="server" ID="TipoServicioList">
             <asp:ListItem Text="Prepago" Value="PREPAGO" />
             <asp:ListItem Text="Postpago" Value="POSTPAGO" />
         </asp:DropDownList>
+        <asp:Button runat="server" ID="GenerarIdsButton" Text="Generar IDs" OnClick="GenerarIdsButton_Click" />
         <asp:Button runat="server" ID="GuardarButton" Text="Guardar" OnClick="GuardarButton_Click" />
     </section>
 </asp:Content>

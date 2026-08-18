@@ -12,6 +12,11 @@ public class Proveedor6Service {
         try {
             String fechaCalculo = leerCampo(trama, "fecha_calculo");
             String fechaMaximaPago = leerCampo(trama, "fecha_maxima_pago");
+            String numeroTelefono = leerCampo(trama, "telefono_origen");
+
+            if (numeroTelefono.isEmpty()) {
+                numeroTelefono = leerCampo(trama, "telefono");
+            }
 
             if (fechaCalculo.isEmpty() || fechaMaximaPago.isEmpty()) {
                 return "ERROR";
@@ -28,7 +33,11 @@ public class Proveedor6Service {
                 return "ERROR";
             }
 
-            facturacionDAO.calcularFacturacionPostpago(fechaCalculo, fechaMaximaPago);
+            facturacionDAO.calcularFacturacionPostpago(
+                fechaCalculo,
+                fechaMaximaPago,
+                numeroTelefono
+            );
             return "OK";
 
         } catch (Exception e) {

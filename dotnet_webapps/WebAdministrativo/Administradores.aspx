@@ -11,8 +11,8 @@
                 <asp:BoundField HeaderText="Primer apellido" DataField="PrimerApellido" />
                 <asp:BoundField HeaderText="Segundo apellido" DataField="SegundoApellido" />
                 <asp:BoundField HeaderText="Correo" DataField="CorreoElectronico" />
-                <asp:BoundField HeaderText="Usuario" DataField="UsuarioEncriptado" />
-                <asp:BoundField HeaderText="Contrasena" DataField="ContrasenaEncriptada" />
+                <asp:BoundField HeaderText="Usuario" DataField="UsuarioVisible" />
+                <asp:BoundField HeaderText="Contrasena" DataField="ContrasenaVisible" />
                 <asp:BoundField HeaderText="Estado" DataField="Estado" />
                 <asp:TemplateField HeaderText="Acciones">
                     <ItemTemplate>

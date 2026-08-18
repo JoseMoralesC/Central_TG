@@ -23,6 +23,13 @@ namespace WS_Proveedor
                     return CrearRespuestaErrorActivacion();
                 }
 
+                if (EsActivacion(solicitud.Estado) &&
+                    NumeroTieneLineaActiva(solicitud.NumeroTelefono))
+                {
+                    return CrearRespuestaErrorActivacion(
+                        "El numero ya se encuentra asignado a un cliente.");
+                }
+
                 var tramaService = new TramaProveedorService();
 
                 string tramaJson =
@@ -52,7 +59,7 @@ namespace WS_Proveedor
                     return new RespuestaServicio
                     {
                         Resultado = true,
-                        Mensaje = "Exitoso"
+                        Mensaje = "Proceso finalizado de forma exitosa"
                     };
                 }
 
@@ -101,10 +108,12 @@ namespace WS_Proveedor
                     "OK",
                     StringComparison.OrdinalIgnoreCase))
                 {
+                    string mensaje = CrearMensajeFacturacionExitosa(solicitud);
+
                     return new RespuestaServicio
                     {
                         Resultado = true,
-                        Mensaje = "Exitoso"
+                        Mensaje = mensaje
                     };
                 }
 
@@ -116,6 +125,62 @@ namespace WS_Proveedor
                     "Error en WS_PROVEEDOR3: " + ex);
 
                 return CrearRespuestaErrorFacturacion();
+            }
+        }
+
+        private static string CrearMensajeFacturacionExitosa(CalcularFacturacionRequest solicitud)
+        {
+            if (solicitud == null || string.IsNullOrWhiteSpace(solicitud.NumeroTelefono))
+            {
+                return "Facturacion calculada correctamente.";
+            }
+
+            try
+            {
+                string connectionString = ObtenerConnectionString();
+
+                const string sql = @"
+SELECT TOP 1
+    s.numero_telefono,
+    COUNT(*) OVER() AS total_registros,
+    f.total_llamadas,
+    f.total_facturar
+FROM dbo.facturacion_postpago f
+JOIN dbo.servicios s ON s.servicio_id = f.servicio_id
+WHERE f.fecha_calculo = @fechaCalculo
+  AND (
+      s.numero_telefono = @numeroTelefono
+      OR RIGHT(REPLACE(s.numero_telefono, '+', ''), 8) =
+         RIGHT(REPLACE(@numeroTelefono, '+', ''), 8)
+  )
+ORDER BY f.facturacion_id DESC;";
+
+                using (var conexion = new SqlConnection(connectionString))
+                using (var comando = new SqlCommand(sql, conexion))
+                {
+                    comando.Parameters.AddWithValue("@fechaCalculo", solicitud.FechaCalculo);
+                    comando.Parameters.AddWithValue("@numeroTelefono", solicitud.NumeroTelefono.Trim());
+                    conexion.Open();
+
+                    using (var reader = comando.ExecuteReader(CommandBehavior.SingleRow))
+                    {
+                        if (!reader.Read())
+                        {
+                            return "No se encontro facturacion para la linea seleccionada.";
+                        }
+
+                        return "Factura consultada para " +
+                            Convert.ToString(reader["numero_telefono"]) +
+                            " | Llamadas: " + Convert.ToInt32(reader["total_llamadas"]) +
+                            " | Total: " + Convert.ToDecimal(reader["total_facturar"]).ToString("0.00") +
+                            " CRC";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Error consultando resumen de facturacion individual: " + ex);
+                return "Facturacion calculada correctamente.";
             }
         }
 
@@ -142,7 +207,7 @@ SELECT TOP 1
     MAX(fecha_registro) AS fecha_registro
 FROM dbo.facturacion_postpago
 GROUP BY fecha_calculo, fecha_maxima_pago
-ORDER BY fecha_calculo DESC, MAX(fecha_registro) DESC;";
+ORDER BY MAX(fecha_registro) DESC, fecha_calculo DESC;";
 
                 using (var conexion = new SqlConnection(connectionString))
                 using (var comando = new SqlCommand(sql, conexion))
@@ -156,7 +221,7 @@ ORDER BY fecha_calculo DESC, MAX(fecha_registro) DESC;";
                             return new UltimaFacturacionResponse
                             {
                                 Resultado = true,
-                                Mensaje = "No existe facturacion previa.",
+                                Mensaje = "No existe calculo previo.",
                                 HayFacturacion = false
                             };
                         }
@@ -224,6 +289,16 @@ ORDER BY fecha_calculo DESC, MAX(fecha_registro) DESC;";
                             return CrearRespuestaError("El numero ya existe.");
                         }
 
+                        if (ExisteIdentificadorServicio(
+                            conexion,
+                            transaccion,
+                            solicitud.IdentificadorTelefono,
+                            solicitud.IdentificadorTarjeta))
+                        {
+                            transaccion.Rollback();
+                            return CrearRespuestaError("El identificador del telefono o de la tarjeta ya existe.");
+                        }
+
                         int clienteId = CrearClienteInventario(conexion, transaccion, solicitud.NumeroTelefono.Trim());
                         int servicioId = CrearServicioDisponible(conexion, transaccion, clienteId, solicitud);
                         AsegurarSaldo(conexion, transaccion, servicioId);
@@ -284,8 +359,9 @@ WHERE servicio_id = @servicioId
                             clienteId = Convert.ToInt32(valor);
                         }
 
-                        EjecutarSinResultado(conexion, transaccion,
-                            "DELETE FROM dbo.saldos WHERE servicio_id = @servicioId",
+                        EliminarDependenciasLineaDisponible(
+                            conexion,
+                            transaccion,
                             servicioId);
 
                         EjecutarSinResultado(conexion, transaccion,
@@ -339,7 +415,7 @@ WHERE servicio_id = @servicioId
             {
                 Resultado = false,
                 Mensaje = string.IsNullOrWhiteSpace(detalle)
-                    ? "Problemas al consultar la ultima facturacion."
+                    ? "Problemas al consultar el ultimo calculo."
                     : detalle.Trim(),
                 HayFacturacion = false
             };
@@ -367,6 +443,19 @@ SELECT
 FROM dbo.servicios s
 LEFT JOIN dbo.clientes c ON c.cliente_id = s.cliente_id
 WHERE UPPER(ISNULL(s.estado_linea, CASE WHEN s.activo = 1 THEN 'ACTIVO' ELSE 'DISPONIBLE' END)) = @estado
+  AND (
+      @estado <> 'DISPONIBLE'
+      OR NOT EXISTS (
+          SELECT 1
+          FROM dbo.servicios activa
+          WHERE activa.servicio_id <> s.servicio_id
+            AND UPPER(ISNULL(activa.estado_linea, CASE WHEN activa.activo = 1 THEN 'ACTIVO' ELSE 'DISPONIBLE' END)) = 'ACTIVO'
+            AND (
+                activa.numero_telefono = s.numero_telefono
+                OR RIGHT(REPLACE(activa.numero_telefono, '+', ''), 8) = RIGHT(REPLACE(s.numero_telefono, '+', ''), 8)
+            )
+      )
+  )
 ORDER BY s.numero_telefono;";
 
                 using (var conexion = new SqlConnection(connectionString))
@@ -385,6 +474,10 @@ ORDER BY s.numero_telefono;";
                                 NumeroTelefono = Convert.ToString(reader["numero_telefono"]),
                                 IdentificadorTelefono = Convert.ToString(reader["identificador_telefono_cifrado"]),
                                 IdentificadorTarjeta = Convert.ToString(reader["identificador_tarjeta_cifrado"]),
+                                IdentificadorTelefonoVisible = DesencriptarOResumir(
+                                    Convert.ToString(reader["identificador_telefono_cifrado"])),
+                                IdentificadorTarjetaVisible = DesencriptarOResumir(
+                                    Convert.ToString(reader["identificador_tarjeta_cifrado"])),
                                 TipoServicio = Convert.ToString(reader["tipo_servicio"]),
                                 IdentificacionCliente = Convert.ToString(reader["identificacion_dueno_cifrada"]),
                                 IdentificacionClienteVisible = DesencriptarOResumir(
@@ -436,15 +529,133 @@ ORDER BY s.numero_telefono;";
             return valor == "PREPAGO" || valor == "POSTPAGO";
         }
 
+        private static bool EsActivacion(string estado)
+        {
+            return string.Equals(
+                estado?.Trim(),
+                "activo",
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool NumeroTieneLineaActiva(string numeroTelefonoCifrado)
+        {
+            string numeroTelefono = ProveedorCryptoService.Desencriptar(numeroTelefonoCifrado);
+
+            if (string.IsNullOrWhiteSpace(numeroTelefono))
+            {
+                return false;
+            }
+
+            string connectionString = ObtenerConnectionString();
+
+            const string sql = @"
+SELECT COUNT(1)
+FROM dbo.servicios
+WHERE UPPER(ISNULL(estado_linea, CASE WHEN activo = 1 THEN 'ACTIVO' ELSE 'DISPONIBLE' END)) = 'ACTIVO'
+  AND (
+      numero_telefono = @numeroTelefono
+      OR RIGHT(REPLACE(numero_telefono, '+', ''), 8) = @ultimosOcho
+  );";
+
+            using (var conexion = new SqlConnection(connectionString))
+            using (var comando = new SqlCommand(sql, conexion))
+            {
+                comando.Parameters.AddWithValue("@numeroTelefono", numeroTelefono.Trim());
+                comando.Parameters.AddWithValue("@ultimosOcho", UltimosOchoDigitos(numeroTelefono));
+                conexion.Open();
+
+                return Convert.ToInt32(comando.ExecuteScalar()) > 0;
+            }
+        }
+
+        private static string UltimosOchoDigitos(string numeroTelefono)
+        {
+            if (string.IsNullOrWhiteSpace(numeroTelefono))
+            {
+                return string.Empty;
+            }
+
+            string digitos = string.Empty;
+
+            foreach (char caracter in numeroTelefono)
+            {
+                if (char.IsDigit(caracter))
+                {
+                    digitos += caracter;
+                }
+            }
+
+            return digitos.Length <= 8
+                ? digitos
+                : digitos.Substring(digitos.Length - 8);
+        }
+
         private static bool ExisteTelefono(SqlConnection conexion, SqlTransaction transaccion, string numeroTelefono)
         {
-            const string sql = "SELECT COUNT(1) FROM dbo.servicios WHERE numero_telefono = @numeroTelefono";
+            const string sql = @"
+SELECT COUNT(1)
+FROM dbo.servicios
+WHERE numero_telefono = @numeroTelefono
+   OR RIGHT(REPLACE(numero_telefono, '+', ''), 8) = @ultimosOcho;";
 
             using (var comando = new SqlCommand(sql, conexion, transaccion))
             {
                 comando.Parameters.AddWithValue("@numeroTelefono", numeroTelefono);
+                comando.Parameters.AddWithValue("@ultimosOcho", UltimosOchoDigitos(numeroTelefono));
                 return Convert.ToInt32(comando.ExecuteScalar()) > 0;
             }
+        }
+
+        private static bool ExisteIdentificadorServicio(
+            SqlConnection conexion,
+            SqlTransaction transaccion,
+            string identificadorTelefono,
+            string identificadorTarjeta)
+        {
+            string telefonoNormalizado = NormalizarIdentificadorAlmacenado(identificadorTelefono);
+            string tarjetaNormalizada = NormalizarIdentificadorAlmacenado(identificadorTarjeta);
+
+            const string sql = @"
+SELECT
+    ISNULL(identificador_telefono_cifrado, '') AS identificador_telefono_cifrado,
+    ISNULL(identificador_tarjeta_cifrado, '') AS identificador_tarjeta_cifrado
+FROM dbo.servicios;";
+
+            using (var comando = new SqlCommand(sql, conexion, transaccion))
+            using (var reader = comando.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    string telefonoActual = Convert.ToString(reader["identificador_telefono_cifrado"]);
+                    string tarjetaActual = Convert.ToString(reader["identificador_tarjeta_cifrado"]);
+
+                    if (IdentificadorExistenteCoincide(telefonoActual, telefonoNormalizado, identificadorTelefono) ||
+                        IdentificadorExistenteCoincide(tarjetaActual, tarjetaNormalizada, identificadorTarjeta))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IdentificadorExistenteCoincide(
+            string valorActual,
+            string valorNormalizado,
+            string valorOriginal)
+        {
+            return ValoresIguales(valorActual, valorNormalizado) ||
+                ValoresIguales(valorActual, valorOriginal) ||
+                ValoresIguales(DesencriptarOResumir(valorActual), valorOriginal);
+        }
+
+        private static bool ValoresIguales(string valorActual, string valorNuevo)
+        {
+            return string.Equals(
+                valorActual?.Trim(),
+                valorNuevo?.Trim(),
+                StringComparison.OrdinalIgnoreCase);
         }
 
         private static int CrearClienteInventario(SqlConnection conexion, SqlTransaction transaccion, string numeroTelefono)
@@ -483,10 +694,32 @@ SELECT CAST(SCOPE_IDENTITY() AS int);";
                 comando.Parameters.AddWithValue("@clienteId", clienteId);
                 comando.Parameters.AddWithValue("@numeroTelefono", solicitud.NumeroTelefono.Trim());
                 comando.Parameters.AddWithValue("@tipoServicio", solicitud.TipoServicio.Trim().ToUpperInvariant());
-                comando.Parameters.AddWithValue("@identificadorTelefono", ProveedorCryptoService.Encriptar(solicitud.IdentificadorTelefono));
-                comando.Parameters.AddWithValue("@identificadorTarjeta", ProveedorCryptoService.Encriptar(solicitud.IdentificadorTarjeta));
+                comando.Parameters.AddWithValue(
+                    "@identificadorTelefono",
+                    NormalizarIdentificadorAlmacenado(solicitud.IdentificadorTelefono));
+                comando.Parameters.AddWithValue(
+                    "@identificadorTarjeta",
+                    NormalizarIdentificadorAlmacenado(solicitud.IdentificadorTarjeta));
                 return Convert.ToInt32(comando.ExecuteScalar());
             }
+        }
+
+        private static string NormalizarIdentificadorAlmacenado(string identificador)
+        {
+            if (string.IsNullOrWhiteSpace(identificador))
+            {
+                return string.Empty;
+            }
+
+            string valor = identificador.Trim();
+
+            if (valor.StartsWith("ENC_IMEI_", StringComparison.OrdinalIgnoreCase) ||
+                valor.StartsWith("ENC_SIM_", StringComparison.OrdinalIgnoreCase))
+            {
+                return valor;
+            }
+
+            return ProveedorCryptoService.Encriptar(valor);
         }
 
         private static void AsegurarSaldo(SqlConnection conexion, SqlTransaction transaccion, int servicioId)
@@ -510,6 +743,76 @@ SELECT CAST(SCOPE_IDENTITY() AS int);";
             {
                 comando.Parameters.AddWithValue("@servicioId", servicioId);
                 comando.ExecuteNonQuery();
+            }
+        }
+
+        private static void EliminarDependenciasLineaDisponible(
+            SqlConnection conexion,
+            SqlTransaction transaccion,
+            int servicioId)
+        {
+            EjecutarSiExisteTabla(
+                conexion,
+                transaccion,
+                "dbo.movimientos_saldo",
+                "DELETE FROM dbo.movimientos_saldo WHERE servicio_id = @servicioId",
+                servicioId);
+
+            EjecutarSiExisteTabla(
+                conexion,
+                transaccion,
+                "dbo.facturacion_postpago",
+                "DELETE FROM dbo.facturacion_postpago WHERE servicio_id = @servicioId",
+                servicioId);
+
+            EjecutarSiExisteTabla(
+                conexion,
+                transaccion,
+                "dbo.bitacora_proveedor",
+                "DELETE FROM dbo.bitacora_proveedor WHERE servicio_id = @servicioId",
+                servicioId);
+
+            EjecutarSiExisteTabla(
+                conexion,
+                transaccion,
+                "dbo.llamadas_proveedor",
+                "DELETE FROM dbo.llamadas_proveedor WHERE servicio_id = @servicioId",
+                servicioId);
+
+            EjecutarSiExisteTabla(
+                conexion,
+                transaccion,
+                "dbo.saldos",
+                "DELETE FROM dbo.saldos WHERE servicio_id = @servicioId",
+                servicioId);
+        }
+
+        private static void EjecutarSiExisteTabla(
+            SqlConnection conexion,
+            SqlTransaction transaccion,
+            string tabla,
+            string sql,
+            int servicioId)
+        {
+            if (!ExisteTabla(conexion, transaccion, tabla))
+            {
+                return;
+            }
+
+            EjecutarSinResultado(conexion, transaccion, sql, servicioId);
+        }
+
+        private static bool ExisteTabla(
+            SqlConnection conexion,
+            SqlTransaction transaccion,
+            string tabla)
+        {
+            const string sql = "SELECT CASE WHEN OBJECT_ID(@tabla, 'U') IS NULL THEN 0 ELSE 1 END";
+
+            using (var comando = new SqlCommand(sql, conexion, transaccion))
+            {
+                comando.Parameters.AddWithValue("@tabla", tabla);
+                return Convert.ToInt32(comando.ExecuteScalar()) == 1;
             }
         }
 
@@ -558,6 +861,12 @@ WHERE c.cliente_id = @clienteId
             }
 
             string valor = valorCifrado.Trim();
+            if (valor.StartsWith("ENC_IMEI_", StringComparison.OrdinalIgnoreCase) ||
+                valor.StartsWith("ENC_SIM_", StringComparison.OrdinalIgnoreCase))
+            {
+                return valor;
+            }
+
             return valor.Length <= 12
                 ? valor
                 : valor.Substring(0, 8) + "...";

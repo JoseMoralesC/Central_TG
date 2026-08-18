@@ -94,10 +94,12 @@ def _validar_trama(trama: dict) -> str | None:
 
 def _datos_cifrados_validos(trama: dict) -> bool:
     telefono = desencriptar_aes(trama["telefono"])
-    identificador_dispositivo = desencriptar_aes(
+    identificador_dispositivo = _desencriptar_o_valor_original(
         trama["identificador_dispositivo"]
     )
-    identificador_tarjeta = desencriptar_aes(trama["identificador_tarjeta"])
+    identificador_tarjeta = _desencriptar_o_valor_original(
+        trama["identificador_tarjeta"]
+    )
     identificacion_cliente = desencriptar_aes(
         trama["identificacion_cliente"]
     )
@@ -112,11 +114,37 @@ def _datos_cifrados_validos(trama: dict) -> bool:
 
     return (
         telefono.isdigit() and
-        identificador_dispositivo.isdigit() and
-        len(identificador_dispositivo) == 16 and
-        identificador_tarjeta.isdigit() and
-        len(identificador_tarjeta) == 19 and
+        _identificador_dispositivo_valido(identificador_dispositivo) and
+        _identificador_tarjeta_valido(identificador_tarjeta) and
         identificacion_cliente.strip() != ""
+    )
+
+def _desencriptar_o_valor_original(valor: str) -> str:
+    plano = desencriptar_aes(valor)
+    return plano if plano else str(valor or "").strip()
+
+def _identificador_dispositivo_valido(valor: str) -> bool:
+    if valor.isdigit() and len(valor) in (15, 16):
+        return True
+
+    prefijo = "ENC_IMEI_"
+    digitos = valor[len(prefijo):]
+
+    return (
+        valor.upper().startswith(prefijo) and
+        digitos.isdigit() and
+        len(digitos) in (15, 16)
+    )
+
+def _identificador_tarjeta_valido(valor: str) -> bool:
+    if valor.isdigit() and len(valor) == 19:
+        return True
+
+    prefijo = "ENC_SIM_"
+    return (
+        valor.upper().startswith(prefijo) and
+        valor[len(prefijo):].isdigit() and
+        len(valor[len(prefijo):]) == 19
     )
 
 def _respuesta_fallida(mensaje: str) -> dict:

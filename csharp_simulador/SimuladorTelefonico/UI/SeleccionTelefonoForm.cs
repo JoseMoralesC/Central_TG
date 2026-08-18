@@ -241,6 +241,20 @@ namespace SimuladorTelefonico.UI
                 _listaTelefonos.Controls.Add(opcion);
             }
 
+            if (_opcionesTelefono.Count == 0)
+            {
+                _listaTelefonos.Controls.Add(UiTheme.CrearEtiqueta(
+                    "No hay telefonos activos confirmados por el backend.",
+                    0,
+                    0,
+                    720,
+                    48,
+                    10,
+                    FontStyle.Regular,
+                    UiTheme.TextoSecundario,
+                    ContentAlignment.MiddleCenter));
+            }
+
             _listaTelefonos.ResumeLayout(true);
             ResumeLayout(true);
         }

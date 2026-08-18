@@ -16,7 +16,6 @@ PAISES = {
 
 def procesar_catalogo_telefonos(_: dict) -> dict:
     telefonos = []
-    consultar_proveedor = True
 
     for item in listar_telefonos_catalogo():
         numero = desencriptar_aes(item.get("numero_cifrado", ""))
@@ -26,16 +25,18 @@ def procesar_catalogo_telefonos(_: dict) -> dict:
         if not numero:
             continue
 
-        detalle = {}
-        if consultar_proveedor:
-            detalle = enviar_al_proveedor({
-                "tipo_transaccion": "CONSULTA_PROVEEDOR",
-                "accion": "DETALLE_TELEFONO",
-                "telefono_origen": numero
-            })
-            codigo_detalle = detalle.get("resultado", {}).get("codigo", detalle.get("status", "ERROR"))
-            if codigo_detalle != "OK":
-                consultar_proveedor = False
+        detalle = enviar_al_proveedor({
+            "tipo_transaccion": "CONSULTA_PROVEEDOR",
+            "accion": "DETALLE_TELEFONO",
+            "telefono_origen": numero
+        })
+        codigo_detalle = detalle.get(
+            "resultado",
+            {}
+        ).get("codigo", detalle.get("status", "ERROR"))
+
+        if codigo_detalle != "OK":
+            continue
 
         detalle_tel = detalle.get("telefono", {})
         pais = item.get("pais") or "Costa Rica"
@@ -54,6 +55,7 @@ def procesar_catalogo_telefonos(_: dict) -> dict:
             "tipo_llamada": detalle_tel.get("tipo_llamada", tipo_llamada),
             "tipo_servicio": detalle_tel.get("tipo_servicio", item.get("tipo_servicio", "PREPAGO")),
             "saldo": detalle_tel.get("saldo", 0),
+            "consumo_postpago": detalle_tel.get("consumo_postpago", 0),
             "sim": sim or item.get("identificador_tarjeta_cifrado", ""),
             "imei": imei or item.get("identificador_dispositivo_cifrado", ""),
             "activo": bool(item.get("activo")) and bool(item.get("sim_activa", True)) and bool(item.get("dispositivo_activo", True))

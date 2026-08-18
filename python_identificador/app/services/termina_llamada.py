@@ -9,8 +9,11 @@ from app.services.iniciar_llamada import (
     llamadas_activas, lock_llamadas, eliminar_llamada_activa
 )
 
-def enviar_procesar_cobro(telefono_origen: str, telefono_destino: str,
-                           duracion_segundos: int, monto_total: float,
+def enviar_procesar_cobro(id_llamada: str,
+                           telefono_origen: str, telefono_destino: str,
+                           fecha_inicio: str, fecha_fin: str,
+                           duracion_segundos: int, duracion_minutos: int,
+                           monto_total: float,
                            tipo_servicio: str, tipo_llamada: str,
                            motivo_finalizacion: str) -> dict:
     """
@@ -33,11 +36,25 @@ def enviar_procesar_cobro(telefono_origen: str, telefono_destino: str,
     """
     trama_cobro = {
         "tipo_transaccion": "CONSULTA_PROVEEDOR",
-        "accion": "REBAJAR_SALDO",
+        "accion": "REGISTRO_MOVIMIENTO",
+        "id_llamada": id_llamada,
         "telefono_origen": telefono_origen,
         "telefono_destino": telefono_destino,
+        "fecha_inicio": fecha_inicio,
+        "fecha_fin": fecha_fin,
+        "duracion_segundos": duracion_segundos,
+        "duracion_minutos": duracion_minutos,
+        "tipo_servicio": tipo_servicio,
+        "tipo_llamada": tipo_llamada,
+        "monto_total": monto_total,
+        "moneda": "CRC",
+        "motivo_finalizacion": motivo_finalizacion,
         "datos_llamada": {
+            "id_llamada": id_llamada,
+            "fecha_inicio": fecha_inicio,
+            "fecha_fin": fecha_fin,
             "duracion_segundos": duracion_segundos,
+            "duracion_minutos": duracion_minutos,
             "motivo_finalizacion": motivo_finalizacion
         },
         "datos_cobro": {
@@ -86,9 +103,13 @@ def verificar_llamadas_vencidas():
                             continue
                         
                         enviar_procesar_cobro(
+                            id_llamada=llamada["id_llamada"],
                             telefono_origen=telefono_origen_plano,
                             telefono_destino=llamada["telefono_destino"],
+                            fecha_inicio=llamada["fecha_inicio"],
+                            fecha_fin=llamada["hora_fin_maxima"].isoformat(),
                             duracion_segundos=int(duracion),
+                            duracion_minutos=max(1, int((duracion + 59) // 60)),
                             monto_total=round(monto_estimado, 2),
                             tipo_servicio="PREPAGO",
                             tipo_llamada="NACIONAL",
@@ -129,7 +150,9 @@ def procesar_finalizacion_llamada(trama_json: dict) -> dict:
         telefono_origen_plano = desencriptar_aes(telefono_origen)
         telefono_destino = datos_llamada.get("telefono_destino", "")
         fecha_inicio = datos_llamada.get("fecha_inicio", "")
+        fecha_fin = datos_llamada.get("fecha_fin", datetime.now().isoformat())
         duracion_segundos = datos_llamada.get("duracion_segundos", 0)
+        duracion_minutos = datos_llamada.get("duracion_minutos", 0)
         motivo_finalizacion = datos_llamada.get("motivo_finalizacion", "FINALIZACION_MANUAL")
 
         if not telefono_origen_plano:
@@ -188,9 +211,13 @@ def procesar_finalizacion_llamada(trama_json: dict) -> dict:
         
         # Enviar al proveedor para procesar el cobro usando el contrato estándar
         respuesta_proveedor = enviar_procesar_cobro(
+            id_llamada=id_llamada,
             telefono_origen=telefono_origen_plano,
             telefono_destino=telefono_destino,
+            fecha_inicio=fecha_inicio,
+            fecha_fin=fecha_fin,
             duracion_segundos=duracion_segundos,
+            duracion_minutos=duracion_minutos,
             monto_total=float(monto_total),
             tipo_servicio=tipo_servicio,
             tipo_llamada=tipo_llamada,
@@ -215,7 +242,8 @@ def procesar_finalizacion_llamada(trama_json: dict) -> dict:
                 },
                 "movimiento": {
                     "saldo_anterior": respuesta_proveedor.get("datos_autorizacion", {}).get("saldo_anterior", 0),
-                    "monto_rebajado": float(monto_total),
+                    "monto_rebajado": respuesta_proveedor.get("datos_autorizacion", {}).get("monto_rebajado", float(monto_total)),
+                    "monto_facturable": respuesta_proveedor.get("datos_autorizacion", {}).get("monto_facturable", float(monto_total)),
                     "saldo_actual": respuesta_proveedor.get("datos_autorizacion", {}).get("saldo_actual", 0)
                 }
             }
