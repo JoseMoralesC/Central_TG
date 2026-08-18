@@ -1,0 +1,211 @@
+@model PortalCliente.Models.PagarFacturaViewModel
+
+@{
+    ViewData["Title"] = "Pagar factura";
+    var cultura = new System.Globalization.CultureInfo("es-CR");
+}
+
+@if (Model.ModoLista)
+{
+    <h2>Pagar factura</h2>
+    <p class="text-muted">Seleccione la linea postpago cuya factura desea cancelar.</p>
+
+    @if (string.IsNullOrWhiteSpace(Model.Identificacion))
+    {
+        <div class="alert alert-info" role="alert">
+            @Model.MensajeConsulta
+        </div>
+        <a asp-action="Index" asp-controller="Cliente" class="btn btn-primary">
+            Ingresar mi identificacion
+        </a>
+    }
+    else if (!Model.ResultadoConsulta)
+    {
+        <div class="alert alert-danger" role="alert">
+            @Model.MensajeConsulta
+        </div>
+    }
+    else if (!Model.Lineas.Any())
+    {
+        <div class="alert alert-info" role="alert">
+            No posee lineas postpago registradas.
+        </div>
+    }
+    else
+    {
+        <p class="text-muted">
+            Haga <strong>doble clic</strong> sobre una linea con factura pendiente para cancelarla.
+        </p>
+
+        <table class="table table-hover align-middle" id="tablaPostpago">
+            <thead>
+                <tr>
+                    <th>Numero</th>
+                    <th class="text-end">Factura pendiente</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var linea in Model.Lineas)
+                {
+                    var tieneFactura = linea.FacturaPendiente > 0;
+                    <tr data-numero="@linea.NumeroTelefono"
+                        style="cursor: @(tieneFactura ? "pointer" : "default")"
+                        title="@(tieneFactura ? "Doble clic para pagar factura" : "Sin factura pendiente")">
+                        <td>@linea.NumeroTelefono</td>
+                        <td class="text-end">
+                            @if (tieneFactura)
+                            {
+                                @("₡" + linea.FacturaPendiente.ToString("N2", cultura))
+                            }
+                            else
+                            {
+                                <span class="text-muted">0.00</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+else
+{
+    <h2>Pagar factura (CLIENTE6)</h2>
+    <p><strong>Linea seleccionada:</strong> @Model.Numero</p>
+
+    <form asp-action="PagarFactura" asp-controller="Cliente" method="post">
+        <input type="hidden" name="Numero" value="@Model.Numero" />
+
+        @if (Model.Procesado)
+        {
+            @if (Model.Exitoso)
+            {
+                <div class="alert alert-success" role="alert">
+                    <strong>@Model.MensajeResultado</strong>
+                    <br />Factura cancelada: @("₡" + Model.MontoFactura.ToString("N2", cultura))
+                    @if (!string.IsNullOrWhiteSpace(Model.DetalleCorreo))
+                    {
+                        <br />@Model.DetalleCorreo
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-danger" role="alert">
+                    @Model.MensajeResultado
+                </div>
+            }
+        }
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h3 class="h5 mb-3">Datos de la factura</h3>
+
+                <div class="mb-3">
+                    <label class="form-label">Monto total de la factura por cancelar</label>
+                    <input type="text"
+                           class="form-control"
+                           value="@("₡" + Model.MontoFactura.ToString("N2", cultura))"
+                           readonly />
+                    <div class="form-text">El monto se carga automaticamente y no puede modificarse.</div>
+                </div>
+
+                <h3 class="h5 mb-3 mt-4">Datos de la tarjeta</h3>
+
+                <div class="mb-3">
+                    <label for="NumeroTarjeta" class="form-label">Numero de tarjeta (12 digitos)</label>
+                    <input type="text"
+                           class="form-control"
+                           id="NumeroTarjeta"
+                           name="NumeroTarjeta"
+                           value="@Model.NumeroTarjeta"
+                           maxlength="19"
+                           placeholder="1234-5678-9012"
+                           required />
+                </div>
+
+                <div class="mb-3">
+                    <label for="NombreTarjeta" class="form-label">Nombre del dueno de la tarjeta</label>
+                    <input type="text"
+                           class="form-control"
+                           id="NombreTarjeta"
+                           name="NombreTarjeta"
+                           value="@Model.NombreTarjeta"
+                           maxlength="60"
+                           required />
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="FechaVencimiento" class="form-label">Fecha de vencimiento (MM/AA)</label>
+                        <input type="text"
+                               class="form-control"
+                               id="FechaVencimiento"
+                               name="FechaVencimiento"
+                               value="@Model.FechaVencimiento"
+                               maxlength="5"
+                               placeholder="MM/AA"
+                               required />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="CodigoSeguridad" class="form-label">Codigo de seguridad</label>
+                        <input type="text"
+                               class="form-control"
+                               id="CodigoSeguridad"
+                               name="CodigoSeguridad"
+                               value="@Model.CodigoSeguridad"
+                               maxlength="3"
+                               placeholder="000"
+                               required />
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary mt-4">
+                    Procesar pago
+                </button>
+            </div>
+        </div>
+    </form>
+}
+
+<div class="mt-3">
+    <a asp-action="Index" asp-controller="Cliente" class="btn btn-outline-secondary">
+        Volver a mis lineas
+    </a>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var tarjeta = document.getElementById('NumeroTarjeta');
+            if (tarjeta) {
+                tarjeta.addEventListener('input', function () {
+                    var digitos = tarjeta.value.replace(/[^0-9]/g, '').slice(0, 12);
+                    var grupos = digitos.match(/.{1,4}/g) || [];
+                    tarjeta.value = grupos.join('-');
+                });
+            }
+
+            var vencimiento = document.getElementById('FechaVencimiento');
+            if (vencimiento) {
+                vencimiento.addEventListener('input', function () {
+                    var digitos = vencimiento.value.replace(/[^0-9]/g, '').slice(0, 4);
+                    if (digitos.length >= 3) {
+                        vencimiento.value = digitos.slice(0, 2) + '/' + digitos.slice(2);
+                    } else {
+                        vencimiento.value = digitos;
+                    }
+                });
+            }
+
+            document.querySelectorAll('#tablaPostpago tbody tr').forEach(function (fila) {
+                fila.addEventListener('dblclick', function () {
+                    var numero = fila.dataset.numero;
+                    if (numero) {
+                        window.location.href = '/Cliente/PagarFactura?numero=' + encodeURIComponent(numero);
+                    }
+                });
+            });
+        })();
+    </script>
+}
