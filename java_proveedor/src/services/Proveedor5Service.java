@@ -50,6 +50,9 @@ public class Proveedor5Service {
                 trama.identificadorTarjeta,
                 trama.tipoServicio,
                 trama.identificacionDueno,
+                cryptoService.desencriptarAesOOriginal(trama.identificacionDueno),
+                trama.nombreCliente,
+                trama.correoCliente,
                 "PREPAGO".equals(trama.tipoServicio)
                     ? SALDO_INICIAL_PREPAGO
                     : BigDecimal.ZERO
@@ -117,6 +120,8 @@ public class Proveedor5Service {
         String identificadorTarjeta;
         String tipoServicio;
         String identificacionDueno;
+        String nombreCliente;
+        String correoCliente;
         String accion;
         String fechaHora;
 
@@ -133,6 +138,8 @@ public class Proveedor5Service {
             if (trama.identificacionDueno.isBlank()) {
                 trama.identificacionDueno = leerCampo(json, "identificacion_cliente");
             }
+            trama.nombreCliente = leerCampo(json, "nombre_cliente");
+            trama.correoCliente = leerCampo(json, "correo_cliente");
             trama.accion = leerCampo(json, "accion").toUpperCase();
             trama.fechaHora = leerCampo(json, "fecha_hora");
             return trama;

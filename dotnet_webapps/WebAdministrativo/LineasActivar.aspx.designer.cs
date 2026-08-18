@@ -11,7 +11,7 @@ namespace WebAdministrativo
         protected global::System.Web.UI.WebControls.HiddenField TipoHidden;
         protected global::System.Web.UI.WebControls.Literal TelefonoLiteral;
         protected global::System.Web.UI.WebControls.Literal TipoLiteral;
-        protected global::System.Web.UI.WebControls.TextBox CedulaText;
+        protected global::System.Web.UI.WebControls.DropDownList ClientesList;
         protected global::System.Web.UI.WebControls.Button ActivarButton;
     }
 }

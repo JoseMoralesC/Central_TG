@@ -176,12 +176,20 @@ public class ServicioDAO {
         String tipoServicio,
         String proveedorCodigo,
         BigDecimal saldoInicial,
+        String simCifrado,
+        String imeiCifrado,
         boolean activo
     ) {
         ultimoError = "";
 
         if (existeTelefono(numeroTelefono)) {
             ultimoError = "El numero ya existe en SQL Server";
+            return false;
+        }
+
+        if (simCifrado == null || simCifrado.isBlank() ||
+            imeiCifrado == null || imeiCifrado.isBlank()) {
+            ultimoError = "SIM e IMEI son obligatorios";
             return false;
         }
 
@@ -214,8 +222,10 @@ public class ServicioDAO {
             int servicioId;
             try (
                 PreparedStatement servicio = conn.prepareStatement(
-                    "INSERT INTO servicios (cliente_id, numero_telefono, tipo_servicio, activo, proveedor_codigo) " +
-                    "VALUES (?, ?, ?, ?, ?)",
+                    "INSERT INTO servicios " +
+                    "(cliente_id, numero_telefono, tipo_servicio, activo, proveedor_codigo, estado_linea, " +
+                    "identificador_tarjeta_cifrado, identificador_telefono_cifrado) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                     Statement.RETURN_GENERATED_KEYS
                 )
             ) {
@@ -224,6 +234,9 @@ public class ServicioDAO {
                 servicio.setString(3, tipoServicio);
                 servicio.setBoolean(4, activo);
                 servicio.setString(5, proveedorCodigo);
+                servicio.setString(6, activo ? "ACTIVO" : "DISPONIBLE");
+                servicio.setString(7, simCifrado.trim());
+                servicio.setString(8, imeiCifrado.trim());
                 servicio.executeUpdate();
 
                 try (ResultSet keys = servicio.getGeneratedKeys()) {
@@ -317,6 +330,9 @@ public class ServicioDAO {
         String identificadorTarjeta,
         String tipoServicio,
         String identificacionDueno,
+        String identificacionDuenoPlano,
+        String nombreCliente,
+        String correoCliente,
         BigDecimal saldoInicialPrepago
     ) {
         ultimoError = "";
@@ -325,21 +341,28 @@ public class ServicioDAO {
         try {
             conn = ConexionSQL.getConexion();
             conn.setAutoCommit(false);
+            int clienteId = asegurarClienteReal(
+                conn,
+                identificacionDuenoPlano,
+                nombreCliente,
+                correoCliente
+            );
 
             try (
                 PreparedStatement servicio = conn.prepareStatement(
                     "UPDATE servicios " +
-                    "SET activo = 1, estado_linea = 'ACTIVO', tipo_servicio = ?, " +
+                    "SET cliente_id = ?, activo = 1, estado_linea = 'ACTIVO', tipo_servicio = ?, " +
                     "identificador_telefono_cifrado = ?, identificador_tarjeta_cifrado = ?, " +
                     "identificacion_dueno_cifrada = ? " +
                     "WHERE servicio_id = ?"
                 )
             ) {
-                servicio.setString(1, tipoServicio);
-                servicio.setString(2, identificadorTelefono);
-                servicio.setString(3, identificadorTarjeta);
-                servicio.setString(4, identificacionDueno);
-                servicio.setInt(5, servicioId);
+                servicio.setInt(1, clienteId);
+                servicio.setString(2, tipoServicio);
+                servicio.setString(3, identificadorTelefono);
+                servicio.setString(4, identificadorTarjeta);
+                servicio.setString(5, identificacionDueno);
+                servicio.setInt(6, servicioId);
 
                 if (servicio.executeUpdate() == 0) {
                     throw new IllegalStateException("No se actualizo el servicio");
@@ -366,6 +389,105 @@ public class ServicioDAO {
         } finally {
             cerrarConexionTransaccional(conn);
         }
+    }
+
+    private int asegurarClienteReal(
+        Connection conn,
+        String identificacion,
+        String nombre,
+        String correo
+    ) throws Exception {
+        String identificacionNormalizada = normalizarTexto(identificacion);
+
+        if (identificacionNormalizada.isBlank()) {
+            throw new IllegalArgumentException("Identificacion del cliente vacia");
+        }
+
+        try (
+            PreparedStatement buscar = conn.prepareStatement(
+                "SELECT cliente_id FROM clientes WHERE identificacion = ?"
+            )
+        ) {
+            buscar.setString(1, identificacionNormalizada);
+
+            try (ResultSet rs = buscar.executeQuery()) {
+                if (rs.next()) {
+                    int clienteId = rs.getInt("cliente_id");
+                    actualizarClienteReal(conn, clienteId, nombre, correo);
+                    return clienteId;
+                }
+            }
+        }
+
+        try (
+            PreparedStatement insertar = conn.prepareStatement(
+                "INSERT INTO clientes (nombre, identificacion, correo, activo) " +
+                "VALUES (?, ?, ?, 1)",
+                Statement.RETURN_GENERATED_KEYS
+            )
+        ) {
+            insertar.setString(1, nombreClienteSeguro(nombre, identificacionNormalizada));
+            insertar.setString(2, identificacionNormalizada);
+            insertar.setString(3, correoSeguro(correo, identificacionNormalizada));
+            insertar.executeUpdate();
+
+            try (ResultSet keys = insertar.getGeneratedKeys()) {
+                if (keys.next()) {
+                    return keys.getInt(1);
+                }
+            }
+        }
+
+        throw new IllegalStateException("No se pudo crear cliente");
+    }
+
+    private void actualizarClienteReal(
+        Connection conn,
+        int clienteId,
+        String nombre,
+        String correo
+    ) throws Exception {
+        String nombreNormalizado = normalizarTexto(nombre);
+        String correoNormalizado = normalizarTexto(correo);
+
+        if (nombreNormalizado.isBlank() && correoNormalizado.isBlank()) {
+            return;
+        }
+
+        try (
+            PreparedStatement actualizar = conn.prepareStatement(
+                "UPDATE clientes SET " +
+                "nombre = CASE WHEN ? <> '' THEN ? ELSE nombre END, " +
+                "correo = CASE WHEN ? <> '' THEN ? ELSE correo END, " +
+                "activo = 1 " +
+                "WHERE cliente_id = ?"
+            )
+        ) {
+            actualizar.setString(1, nombreNormalizado);
+            actualizar.setString(2, nombreNormalizado);
+            actualizar.setString(3, correoNormalizado);
+            actualizar.setString(4, correoNormalizado);
+            actualizar.setInt(5, clienteId);
+            actualizar.executeUpdate();
+        }
+    }
+
+    private String nombreClienteSeguro(String nombre, String identificacion) {
+        String valor = normalizarTexto(nombre);
+        return valor.isBlank()
+            ? "Cliente " + identificacion
+            : valor;
+    }
+
+    private String correoSeguro(String correo, String identificacion) {
+        String valor = normalizarTexto(correo);
+        return valor.isBlank()
+            ? identificacion + "@cliente.central.test"
+            : valor;
+    }
+
+    private String normalizarTexto(String valor) {
+        return valor == null ? "" : valor.trim();
     }
 
     public boolean desactivarLineaProveedor5(int servicioId) {

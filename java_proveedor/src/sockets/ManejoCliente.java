@@ -210,6 +210,8 @@ public class ManejoCliente extends Thread
         String tipoServicio = leerCampo(solicitud, "tipo_servicio");
         String proveedorCodigo = leerCampo(solicitud, "proveedor_codigo");
         String saldoInicial = leerCampo(solicitud, "saldo_inicial");
+        String sim = leerCampo(solicitud, "sim");
+        String imei = leerCampo(solicitud, "imei");
         String activoTexto = leerCampo(solicitud, "activo");
         boolean activo = interpretarActivo(activoTexto);
 
@@ -220,6 +222,8 @@ public class ManejoCliente extends Thread
                 tipoServicio,
                 proveedorCodigo,
                 saldoInicial,
+                sim,
+                imei,
                 activo
             )
         );

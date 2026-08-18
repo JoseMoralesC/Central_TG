@@ -24,15 +24,18 @@ namespace WS_Proveedor.Models
         public string IdentificacionCliente { get; set; }
 
         [DataMember(Order = 7)]
-        public string NombreCliente { get; set; }
+        public string IdentificacionClienteVisible { get; set; }
 
         [DataMember(Order = 8)]
-        public string EstadoLinea { get; set; }
+        public string NombreCliente { get; set; }
 
         [DataMember(Order = 9)]
-        public bool Activo { get; set; }
+        public string EstadoLinea { get; set; }
 
         [DataMember(Order = 10)]
+        public bool Activo { get; set; }
+
+        [DataMember(Order = 11)]
         public string ProveedorCodigo { get; set; }
     }
 }

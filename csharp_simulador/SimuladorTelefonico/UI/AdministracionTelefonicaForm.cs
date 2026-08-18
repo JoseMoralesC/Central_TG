@@ -201,8 +201,8 @@ namespace SimuladorTelefonico.UI
             btnRecargar.Click += async (_, _) => await RecargarAsync();
             seccionRecarga.Controls.Add(btnRecargar);
 
-            FlowLayoutPanel seccionEstado = CrearTarjeta("Estado del telefono");
-            _chkEstadoSeleccionado.Text = "Telefono activo";
+            FlowLayoutPanel seccionEstado = CrearTarjeta("Estado de la linea");
+            _chkEstadoSeleccionado.Text = "Linea activa/asignada";
             _chkEstadoSeleccionado.Dock = DockStyle.Top;
             _chkEstadoSeleccionado.Height = 30;
             _chkEstadoSeleccionado.Margin = new Padding(0, 0, 0, 10);
@@ -238,8 +238,8 @@ namespace SimuladorTelefonico.UI
             EstilizarCombo(_cmbProveedor);
             EstilizarCombo(_cmbPais);
 
-            _chkNuevoActivo.Text = "Registrar como activo";
-            _chkNuevoActivo.Checked = true;
+            _chkNuevoActivo.Text = "Registrar como activa/asignada";
+            _chkNuevoActivo.Checked = false;
             _chkNuevoActivo.Dock = DockStyle.Top;
             _chkNuevoActivo.Height = 30;
             _chkNuevoActivo.Margin = new Padding(0, 0, 0, 10);
@@ -809,7 +809,7 @@ namespace SimuladorTelefonico.UI
                     t.Id,
                     t.Numero,
                     Tipo = t.TipoServicio,
-                    Estado = t.Activo ? "Activo" : "Inactivo",
+                    Estado = t.Activo ? "Activa/asignada" : "Disponible",
                     t.Proveedor,
                     t.Pais,
                     Saldo = UiTheme.FormatearSaldo(t.TipoServicio, t.SaldoDisponible)
@@ -931,7 +931,7 @@ namespace SimuladorTelefonico.UI
 
             if (_grid.CurrentRow?.Cells["Estado"]?.Value is string estado)
             {
-                _chkEstadoSeleccionado.Checked = estado.Equals("Activo", StringComparison.OrdinalIgnoreCase);
+                _chkEstadoSeleccionado.Checked = estado.StartsWith("Activa", StringComparison.OrdinalIgnoreCase);
                 _cmbEstadoWcf.Text = _chkEstadoSeleccionado.Checked ? "activo" : "inactivo";
             }
 

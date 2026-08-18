@@ -8,7 +8,7 @@
                 <asp:BoundField HeaderText="Telefono" DataField="NumeroTelefono" />
                 <asp:BoundField HeaderText="Identificador tarjeta" DataField="IdentificadorTarjeta" />
                 <asp:BoundField HeaderText="Identificador telefono" DataField="IdentificadorTelefono" />
-                <asp:BoundField HeaderText="Identificacion cliente" DataField="IdentificacionCliente" />
+                <asp:BoundField HeaderText="Identificacion cliente" DataField="IdentificacionClienteVisible" />
                 <asp:BoundField HeaderText="Nombre cliente" DataField="NombreCliente" />
                 <asp:BoundField HeaderText="Tipo servicio" DataField="TipoServicio" />
                 <asp:TemplateField HeaderText="Acciones">

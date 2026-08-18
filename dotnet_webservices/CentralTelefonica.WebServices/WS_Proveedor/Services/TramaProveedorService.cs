@@ -37,7 +37,13 @@ namespace WS_Proveedor.Services
                 Accion = ConvertirEstadoEnAccion(solicitud.Estado),
 
                 FechaHora = DateTime.Now.ToString(
-                    "yyyy-MM-ddTHH:mm:ss")
+                    "yyyy-MM-ddTHH:mm:ss"),
+
+                NombreCliente =
+                    solicitud.NombreCliente?.Trim(),
+
+                CorreoCliente =
+                    solicitud.CorreoCliente?.Trim()
             };
 
             return SerializarJson(trama);

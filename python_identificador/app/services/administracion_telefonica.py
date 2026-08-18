@@ -112,6 +112,8 @@ def procesar_registro_telefono(trama: dict) -> dict:
         "proveedor_codigo": proveedor_codigo,
         "pais": pais,
         "saldo_inicial": saldo_inicial,
+        "sim": encriptar_aes(sim),
+        "imei": encriptar_aes(imei),
         "activo": bool(trama.get("activo", True))
     })
 

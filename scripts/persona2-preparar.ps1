@@ -1,14 +1,11 @@
 param(
     [switch]$SkipBuild,
-    [switch]$ApplyMongoSeed,
     [switch]$ApplySqlMigrations,
     [switch]$UseIntegratedSql,
     [string]$SqlServer = "localhost,49172",
     [string]$SqlDatabase = "CentralProveedor",
     [string]$SqlUser = "charlie_dev",
-    [string]$SqlPassword = "Charlie1234",
-    [string]$MongoUser = "charlie",
-    [string]$MongoPassword = "charlie1234"
+    [string]$SqlPassword = "Charlie1234"
 )
 
 $ErrorActionPreference = "Stop"
@@ -47,19 +44,12 @@ function Find-MSBuild {
     throw "No se encontro MSBuild de Visual Studio."
 }
 
-if ($ApplyMongoSeed) {
-    Write-Host "[MongoDB] Aplicando seed de usuarios sobre MongoDB ya iniciado..."
-    Require-Command mongosh
-    mongosh --host localhost --port 27017 -u $MongoUser -p $MongoPassword --authenticationDatabase central_tg_mongo --eval "load('database/mongodb/crear_coleccion_usuarios.js'); load('database/mongodb/indices_usuarios.js'); load('database/mongodb/datos_semilla_persona_2.js');"
-}
-
 if ($ApplySqlMigrations) {
     Write-Host "[SQL Server] Aplicando migraciones de facturacion y lineas..."
     Require-Command sqlcmd
 
     $sqlFiles = @(
         "database/sqlserver_proveedor/migrations/010_proveedor6_facturacion.sql",
-        "database/sqlserver_proveedor/migrations/012_seed_facturacion_persona2.sql",
         "database/sqlserver_proveedor/migrations/013_normalizar_estado_linea_disponible.sql"
     )
 
@@ -98,8 +88,6 @@ if (-not $SkipBuild) {
 
 Write-Host ""
 Write-Host "Preparacion de componentes completada."
-if (-not $ApplyMongoSeed -and -not $ApplySqlMigrations) {
-    Write-Host "No se aplicaron seeds ni migraciones. Para SQL use -ApplySqlMigrations; Mongo se maneja manualmente con datos reales."
+if (-not $ApplySqlMigrations) {
+    Write-Host "No se aplicaron migraciones. Para SQL use -ApplySqlMigrations; Mongo se maneja manualmente con datos reales."
 }
-Write-Host "Credenciales admin:   adminp2 / AdminPersona2!"
-Write-Host "Credenciales cliente: clientep2 / ClienteUser2!!"

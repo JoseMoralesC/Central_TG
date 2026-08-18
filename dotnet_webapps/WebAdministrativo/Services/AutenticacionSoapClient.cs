@@ -114,6 +114,7 @@ namespace WebAdministrativo.Services
     public class AutenticacionSoapClient
     {
         private const int TipoAdministrador = 1;
+        private const int TipoCliente = 2;
 
         public ResultadoAutenticacion LoginAdministrador(string usuario, string contrasena)
         {
@@ -127,6 +128,11 @@ namespace WebAdministrativo.Services
         public ResultadoListadoUsuarios ListarAdministradores()
         {
             return Ejecutar(servicio => servicio.ListarUsuariosPorTipo(TipoAdministrador));
+        }
+
+        public ResultadoListadoUsuarios ListarClientes()
+        {
+            return Ejecutar(servicio => servicio.ListarUsuariosPorTipo(TipoCliente));
         }
 
         public ResultadoOperacion CrearAdministrador(

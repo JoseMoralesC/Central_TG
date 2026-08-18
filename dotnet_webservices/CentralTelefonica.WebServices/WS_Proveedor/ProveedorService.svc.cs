@@ -387,6 +387,8 @@ ORDER BY s.numero_telefono;";
                                 IdentificadorTarjeta = Convert.ToString(reader["identificador_tarjeta_cifrado"]),
                                 TipoServicio = Convert.ToString(reader["tipo_servicio"]),
                                 IdentificacionCliente = Convert.ToString(reader["identificacion_dueno_cifrada"]),
+                                IdentificacionClienteVisible = DesencriptarOResumir(
+                                    Convert.ToString(reader["identificacion_dueno_cifrada"])),
                                 NombreCliente = Convert.ToString(reader["nombre_cliente"]),
                                 EstadoLinea = Convert.ToString(reader["estado_linea"]),
                                 Activo = Convert.ToBoolean(reader["activo"]),
@@ -539,6 +541,26 @@ WHERE c.cliente_id = @clienteId
                 Resultado = false,
                 Mensaje = mensaje
             };
+        }
+
+        private static string DesencriptarOResumir(string valorCifrado)
+        {
+            string plano = ProveedorCryptoService.Desencriptar(valorCifrado);
+
+            if (!string.IsNullOrWhiteSpace(plano))
+            {
+                return plano;
+            }
+
+            if (string.IsNullOrWhiteSpace(valorCifrado))
+            {
+                return string.Empty;
+            }
+
+            string valor = valorCifrado.Trim();
+            return valor.Length <= 12
+                ? valor
+                : valor.Substring(0, 8) + "...";
         }
     }
 }

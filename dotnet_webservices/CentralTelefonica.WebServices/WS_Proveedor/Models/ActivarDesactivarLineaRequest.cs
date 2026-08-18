@@ -27,5 +27,11 @@ namespace WS_Proveedor.Models
 
         [DataMember(Order = 6, IsRequired = true)]
         public string Estado { get; set; }
+
+        [DataMember(Order = 7, IsRequired = false, EmitDefaultValue = false)]
+        public string NombreCliente { get; set; }
+
+        [DataMember(Order = 8, IsRequired = false, EmitDefaultValue = false)]
+        public string CorreoCliente { get; set; }
     }
 }

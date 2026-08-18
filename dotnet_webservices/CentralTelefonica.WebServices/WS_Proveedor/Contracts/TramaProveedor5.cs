@@ -28,5 +28,11 @@ namespace WS_Proveedor.Contracts
 
         [DataMember(Name = "fecha_hora", Order = 8)]
         public string FechaHora { get; set; }
+
+        [DataMember(Name = "nombre_cliente", Order = 9, EmitDefaultValue = false)]
+        public string NombreCliente { get; set; }
+
+        [DataMember(Name = "correo_cliente", Order = 10, EmitDefaultValue = false)]
+        public string CorreoCliente { get; set; }
     }
 }

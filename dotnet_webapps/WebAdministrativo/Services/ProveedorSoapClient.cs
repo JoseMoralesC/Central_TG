@@ -72,15 +72,18 @@ namespace WebAdministrativo.Services
         public string IdentificacionCliente { get; set; }
 
         [DataMember(Order = 7)]
-        public string NombreCliente { get; set; }
+        public string IdentificacionClienteVisible { get; set; }
 
         [DataMember(Order = 8)]
-        public string EstadoLinea { get; set; }
+        public string NombreCliente { get; set; }
 
         [DataMember(Order = 9)]
-        public bool Activo { get; set; }
+        public string EstadoLinea { get; set; }
 
         [DataMember(Order = 10)]
+        public bool Activo { get; set; }
+
+        [DataMember(Order = 11)]
         public string ProveedorCodigo { get; set; }
     }
 
@@ -133,6 +136,12 @@ namespace WebAdministrativo.Services
 
         [DataMember(Order = 6, IsRequired = true)]
         public string Estado { get; set; }
+
+        [DataMember(Order = 7, IsRequired = false, EmitDefaultValue = false)]
+        public string NombreCliente { get; set; }
+
+        [DataMember(Order = 8, IsRequired = false, EmitDefaultValue = false)]
+        public string CorreoCliente { get; set; }
     }
 
     [DataContract(Namespace = "http://schemas.datacontract.org/2004/07/WS_Proveedor.Models")]
