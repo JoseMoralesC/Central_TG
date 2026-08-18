@@ -13,8 +13,17 @@ Cerrar CLIENTE7 (pantalla de devolucion de lineas) cumpliendo los criterios de a
 | 1a. Lista prepago con numero y saldo usando WS_PROVEEDOR | Cumplido - `ClienteController.DevolverLinea` (GET) consulta WS_ProveedorCliente (55260) y por cada prepago llama `ConsultarSaldoAsync` (WS_PROVEEDOR 53885). Sin saldo muestra "No disponible". |
 | 1b. Lista postpago con numero y facturacion pendiente (0 si no hay) | Cumplido - `FacturaPendiente` desde la consulta; la vista muestra el monto o 0.00. |
 | 1c. Confirmacion "¿Está seguro de querer devolver la línea telefónica?" | Cumplido - `confirm()` con el texto exacto al hacer clic en la linea. |
-| 1d. Envio automatico a WS_PROVEEDOR2 (numero, id telefono, id tarjeta, tipo, id cliente, estado inactivo) | Cumplido - POST arma la solicitud con `Estado="inactivo"` y todos los datos cargados de la linea (no visibles). Exito: "La linea telefonica fue devuelta correctamente."; fallo: muestra el detalle recibido. |
+| 1d. Envio automatico a WS_PROVEEDOR2 (numero, id telefono, id tarjeta, tipo, id cliente, estado inactivo) | Cumplido - POST arma la solicitud con todos los datos cargados de la linea (no visibles). Estado enviado: `"disponible"`. Exito: "La linea telefonica fue devuelta correctamente."; fallo: muestra el detalle recibido. |
 | 1e. Postpago con facturacion pendiente cancela el proceso | Cumplido - "La linea postpago posee facturacion pendiente. Primero debe cancelar la factura para poder devolver la linea." |
+
+## Ajuste de estado: "inactivo" → "disponible"
+
+La historia indica enviar el estado `inactivo`, pero el contrato actual de WS_PROVEEDOR2 (persona 2) normalizo el estado de la linea a `DISPONIBLE`:
+
+- Migracion `database/sqlserver_proveedor/migrations/013_normalizar_estado_linea_disponible.sql`: `estado_linea = 'INACTIVO'` pasa a `'DISPONIBLE'`.
+- WS_PROVEEDOR2 (`WS_Proveedor/Validators/ActivarDesactivarLineaValidator.cs` y `TramaProveedorService.ConvertirEstadoEnAccion`) solo acepta `activo`/`disponible` y mapea `disponible -> DESACTIVAR`.
+
+Por lo tanto el portal envía `Estado = "disponible"` (`ClienteController.DevolverLinea` POST), que significa la desactivacion/devolucion de la linea. Si se enviara `"inactivo"` el WS responde `Resultado=false` y la devolucion no se puede completar.
 
 ## Causa raiz corregida (Resultado=false en WS_PROVEEDOR2)
 

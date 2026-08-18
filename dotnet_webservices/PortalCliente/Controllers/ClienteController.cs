@@ -102,12 +102,37 @@ public class ClienteController : Controller
     [HttpPost]
     public async Task<IActionResult> CargarSaldo(CargarSaldoViewModel modelo)
     {
+        string? identificacion = HttpContext.Session.GetString(SessionIdentificacion);
+
+        if (string.IsNullOrWhiteSpace(identificacion))
+        {
+            modelo.Procesado = true;
+            modelo.Exitoso = false;
+            modelo.MensajeResultado = "Ingrese su identificacion para continuar.";
+            return View(modelo);
+        }
+
         string? error = ValidarPagoTarjeta(modelo);
         if (error is not null)
         {
             modelo.Procesado = true;
             modelo.Exitoso = false;
             modelo.MensajeResultado = error;
+            return View(modelo);
+        }
+
+        ConsultarLineasClienteResult consulta =
+            await _proveedorClienteService.ConsultarLineasClienteAsync(identificacion);
+
+        bool esLineaDelCliente = consulta.Lineas.Any(l =>
+            string.Equals(l.NumeroTelefono, modelo.Numero, StringComparison.Ordinal)
+            && string.Equals(l.TipoServicio, "PREPAGO", StringComparison.OrdinalIgnoreCase));
+
+        if (!esLineaDelCliente)
+        {
+            modelo.Procesado = true;
+            modelo.Exitoso = false;
+            modelo.MensajeResultado = "La linea prepago seleccionada no pertenece al cliente.";
             return View(modelo);
         }
 
@@ -262,19 +287,6 @@ public class ClienteController : Controller
     {
         string? identificacion = HttpContext.Session.GetString(SessionIdentificacion);
 
-        string? error = ValidarDatosTarjeta(
-            modelo.NumeroTarjeta,
-            modelo.NombreTarjeta,
-            modelo.FechaVencimiento,
-            modelo.CodigoSeguridad);
-        if (error is not null)
-        {
-            modelo.Procesado = true;
-            modelo.Exitoso = false;
-            modelo.MensajeResultado = error;
-            return View(modelo);
-        }
-
         if (string.IsNullOrWhiteSpace(identificacion))
         {
             modelo.Procesado = true;
@@ -300,6 +312,19 @@ public class ClienteController : Controller
 
         decimal monto = linea.FacturaPendiente;
         modelo.MontoFactura = monto;
+
+        string? error = ValidarDatosTarjeta(
+            modelo.NumeroTarjeta,
+            modelo.NombreTarjeta,
+            modelo.FechaVencimiento,
+            modelo.CodigoSeguridad);
+        if (error is not null)
+        {
+            modelo.Procesado = true;
+            modelo.Exitoso = false;
+            modelo.MensajeResultado = error;
+            return View(modelo);
+        }
 
         PagarFacturaResult resultado =
             await _proveedorClienteService.PagarFacturaAsync(
@@ -446,7 +471,7 @@ public class ClienteController : Controller
             IdentificadorTarjeta = linea.IdentificadorTarjeta,
             Tipo = linea.TipoServicio,
             IdentificacionCliente = linea.IdentificacionDuenoCifrada,
-            Estado = "inactivo"
+            Estado = "disponible"
         };
 
         CambioEstadoLineaResult resultado =
