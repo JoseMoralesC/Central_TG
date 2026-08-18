@@ -118,16 +118,16 @@ ORDER BY historial_id DESC;
 - C# no abre llamada activa.
 - No se registra movimiento de cobro.
 
-## Caso 4 - Telefono bloqueado o inactivo
+## Caso 4 - Telefono disponible o no asignado
 
 ### Pasos
 
-1. Seleccionar o enviar telefono inactivo `77776666`.
+1. Seleccionar o enviar telefono disponible `77776666`.
 2. Solicitar llamada o consulta saldo.
 
 ### Resultado esperado
 
-- Python responde `TEL_INACTIVO`.
+- Python responde que la linea no esta activa para cursar la llamada.
 - No consulta proveedor para cobro.
 
 ## Caso 5 - SIM invalida

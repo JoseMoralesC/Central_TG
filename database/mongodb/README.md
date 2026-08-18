@@ -28,6 +28,24 @@ load("database/mongodb/indices_usuarios.js")
 load("database/mongodb/datos_semilla_usuarios.example.js")
 ```
 
+Para las pruebas Web de persona 2, usar el seed con valores AES reales:
+
+```javascript
+use central_tg_mongo
+load("database/mongodb/crear_coleccion_usuarios.js")
+load("database/mongodb/indices_usuarios.js")
+load("database/mongodb/datos_semilla_persona_2.js")
+```
+
+Credenciales de prueba:
+
+| Tipo | Usuario | Contrasena |
+| --- | --- | --- |
+| Administrador | `adminp2` | `AdminPersona2!` |
+| Cliente | `clientep2` | `ClienteUser2!!` |
+
+Estos valores estan cifrados con AES-CBC, PKCS7 y UTF-8 sin BOM, igual que `WS_Autenticacion` y las Web.
+
 ## Estructura esperada
 
 - Base: `central_tg_mongo`

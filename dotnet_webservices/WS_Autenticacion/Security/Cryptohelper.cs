@@ -8,6 +8,8 @@ namespace CentralTelefonica.WS_Autenticacion.Security
 {
     public static class CryptoHelper
     {
+        private static readonly Encoding Utf8SinBom = new UTF8Encoding(false);
+
         private static readonly byte[] Key = Convert.FromBase64String(
             ConfigurationManager.AppSettings["AesKeyBase64"]
             ?? throw new ConfigurationErrorsException("Falta AesKeyBase64 en Web.config"));
@@ -31,7 +33,7 @@ namespace CentralTelefonica.WS_Autenticacion.Security
                 using (var ms = new MemoryStream())
                 {
                     using (var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
-                    using (var sw = new StreamWriter(cs))
+                    using (var sw = new StreamWriter(cs, Utf8SinBom))
                     {
                         sw.Write(plainText);
                     }
@@ -59,7 +61,7 @@ namespace CentralTelefonica.WS_Autenticacion.Security
                     using (var decryptor = aes.CreateDecryptor())
                     using (var ms = new MemoryStream(cipherBytes))
                     using (var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read))
-                    using (var sr = new StreamReader(cs))
+                    using (var sr = new StreamReader(cs, Utf8SinBom))
                     {
                         plainText = sr.ReadToEnd();
                         return true;

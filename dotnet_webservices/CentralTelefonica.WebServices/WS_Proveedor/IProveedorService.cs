@@ -15,5 +15,8 @@ namespace WS_Proveedor
         RespuestaServicio CalcularFacturacion(
             CalcularFacturacionRequest solicitud
         );
+
+        [OperationContract]
+        UltimaFacturacionResponse ObtenerUltimaFacturacion();
     }
 }
