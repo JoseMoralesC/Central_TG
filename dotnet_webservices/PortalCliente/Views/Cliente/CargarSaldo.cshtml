@@ -1,0 +1,194 @@
+@model PortalCliente.Models.CargarSaldoViewModel
+
+@{
+    ViewData["Title"] = "Cargar saldo";
+    var cultura = new System.Globalization.CultureInfo("es-CR");
+}
+
+@if (Model.ModoLista)
+{
+    <h2>Cargar saldo</h2>
+    <p class="text-muted">Seleccione la linea prepago a la que desea cargar saldo.</p>
+
+    @if (string.IsNullOrWhiteSpace(Model.Identificacion))
+    {
+        <div class="alert alert-info" role="alert">
+            @Model.MensajeConsulta
+        </div>
+        <a asp-action="Index" asp-controller="Cliente" class="btn btn-primary">
+            Ingresar mi identificacion
+        </a>
+    }
+    else if (!Model.ResultadoConsulta)
+    {
+        <div class="alert alert-danger" role="alert">
+            @Model.MensajeConsulta
+        </div>
+    }
+    else if (!Model.Lineas.Any())
+    {
+        <div class="alert alert-info" role="alert">
+            No posee lineas prepago registradas.
+        </div>
+    }
+    else
+    {
+        <p class="text-muted">Haga <strong>doble clic</strong> sobre una linea para cargar saldo.</p>
+
+        <table class="table table-hover align-middle" id="tablaPrepago">
+            <thead>
+                <tr>
+                    <th>Numero</th>
+                    <th class="text-end">Saldo disponible</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var linea in Model.Lineas)
+                {
+                    <tr data-numero="@linea.NumeroTelefono" style="cursor: pointer"
+                        title="Doble clic para cargar saldo">
+                        <td>@linea.NumeroTelefono</td>
+                        <td class="text-end">@("₡" + linea.Saldo.ToString("N2", cultura))</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+else
+{
+    <h2>Cargar saldo (CLIENTE5)</h2>
+    <p><strong>Linea seleccionada:</strong> @Model.Numero</p>
+
+    <form asp-action="CargarSaldo" asp-controller="Cliente" method="post">
+        <input type="hidden" name="Numero" value="@Model.Numero" />
+
+        @if (Model.Procesado)
+        {
+            @if (Model.Exitoso)
+            {
+                <div class="alert alert-success" role="alert">
+                    <strong>@Model.MensajeResultado</strong>
+                    <br />Saldo actualizado: @("₡" + Model.NuevoSaldo.ToString("N2", cultura))
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-danger" role="alert">
+                    @Model.MensajeResultado
+                </div>
+            }
+        }
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h3 class="h5 mb-3">Datos de la tarjeta</h3>
+
+                <div class="mb-3">
+                    <label for="NumeroTarjeta" class="form-label">Numero de tarjeta (12 digitos)</label>
+                    <input type="text"
+                           class="form-control"
+                           id="NumeroTarjeta"
+                           name="NumeroTarjeta"
+                           value="@Model.NumeroTarjeta"
+                           maxlength="19"
+                           placeholder="1234-5678-9012"
+                           required />
+                </div>
+
+                <div class="mb-3">
+                    <label for="NombreTarjeta" class="form-label">Nombre del dueno de la tarjeta</label>
+                    <input type="text"
+                           class="form-control"
+                           id="NombreTarjeta"
+                           name="NombreTarjeta"
+                           value="@Model.NombreTarjeta"
+                           maxlength="60"
+                           required />
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="FechaVencimiento" class="form-label">Fecha de vencimiento (MM/AA)</label>
+                        <input type="text"
+                               class="form-control"
+                               id="FechaVencimiento"
+                               name="FechaVencimiento"
+                               value="@Model.FechaVencimiento"
+                               maxlength="5"
+                               placeholder="MM/AA"
+                               required />
+                    </div>
+                    <div class="col-md-4">
+                        <label for="CodigoSeguridad" class="form-label">Codigo de seguridad</label>
+                        <input type="text"
+                               class="form-control"
+                               id="CodigoSeguridad"
+                               name="CodigoSeguridad"
+                               value="@Model.CodigoSeguridad"
+                               maxlength="3"
+                               placeholder="000"
+                               required />
+                    </div>
+                    <div class="col-md-4">
+                        <label for="Monto" class="form-label">Monto a cargar</label>
+                        <input type="number"
+                               class="form-control"
+                               id="Monto"
+                               name="Monto"
+                               value="@Model.Monto"
+                               min="1"
+                               step="1"
+                               required />
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary mt-4">
+                    Procesar pago
+                </button>
+            </div>
+        </div>
+    </form>
+}
+
+<div class="mt-3">
+    <a asp-action="Index" asp-controller="Cliente" class="btn btn-outline-secondary">
+        Volver a mis lineas
+    </a>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var tarjeta = document.getElementById('NumeroTarjeta');
+            if (tarjeta) {
+                tarjeta.addEventListener('input', function () {
+                    var digitos = tarjeta.value.replace(/[^0-9]/g, '').slice(0, 12);
+                    var grupos = digitos.match(/.{1,4}/g) || [];
+                    tarjeta.value = grupos.join('-');
+                });
+            }
+
+            var vencimiento = document.getElementById('FechaVencimiento');
+            if (vencimiento) {
+                vencimiento.addEventListener('input', function () {
+                    var digitos = vencimiento.value.replace(/[^0-9]/g, '').slice(0, 4);
+                    if (digitos.length >= 3) {
+                        vencimiento.value = digitos.slice(0, 2) + '/' + digitos.slice(2);
+                    } else {
+                        vencimiento.value = digitos;
+                    }
+                });
+            }
+
+            document.querySelectorAll('#tablaPrepago tbody tr').forEach(function (fila) {
+                fila.addEventListener('dblclick', function () {
+                    var numero = fila.dataset.numero;
+                    if (numero) {
+                        window.location.href = '/Cliente/CargarSaldo?numero=' + encodeURIComponent(numero);
+                    }
+                });
+            });
+        })();
+    </script>
+}

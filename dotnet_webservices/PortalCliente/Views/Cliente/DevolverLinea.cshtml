@@ -1,0 +1,184 @@
+@model PortalCliente.Models.DevolverLineaViewModel
+
+@{
+    ViewData["Title"] = "Devolver linea";
+    var cultura = new System.Globalization.CultureInfo("es-CR");
+}
+
+<h2>Devolver linea (CLIENTE7)</h2>
+<p class="text-muted">
+    Seleccione una linea prepago o postpago para solicitar su devolucion.
+    El proceso se envia a WS_PROVEEDOR2 con los datos del controlador cargados automaticamente.
+</p>
+
+@if (Model.Procesado)
+{
+    @if (Model.Exitoso)
+    {
+        <div class="alert alert-success" role="alert">
+            <strong>@Model.MensajeResultado</strong>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-danger" role="alert">
+            @Model.MensajeResultado
+        </div>
+    }
+}
+
+@if (string.IsNullOrWhiteSpace(Model.Identificacion))
+{
+    <div class="alert alert-info" role="alert">
+        @Model.MensajeConsulta
+    </div>
+    <a asp-action="Index" asp-controller="Cliente" class="btn btn-primary">
+        Ingresar mi identificacion
+    </a>
+}
+else if (!Model.ResultadoConsulta)
+{
+    <div class="alert alert-danger" role="alert">
+        @Model.MensajeConsulta
+    </div>
+}
+else if (!Model.LineasPrepago.Any() && !Model.LineasPostpago.Any())
+{
+    <div class="alert alert-info" role="alert">
+        No posee lineas activas registradas.
+    </div>
+}
+else
+{
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h3 class="h5 mb-0">Lineas prepago</h3>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover align-middle mb-0" id="tablaPrepago">
+                        <thead>
+                            <tr>
+                                <th>Numero</th>
+                                <th class="text-end">Saldo disponible</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var linea in Model.LineasPrepago)
+                            {
+                                <tr data-numero="@linea.NumeroTelefono"
+                                    data-tipo="@linea.TipoServicio"
+                                    style="cursor: pointer"
+                                    title="Clic para devolver la linea">
+                                    <td>@linea.NumeroTelefono</td>
+                                    <td class="text-end">
+                                        @if (string.IsNullOrWhiteSpace(linea.SaldoDetalle))
+                                        {
+                                            @("₡" + linea.Saldo.ToString("N2", cultura))
+                                        }
+                                        else
+                                        {
+                                            <span class="text-danger small" title="@linea.SaldoDetalle">
+                                                No disponible
+                                            </span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="h5 mb-0">Lineas postpago</h3>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover align-middle mb-0" id="tablaPostpago">
+                        <thead>
+                            <tr>
+                                <th>Numero</th>
+                                <th class="text-end">Facturacion pendiente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var linea in Model.LineasPostpago)
+                            {
+                                <tr data-numero="@linea.NumeroTelefono"
+                                    data-tipo="@linea.TipoServicio"
+                                    data-factura="@linea.FacturaPendiente"
+                                    style="cursor: pointer"
+                                    title="Clic para devolver la linea">
+                                    <td>@linea.NumeroTelefono</td>
+                                    <td class="text-end">
+                                        @if (linea.FacturaPendiente > 0)
+                                        {
+                                            @("₡" + linea.FacturaPendiente.ToString("N2", cultura))
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">0.00</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <p class="text-muted mt-3 mb-0">
+        Las lineas postpago con facturacion pendiente deben cancelar primero su factura (CLIENTE6).
+    </p>
+}
+
+<div class="mt-3">
+    <a asp-action="Index" asp-controller="Cliente" class="btn btn-outline-secondary">
+        Volver a mis lineas
+    </a>
+</div>
+
+@section Scripts {
+    <script>
+        function solicitarDevolucion(numero, tipo) {
+            if (!confirm('¿Está seguro de querer devolver la línea telefónica?')) {
+                return;
+            }
+
+            var formulario = document.createElement('form');
+            formulario.method = 'post';
+            formulario.action = '/Cliente/DevolverLinea';
+
+            var numeroOculto = document.createElement('input');
+            numeroOculto.type = 'hidden';
+            numeroOculto.name = 'numero';
+            numeroOculto.value = numero;
+
+            var tipoOculto = document.createElement('input');
+            tipoOculto.type = 'hidden';
+            tipoOculto.name = 'tipo';
+            tipoOculto.value = tipo;
+
+            formulario.appendChild(numeroOculto);
+            formulario.appendChild(tipoOculto);
+            document.body.appendChild(formulario);
+            formulario.submit();
+        }
+
+        document.querySelectorAll('#tablaPrepago tbody tr, #tablaPostpago tbody tr').forEach(function (fila) {
+            fila.addEventListener('click', function () {
+                var numero = fila.dataset.numero;
+                var tipo = fila.dataset.tipo;
+                if (numero) {
+                    solicitarDevolucion(numero, tipo);
+                }
+            });
+        });
+    </script>
+}
