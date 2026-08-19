@@ -18,6 +18,8 @@ namespace SimuladorTelefonico.UI
         private readonly string _numeroDestinoInicial;
         private readonly string _paisDestinoInicial;
         private readonly string _tipoLlamadaDestinoInicial;
+        private readonly string _tipoServicioDestinoInicial;
+        private readonly string _nacionalidadDestinoInicial;
 
         private readonly TramaService _tramaService = new();
         private readonly RespuestaService _respuestaService = new();
@@ -26,7 +28,9 @@ namespace SimuladorTelefonico.UI
         public MarcarNumeroForm(
             string numeroDestinoInicial = "",
             string paisDestinoInicial = "",
-            string tipoLlamadaDestinoInicial = "")
+            string tipoLlamadaDestinoInicial = "",
+            string tipoServicioDestinoInicial = "",
+            string nacionalidadDestinoInicial = "")
         {
             _numeroDestinoInicial = TelefonoCatalogoService.NormalizarNumeroVisible(
                 numeroDestinoInicial,
@@ -35,6 +39,8 @@ namespace SimuladorTelefonico.UI
             _tipoLlamadaDestinoInicial = string.IsNullOrWhiteSpace(tipoLlamadaDestinoInicial)
                 ? TelefonoCatalogoService.ObtenerTipoLlamada(paisDestinoInicial, "")
                 : tipoLlamadaDestinoInicial;
+            _tipoServicioDestinoInicial = tipoServicioDestinoInicial;
+            _nacionalidadDestinoInicial = nacionalidadDestinoInicial;
             ConfigurarVentana();
             ConstruirFormulario();
         }
@@ -187,6 +193,7 @@ namespace SimuladorTelefonico.UI
 
             btnSolicitarLlamada.Enabled = false;
             lblEstado.Text = "Validando llamada con el Identificador...";
+            decimal costoPorMinutoSolicitado = ObtenerCostoPorMinutoDestino();
 
             SolicitudLlamada solicitud = new SolicitudLlamada
             {
@@ -205,6 +212,8 @@ namespace SimuladorTelefonico.UI
                     _cryptoService.CifrarDatoSensible(AppConfig.IdentificadorTarjeta),
 
                 TipoLlamada = ObtenerTipoLlamadaDestino(),
+
+                CostoPorMinuto = costoPorMinutoSolicitado,
 
                 FechaHora = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss"),
 
@@ -227,7 +236,7 @@ namespace SimuladorTelefonico.UI
                 int tiempoMaximoSegundos =
                     _respuestaService.ObtenerTiempoMaximoSegundos(respuesta, 1800);
                 decimal costoPorMinuto =
-                    _respuestaService.ObtenerCostoPorMinuto(respuesta, AppConfig.CostoPorMinuto);
+                    _respuestaService.ObtenerCostoPorMinuto(respuesta, costoPorMinutoSolicitado);
 
                 string idLlamada =
                     _respuestaService.ObtenerIdLlamada(
@@ -261,6 +270,16 @@ namespace SimuladorTelefonico.UI
             return string.IsNullOrWhiteSpace(_tipoLlamadaDestinoInicial)
                 ? AppConfig.TipoLlamada
                 : _tipoLlamadaDestinoInicial;
+        }
+
+        private decimal ObtenerCostoPorMinutoDestino()
+        {
+            return PoliticaTarifaService.CalcularCostoPorMinuto(
+                AppConfig.TelefonoActual,
+                ObtenerTipoLlamadaDestino(),
+                _tipoServicioDestinoInicial,
+                _nacionalidadDestinoInicial,
+                _paisDestinoInicial);
         }
     }
 }

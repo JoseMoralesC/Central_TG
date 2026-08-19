@@ -10,6 +10,10 @@ namespace WebCliente
         protected global::System.Web.UI.WebControls.TextBox CorreoText;
         protected global::System.Web.UI.WebControls.TextBox UsuarioText;
         protected global::System.Web.UI.WebControls.TextBox ContrasenaText;
+        protected global::System.Web.UI.WebControls.TextBox NumeroTarjetaText;
+        protected global::System.Web.UI.WebControls.TextBox NombreTarjetaText;
+        protected global::System.Web.UI.WebControls.TextBox FechaVencimientoText;
+        protected global::System.Web.UI.WebControls.TextBox CodigoSeguridadText;
         protected global::System.Web.UI.WebControls.Button RegistrarButton;
         protected global::System.Web.UI.WebControls.Label MensajeLabel;
     }

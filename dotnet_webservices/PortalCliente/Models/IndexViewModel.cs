@@ -6,6 +6,8 @@ public class IndexViewModel
 
     public string? Identificacion { get; set; }
 
+    public string? NombreCliente { get; set; }
+
     public bool Resultado { get; set; }
 
     public string? Mensaje { get; set; }

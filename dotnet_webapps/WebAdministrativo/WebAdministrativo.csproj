@@ -40,6 +40,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Administradores.aspx" />
+    <Content Include="Assets\Logo.png" />
     <Content Include="Default.aspx" />
     <Content Include="Facturacion.aspx" />
     <Content Include="Global.asax" />
@@ -48,6 +49,7 @@
     <Content Include="LineasNuevas.aspx" />
     <Content Include="Login.aspx" />
     <Content Include="Site.Master" />
+    <Content Include="SolicitudesLineas.aspx" />
     <Content Include="Styles\site.css" />
     <Content Include="Web.config" />
   </ItemGroup>
@@ -87,6 +89,12 @@
     </Compile>
     <Compile Include="LineasNuevas.aspx.designer.cs">
       <DependentUpon>LineasNuevas.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="SolicitudesLineas.aspx.cs">
+      <DependentUpon>SolicitudesLineas.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="SolicitudesLineas.aspx.designer.cs">
+      <DependentUpon>SolicitudesLineas.aspx</DependentUpon>
     </Compile>
     <Compile Include="Login.aspx.cs">
       <DependentUpon>Login.aspx</DependentUpon>

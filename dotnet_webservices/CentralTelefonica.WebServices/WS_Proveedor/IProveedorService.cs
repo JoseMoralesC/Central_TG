@@ -12,6 +12,11 @@ namespace WS_Proveedor
         );
 
         [OperationContract]
+        FacturacionConsultaResponse ConsultarFacturacion(
+            CalcularFacturacionRequest solicitud
+        );
+
+        [OperationContract]
         RespuestaServicio CalcularFacturacion(
             CalcularFacturacionRequest solicitud
         );
@@ -21,6 +26,15 @@ namespace WS_Proveedor
 
         [OperationContract]
         ListadoLineasResponse ListarLineasDisponibles();
+
+        [OperationContract]
+        RespuestaServicio SolicitarLineaCliente(SolicitarLineaClienteRequest solicitud);
+
+        [OperationContract]
+        ListadoSolicitudesLineaResponse ListarSolicitudesLineaPendientes();
+
+        [OperationContract]
+        RespuestaServicio MarcarSolicitudLineaAtendida(int solicitudId, string estado);
 
         [OperationContract]
         ListadoLineasResponse ListarLineasActivas();

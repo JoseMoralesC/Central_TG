@@ -44,5 +44,21 @@ namespace WS_Autenticacion.Models
 
         [BsonElement("fechaActualizacion")]
         public DateTime FechaActualizacion { get; set; }
+
+        [BsonElement("metodoPagoNumeroTarjeta")]
+        [BsonIgnoreIfNull]
+        public string MetodoPagoNumeroTarjetaCifrado { get; set; }
+
+        [BsonElement("metodoPagoNombreTarjeta")]
+        [BsonIgnoreIfNull]
+        public string MetodoPagoNombreTarjetaCifrado { get; set; }
+
+        [BsonElement("metodoPagoFechaVencimiento")]
+        [BsonIgnoreIfNull]
+        public string MetodoPagoFechaVencimientoCifrada { get; set; }
+
+        [BsonElement("metodoPagoCodigoSeguridad")]
+        [BsonIgnoreIfNull]
+        public string MetodoPagoCodigoSeguridadCifrado { get; set; }
     }
 }

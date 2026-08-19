@@ -8,6 +8,8 @@ namespace CentralTelefonica.WS_Autenticacion
 {
     public class Service1 : IAutenticacionService
     {
+        private const int TipoAdministrador = 1;
+        private const int TipoCliente = 2;
         private const string MensajeCredencialesIncorrectas = "Usuario y/o contrasena incorrectos.";
         private const string MensajeUsuarioExisteOIncorrecto = "Usuario ya existe o datos incorrectos o incompletos.";
         private const string MensajeUsuarioNoExisteOIncorrecto = "Usuario no existe o datos incorrectos o incompletos.";
@@ -30,7 +32,7 @@ namespace CentralTelefonica.WS_Autenticacion
             if (!CryptoHelper.TryDecrypt(contrasenaEncriptada, out var contrasenaPlana))
                 return ResultadoOperacion.Fallo(MensajeCredencialesIncorrectas);
 
-            var usuario = _repositorio.ObtenerPorUsuarioCifrado(usuarioEncriptado);
+            var usuario = _repositorio.ObtenerPorUsuarioCifradoYTipo(usuarioEncriptado, tipo);
 
             if (usuario == null)
                 return ResultadoOperacion.Fallo(MensajeCredencialesIncorrectas);
@@ -58,7 +60,7 @@ namespace CentralTelefonica.WS_Autenticacion
             if (!CryptoHelper.TryDecrypt(contrasenaEncriptada, out var contrasenaPlana))
                 return ResultadoAutenticacion.Fallo(MensajeCredencialesIncorrectas);
 
-            var usuario = _repositorio.ObtenerPorUsuarioCifrado(usuarioEncriptado);
+            var usuario = _repositorio.ObtenerPorUsuarioCifradoYTipo(usuarioEncriptado, tipo);
 
             if (usuario == null)
                 return ResultadoAutenticacion.Fallo(MensajeCredencialesIncorrectas);
@@ -117,13 +119,13 @@ namespace CentralTelefonica.WS_Autenticacion
             if (!UsuarioValidator.EsContrasenaValida(contrasenaPlana))
                 return ResultadoOperacion.Fallo(MensajeUsuarioExisteOIncorrecto);
 
-            if (_repositorio.ExisteIdentificacion(identificacion))
+            if (_repositorio.ExisteIdentificacion(identificacion, tipo))
                 return ResultadoOperacion.Fallo(MensajeUsuarioExisteOIncorrecto);
 
-            if (_repositorio.ExisteCorreo(correoElectronico.Trim()))
+            if (_repositorio.ExisteCorreo(correoElectronico.Trim(), tipo))
                 return ResultadoOperacion.Fallo(MensajeUsuarioExisteOIncorrecto);
 
-            if (_repositorio.ExisteUsuarioCifrado(usuarioEncriptado))
+            if (_repositorio.ExisteUsuarioCifrado(usuarioEncriptado, tipo))
                 return ResultadoOperacion.Fallo(MensajeUsuarioExisteOIncorrecto);
 
             var ahora = DateTime.UtcNow;
@@ -172,7 +174,7 @@ namespace CentralTelefonica.WS_Autenticacion
                 return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOIncorrecto);
             }
 
-            var usuarioExistente = _repositorio.ObtenerPorIdentificacion(identificacion);
+            var usuarioExistente = _repositorio.ObtenerPorIdentificacionYTipo(identificacion, TipoAdministrador);
             if (usuarioExistente == null)
                 return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOIncorrecto);
 
@@ -188,7 +190,7 @@ namespace CentralTelefonica.WS_Autenticacion
             }
 
             var correoNuevo = correoElectronico.Trim();
-            if (correoNuevo != usuarioExistente.Correo && _repositorio.ExisteCorreo(correoNuevo))
+            if (correoNuevo != usuarioExistente.Correo && _repositorio.ExisteCorreo(correoNuevo, TipoAdministrador))
                 return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOIncorrecto);
 
             var debeActualizarContrasena = !string.IsNullOrWhiteSpace(contrasenaEncriptada);
@@ -233,7 +235,7 @@ namespace CentralTelefonica.WS_Autenticacion
                 return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOEstadoIncorrecto);
             }
 
-            var usuarioExistente = _repositorio.ObtenerPorIdentificacion(identificacion);
+            var usuarioExistente = _repositorio.ObtenerPorIdentificacionYTipo(identificacion, TipoAdministrador);
             if (usuarioExistente == null)
                 return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOEstadoIncorrecto);
 
@@ -264,11 +266,87 @@ namespace CentralTelefonica.WS_Autenticacion
             if (!UsuarioValidator.EsIdentificacionValida(identificacion))
                 return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOEstadoIncorrecto);
 
-            var eliminado = _repositorio.EliminarPorIdentificacion(identificacion);
+            var eliminado = _repositorio.EliminarPorIdentificacionYTipo(identificacion, TipoAdministrador);
 
             return eliminado
                 ? ResultadoOperacion.Ok("Borrado exitoso")
                 : ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOEstadoIncorrecto);
+        }
+
+        public ResultadoOperacion RegistrarMetodoPagoCliente(
+            string identificacion,
+            string numeroTarjetaEncriptado,
+            string nombreTarjetaEncriptado,
+            string fechaVencimientoEncriptada,
+            string codigoSeguridadEncriptado)
+        {
+            if (!UsuarioValidator.EsIdentificacionValida(identificacion))
+                return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOIncorrecto);
+
+            var usuario = _repositorio.ObtenerPorIdentificacionYTipo(identificacion.Trim(), TipoCliente);
+            if (usuario == null || usuario.Tipo != TipoCliente)
+                return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOIncorrecto);
+
+            if (!CryptoHelper.TryDecrypt(numeroTarjetaEncriptado, out var numeroTarjeta) ||
+                !CryptoHelper.TryDecrypt(nombreTarjetaEncriptado, out var nombreTarjeta) ||
+                !CryptoHelper.TryDecrypt(fechaVencimientoEncriptada, out var fechaVencimiento) ||
+                !CryptoHelper.TryDecrypt(codigoSeguridadEncriptado, out var codigoSeguridad))
+            {
+                return ResultadoOperacion.Fallo("Datos bancarios incorrectos.");
+            }
+
+            if (!UsuarioValidator.EsNumeroTarjetaValido(numeroTarjeta) ||
+                !UsuarioValidator.EsNombreValido(nombreTarjeta) ||
+                !UsuarioValidator.EsFechaVencimientoValida(fechaVencimiento) ||
+                !UsuarioValidator.EsCodigoSeguridadValido(codigoSeguridad))
+            {
+                return ResultadoOperacion.Fallo("Datos bancarios incorrectos.");
+            }
+
+            _repositorio.ActualizarMetodoPago(
+                usuario.Identificacion,
+                numeroTarjetaEncriptado,
+                nombreTarjetaEncriptado,
+                fechaVencimientoEncriptada,
+                codigoSeguridadEncriptado);
+
+            return ResultadoOperacion.Ok("Metodo de pago registrado.");
+        }
+
+        public MetodoPagoClienteServicio ObtenerMetodoPagoCliente(string identificacion)
+        {
+            if (!UsuarioValidator.EsIdentificacionValida(identificacion))
+                return MetodoPagoClienteServicio.Fallo("Ingrese una identificacion valida.");
+
+            var usuario = _repositorio.ObtenerPorIdentificacionYTipo(identificacion.Trim(), TipoCliente);
+            if (usuario == null || usuario.Tipo != TipoCliente)
+                return MetodoPagoClienteServicio.Fallo("Cliente no encontrado.");
+
+            if (string.IsNullOrWhiteSpace(usuario.MetodoPagoNumeroTarjetaCifrado) ||
+                string.IsNullOrWhiteSpace(usuario.MetodoPagoNombreTarjetaCifrado) ||
+                string.IsNullOrWhiteSpace(usuario.MetodoPagoFechaVencimientoCifrada) ||
+                string.IsNullOrWhiteSpace(usuario.MetodoPagoCodigoSeguridadCifrado))
+            {
+                return MetodoPagoClienteServicio.Fallo("El cliente no tiene metodo de pago registrado.");
+            }
+
+            if (!CryptoHelper.TryDecrypt(usuario.MetodoPagoNumeroTarjetaCifrado, out var numeroTarjeta) ||
+                !CryptoHelper.TryDecrypt(usuario.MetodoPagoNombreTarjetaCifrado, out var nombreTarjeta) ||
+                !CryptoHelper.TryDecrypt(usuario.MetodoPagoFechaVencimientoCifrada, out var fechaVencimiento) ||
+                !CryptoHelper.TryDecrypt(usuario.MetodoPagoCodigoSeguridadCifrado, out var codigoSeguridad))
+            {
+                return MetodoPagoClienteServicio.Fallo("No se pudo leer el metodo de pago.");
+            }
+
+            return new MetodoPagoClienteServicio
+            {
+                Resultado = true,
+                Mensaje = "Exitoso",
+                NumeroTarjeta = numeroTarjeta,
+                NombreTarjeta = nombreTarjeta,
+                FechaVencimiento = fechaVencimiento,
+                CodigoSeguridad = codigoSeguridad
+            };
         }
 
         private static UsuarioServicio MapearUsuario(Usuario usuario)

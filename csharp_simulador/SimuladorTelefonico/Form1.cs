@@ -331,7 +331,9 @@ namespace SimuladorTelefonico
                 using MarcarNumeroForm form = new MarcarNumeroForm(
                     contactoDestinoSeleccionado.Numero,
                     contactoDestinoSeleccionado.Pais,
-                    contactoDestinoSeleccionado.TipoLlamada);
+                    contactoDestinoSeleccionado.TipoLlamada,
+                    contactoDestinoSeleccionado.TipoServicio,
+                    contactoDestinoSeleccionado.Nacionalidad);
                 form.ShowDialog(this);
 
                 CambiarEstadoTelefono(lblEstado, false);

@@ -72,10 +72,14 @@
     <Compile Include="Infrastructure\ProveedorTcpClient.cs" />
     <Compile Include="Models\ActivarDesactivarLineaRequest.cs" />
     <Compile Include="Models\CalcularFacturacionRequest.cs" />
+    <Compile Include="Models\FacturacionConsultaResponse.cs" />
     <Compile Include="Models\LineaAdministrativaDto.cs" />
     <Compile Include="Models\ListadoLineasResponse.cs" />
+    <Compile Include="Models\ListadoSolicitudesLineaResponse.cs" />
     <Compile Include="Models\RegistrarLineaAdministrativaRequest.cs" />
     <Compile Include="Models\RespuestaServicio.cs" />
+    <Compile Include="Models\SolicitudLineaDto.cs" />
+    <Compile Include="Models\SolicitarLineaClienteRequest.cs" />
     <Compile Include="Models\UltimaFacturacionResponse.cs" />
     <Compile Include="Default.aspx.cs">
       <DependentUpon>Default.aspx</DependentUpon>

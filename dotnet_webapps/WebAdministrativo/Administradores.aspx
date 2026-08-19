@@ -17,7 +17,7 @@
                 <asp:TemplateField HeaderText="Acciones">
                     <ItemTemplate>
                         <asp:LinkButton runat="server" Text="Editar" CommandName="EditarAdmin" CommandArgument='<%# Eval("Identificacion") %>' />
-                        <asp:LinkButton runat="server" Text='<%# Eval("Estado").ToString() == "activo" ? "inactivar" : "activar" %>' CommandName="CambiarEstado" CommandArgument='<%# Eval("Identificacion") + "|" + Eval("Estado") %>' />
+                        <asp:LinkButton runat="server" Text='<%# EstadoActivo(Eval("Estado")) ? "inactivar" : "activar" %>' CommandName="CambiarEstado" CommandArgument='<%# Eval("Identificacion") + "|" + Eval("Estado") %>' />
                         <asp:LinkButton runat="server" Text="Eliminar" CommandName="EliminarAdmin" CommandArgument='<%# Eval("Identificacion") %>' OnClientClick="return confirm('Esta seguro de eliminar el registro del usuario de forma definitiva?');" />
                     </ItemTemplate>
                 </asp:TemplateField>

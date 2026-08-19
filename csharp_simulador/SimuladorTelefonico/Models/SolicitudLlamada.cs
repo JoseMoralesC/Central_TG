@@ -28,6 +28,9 @@ namespace SimuladorTelefonico.Models
         [JsonPropertyName("tipo_llamada")]
         public string TipoLlamada { get; set; } = "NACIONAL";
 
+        [JsonPropertyName("costo_por_minuto")]
+        public decimal CostoPorMinuto { get; set; } = 10.00m;
+
         [JsonPropertyName("fecha_hora")]
         public string FechaHora { get; set; } = string.Empty;
     }

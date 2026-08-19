@@ -9,7 +9,7 @@ namespace CentralTelefonica.WS_Autenticacion.Validators
             new Regex(@"^(?!\s*$)[A-Za-zÁÉÍÓÚÑÜáéíóúñü\s]+$", RegexOptions.Compiled);
 
         private static readonly Regex ContrasenaRegex =
-            new Regex(@"^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{14}$", RegexOptions.Compiled);
+            new Regex(@"^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{7,}$", RegexOptions.Compiled);
 
         private static readonly Regex CorreoRegex =
             new Regex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.Compiled);
@@ -30,5 +30,19 @@ namespace CentralTelefonica.WS_Autenticacion.Validators
 
         public static bool EsIdentificacionValida(string identificacion) =>
             !string.IsNullOrWhiteSpace(identificacion);
+
+        public static bool EsNumeroTarjetaValido(string valorPlano) =>
+            !string.IsNullOrWhiteSpace(valorPlano) &&
+            Regex.IsMatch(
+                valorPlano.Replace("-", string.Empty).Replace(" ", string.Empty),
+                @"^\d{12}$");
+
+        public static bool EsFechaVencimientoValida(string valorPlano) =>
+            !string.IsNullOrWhiteSpace(valorPlano) &&
+            Regex.IsMatch(valorPlano.Trim(), @"^(0[1-9]|1[0-2])/\d{2}$");
+
+        public static bool EsCodigoSeguridadValido(string valorPlano) =>
+            !string.IsNullOrWhiteSpace(valorPlano) &&
+            Regex.IsMatch(valorPlano.Trim(), @"^\d{3}$");
     }
 }

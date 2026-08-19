@@ -29,6 +29,8 @@ namespace WebAdministrativo
 
         protected void CalcularButton_Click(object sender, EventArgs e)
         {
+            LimpiarConsultaPendiente();
+
             if (!DateTime.TryParse(FechaCalculoText.Text, out var fechaCalculo) ||
                 !DateTime.TryParse(FechaMaximaPagoText.Text, out var fechaMaximaPago))
             {
@@ -50,7 +52,7 @@ namespace WebAdministrativo
 
             try
             {
-                var respuesta = _proveedorClient.CalcularFacturacion(
+                var respuesta = _proveedorClient.ConsultarFacturacion(
                     fechaCalculo,
                     fechaMaximaPago,
                     LineaPostpagoList.SelectedValue);
@@ -58,7 +60,7 @@ namespace WebAdministrativo
                 if (respuesta != null && respuesta.Resultado)
                 {
                     MensajeLabel.Text = respuesta.Mensaje;
-                    CargarUltimaFacturacion();
+                    GuardarConsultaPendiente(respuesta);
                     return;
                 }
 
@@ -67,6 +69,69 @@ namespace WebAdministrativo
             catch (Exception)
             {
                 MensajeLabel.Text = "Error al realizar el proceso";
+            }
+        }
+
+        protected void GenerarFacturaButton_Click(object sender, EventArgs e)
+        {
+            if (!TieneConsultaPendiente())
+            {
+                MensajeLabel.Text = "Primero consulte la factura para poder generarla.";
+                return;
+            }
+
+            string numeroTelefono = Convert.ToString(ViewState["ConsultaNumeroTelefono"]);
+            string fechaCalculoTexto = Convert.ToString(ViewState["ConsultaFechaCalculo"]);
+            string fechaMaximaPagoTexto = Convert.ToString(ViewState["ConsultaFechaMaximaPago"]);
+
+            if (!ConsultaCoincideConFormulario(
+                numeroTelefono,
+                fechaCalculoTexto,
+                fechaMaximaPagoTexto))
+            {
+                MensajeLabel.Text = "La linea o las fechas cambiaron. Vuelva a consultar antes de generar la factura.";
+                LimpiarConsultaPendiente();
+                return;
+            }
+
+            if (!DateTime.TryParse(fechaCalculoTexto, out var fechaCalculo) ||
+                !DateTime.TryParse(fechaMaximaPagoTexto, out var fechaMaximaPago))
+            {
+                MensajeLabel.Text = "La consulta previa perdio sus fechas. Vuelva a consultar.";
+                LimpiarConsultaPendiente();
+                return;
+            }
+
+            decimal totalFacturar = Convert.ToDecimal(ViewState["ConsultaTotalFacturar"] ?? 0m);
+            int totalLlamadas = Convert.ToInt32(ViewState["ConsultaTotalLlamadas"] ?? 0);
+
+            if (totalFacturar <= 0m || totalLlamadas <= 0)
+            {
+                MensajeLabel.Text = "La consulta no posee consumo facturable. No se puede generar una factura en cero.";
+                GenerarFacturaButton.Enabled = false;
+                return;
+            }
+
+            try
+            {
+                var respuesta = _proveedorClient.CalcularFacturacion(
+                    fechaCalculo,
+                    fechaMaximaPago,
+                    numeroTelefono);
+
+                if (respuesta != null && respuesta.Resultado)
+                {
+                    MensajeLabel.Text = respuesta.Mensaje;
+                    LimpiarConsultaPendiente();
+                    CargarUltimaFacturacion();
+                    return;
+                }
+
+                MensajeLabel.Text = respuesta?.Mensaje ?? "Error al generar la factura.";
+            }
+            catch (Exception)
+            {
+                MensajeLabel.Text = "Error al generar la factura.";
             }
         }
 
@@ -133,9 +198,9 @@ namespace WebAdministrativo
                 }
 
                 UltimaFacturacionLabel.Text =
-                    "Fecha calculo: " + respuesta.FechaCalculo +
+                    "Linea: " + respuesta.NumeroTelefono +
+                    " | Fecha calculo: " + respuesta.FechaCalculo +
                     " | Fecha maxima pago: " + respuesta.FechaMaximaPago +
-                    " | Lineas: " + respuesta.TotalLineas +
                     " | Llamadas: " + respuesta.TotalLlamadas +
                     " | Total: " + respuesta.TotalFacturar.ToString("0.00");
 
@@ -161,6 +226,58 @@ namespace WebAdministrativo
                 fechaCalculo.Month,
                 DateTime.DaysInMonth(fechaCalculo.Year, fechaCalculo.Month))
                 .ToString("yyyy-MM-dd");
+        }
+
+        private void GuardarConsultaPendiente(FacturacionConsultaResponse respuesta)
+        {
+            ViewState["ConsultaNumeroTelefono"] = respuesta.NumeroTelefono;
+            ViewState["ConsultaFechaCalculo"] = respuesta.FechaCalculo;
+            ViewState["ConsultaFechaMaximaPago"] = respuesta.FechaMaximaPago;
+            ViewState["ConsultaTotalLlamadas"] = respuesta.TotalLlamadas;
+            ViewState["ConsultaTotalFacturar"] = respuesta.TotalFacturar;
+
+            ResultadoConsultaPanel.Visible = true;
+            GenerarFacturaButton.Enabled =
+                respuesta.TotalFacturar > 0m && respuesta.TotalLlamadas > 0;
+            ResultadoConsultaLabel.Text =
+                " Linea: " + respuesta.NumeroTelefono +
+                " | Periodo: " + respuesta.FechaCalculo + " a " + respuesta.FechaMaximaPago +
+                " | Llamadas: " + respuesta.TotalLlamadas +
+                " | Total a facturar: " + respuesta.TotalFacturar.ToString("0.00") + " CRC" +
+                (GenerarFacturaButton.Enabled
+                    ? string.Empty
+                    : " | Sin consumo para generar factura.");
+        }
+
+        private bool TieneConsultaPendiente()
+        {
+            return !string.IsNullOrWhiteSpace(
+                Convert.ToString(ViewState["ConsultaNumeroTelefono"]));
+        }
+
+        private bool ConsultaCoincideConFormulario(
+            string numeroTelefono,
+            string fechaCalculo,
+            string fechaMaximaPago)
+        {
+            return string.Equals(
+                    numeroTelefono?.Trim(),
+                    LineaPostpagoList.SelectedValue?.Trim(),
+                    StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(fechaCalculo, FechaCalculoText.Text, StringComparison.Ordinal) &&
+                string.Equals(fechaMaximaPago, FechaMaximaPagoText.Text, StringComparison.Ordinal);
+        }
+
+        private void LimpiarConsultaPendiente()
+        {
+            ViewState["ConsultaNumeroTelefono"] = null;
+            ViewState["ConsultaFechaCalculo"] = null;
+            ViewState["ConsultaFechaMaximaPago"] = null;
+            ViewState["ConsultaTotalLlamadas"] = null;
+            ViewState["ConsultaTotalFacturar"] = null;
+            ResultadoConsultaPanel.Visible = false;
+            ResultadoConsultaLabel.Text = string.Empty;
+            GenerarFacturaButton.Enabled = true;
         }
     }
 }

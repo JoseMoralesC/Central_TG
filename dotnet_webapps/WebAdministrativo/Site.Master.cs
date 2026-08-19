@@ -27,6 +27,7 @@ namespace WebAdministrativo
             {
                 { "LineasNuevas.aspx", LineasNuevasLink },
                 { "LineasActivar.aspx", LineasActivarLink },
+                { "SolicitudesLineas.aspx", SolicitudesLineasLink },
                 { "LineasDevolucion.aspx", LineasDevolucionLink },
                 { "Facturacion.aspx", FacturacionLink },
                 { "Administradores.aspx", AdministradoresLink }

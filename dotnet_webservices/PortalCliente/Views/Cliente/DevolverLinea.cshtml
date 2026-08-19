@@ -5,11 +5,7 @@
     var cultura = new System.Globalization.CultureInfo("es-CR");
 }
 
-<h2>Devolver linea (CLIENTE7)</h2>
-<p class="text-muted">
-    Seleccione una linea prepago o postpago para solicitar su devolucion.
-    El proceso se envia a WS_PROVEEDOR2 con los datos del controlador cargados automaticamente.
-</p>
+<h2>Devolver linea</h2>
 
 @if (Model.Procesado)
 {
@@ -75,7 +71,7 @@ else
                                     <td class="text-end">
                                         @if (string.IsNullOrWhiteSpace(linea.SaldoDetalle))
                                         {
-                                            @("₡" + linea.Saldo.ToString("N2", cultura))
+                                            @("CRC " + linea.Saldo.ToString("N2", cultura))
                                         }
                                         else
                                         {
@@ -108,16 +104,17 @@ else
                         <tbody>
                             @foreach (var linea in Model.LineasPostpago)
                             {
+                                var tieneFactura = linea.FacturaPendiente > 0;
                                 <tr data-numero="@linea.NumeroTelefono"
                                     data-tipo="@linea.TipoServicio"
                                     data-factura="@linea.FacturaPendiente"
-                                    style="cursor: pointer"
-                                    title="Clic para devolver la linea">
+                                    style="cursor: @(tieneFactura ? "not-allowed" : "pointer")"
+                                    title="@(tieneFactura ? "Debe cancelar primero la factura" : "Clic para devolver la linea")">
                                     <td>@linea.NumeroTelefono</td>
                                     <td class="text-end">
                                         @if (linea.FacturaPendiente > 0)
                                         {
-                                            @("₡" + linea.FacturaPendiente.ToString("N2", cultura))
+                                            @("CRC " + linea.FacturaPendiente.ToString("N2", cultura))
                                         }
                                         else
                                         {
@@ -134,7 +131,7 @@ else
     </div>
 
     <p class="text-muted mt-3 mb-0">
-        Las lineas postpago con facturacion pendiente deben cancelar primero su factura (CLIENTE6).
+        Las lineas postpago con facturacion pendiente deben cancelar primero su factura.
     </p>
 }
 
@@ -147,7 +144,7 @@ else
 @section Scripts {
     <script>
         function solicitarDevolucion(numero, tipo) {
-            if (!confirm('¿Está seguro de querer devolver la línea telefónica?')) {
+            if (!confirm('Esta seguro de querer devolver la linea telefonica?')) {
                 return;
             }
 
@@ -175,6 +172,10 @@ else
             fila.addEventListener('click', function () {
                 var numero = fila.dataset.numero;
                 var tipo = fila.dataset.tipo;
+                var factura = parseFloat(fila.dataset.factura || '0');
+                if (factura > 0) {
+                    return;
+                }
                 if (numero) {
                     solicitarDevolucion(numero, tipo);
                 }

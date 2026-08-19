@@ -7,28 +7,34 @@ namespace PortalCliente.Controllers;
 public class ClienteController : Controller
 {
     private const string SessionIdentificacion = "IdentificacionCliente";
+    private const string SessionNombreCliente = "NombreCliente";
+    private const string LoginClienteUrl = "http://localhost:56122/Login.aspx";
 
     private readonly IProveedorClienteService _proveedorClienteService;
     private readonly IProveedorPortalService _proveedorPortalService;
     private readonly IProveedor2Service _proveedor2Service;
     private readonly IEmailService _emailService;
+    private readonly IAutenticacionPortalService _autenticacionPortalService;
 
     public ClienteController(
         IProveedorClienteService proveedorClienteService,
         IProveedorPortalService proveedorPortalService,
         IProveedor2Service proveedor2Service,
-        IEmailService emailService)
+        IEmailService emailService,
+        IAutenticacionPortalService autenticacionPortalService)
     {
         _proveedorClienteService = proveedorClienteService;
         _proveedorPortalService = proveedorPortalService;
         _proveedor2Service = proveedor2Service;
         _emailService = emailService;
+        _autenticacionPortalService = autenticacionPortalService;
     }
 
     [HttpGet]
     public async Task<IActionResult> Index()
     {
         string? identificacion = Request.Query["identificacion"].FirstOrDefault();
+        string? nombre = Request.Query["nombre"].FirstOrDefault();
 
         if (!string.IsNullOrWhiteSpace(identificacion))
         {
@@ -37,7 +43,15 @@ public class ClienteController : Controller
                 identificacion.Trim());
         }
 
+        if (!string.IsNullOrWhiteSpace(nombre))
+        {
+            HttpContext.Session.SetString(
+                SessionNombreCliente,
+                nombre.Trim());
+        }
+
         string? identificacionSesion = HttpContext.Session.GetString(SessionIdentificacion);
+        string? nombreSesion = HttpContext.Session.GetString(SessionNombreCliente);
 
         if (string.IsNullOrWhiteSpace(identificacionSesion))
         {
@@ -50,6 +64,7 @@ public class ClienteController : Controller
         var modelo = new IndexViewModel
         {
             Identificacion = identificacionSesion,
+            NombreCliente = nombreSesion,
             Resultado = resultado.Resultado,
             Mensaje = resultado.Mensaje,
             Lineas = resultado.Lineas
@@ -61,11 +76,84 @@ public class ClienteController : Controller
     [HttpPost]
     public IActionResult Index(string identificacion)
     {
-        HttpContext.Session.SetString(
-            SessionIdentificacion,
-            identificacion?.Trim() ?? string.Empty);
-
         return RedirectToAction(nameof(Index));
+    }
+
+    [HttpGet]
+    public IActionResult Logout()
+    {
+        HttpContext.Session.Clear();
+        return Redirect(LoginClienteUrl);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> SolicitarLinea()
+    {
+        SolicitarLineaViewModel modelo = await CrearModeloSolicitudAsync();
+        modelo.MensajeResultado = TempData["SolicitarLineaMensaje"] as string;
+        modelo.Exitoso = TempData["SolicitarLineaExitoso"] as bool? ?? false;
+        modelo.Procesado = modelo.MensajeResultado is not null;
+        return View(modelo);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> SolicitarLinea(
+        int servicioId,
+        string numeroTelefono,
+        string tipoServicio)
+    {
+        string? identificacion = HttpContext.Session.GetString(SessionIdentificacion);
+        string? nombre = HttpContext.Session.GetString(SessionNombreCliente);
+
+        if (string.IsNullOrWhiteSpace(identificacion) ||
+            string.IsNullOrWhiteSpace(nombre))
+        {
+            TempData["SolicitarLineaExitoso"] = false;
+            TempData["SolicitarLineaMensaje"] = "Debe iniciar sesion para solicitar una linea.";
+            return RedirectToAction(nameof(SolicitarLinea));
+        }
+
+        CambioEstadoLineaResult resultado =
+            await _proveedor2Service.SolicitarLineaClienteAsync(
+                servicioId,
+                numeroTelefono,
+                tipoServicio,
+                identificacion,
+                nombre);
+
+        TempData["SolicitarLineaExitoso"] = resultado.Resultado;
+        TempData["SolicitarLineaMensaje"] = resultado.Resultado
+            ? "Solicitud registrada. Un administrador revisara la asignacion."
+            : resultado.Mensaje;
+
+        return RedirectToAction(nameof(SolicitarLinea));
+    }
+
+    private async Task<SolicitarLineaViewModel> CrearModeloSolicitudAsync()
+    {
+        string? identificacion = HttpContext.Session.GetString(SessionIdentificacion);
+        string? nombre = HttpContext.Session.GetString(SessionNombreCliente);
+
+        var modelo = new SolicitarLineaViewModel
+        {
+            Identificacion = identificacion,
+            NombreCliente = nombre
+        };
+
+        if (string.IsNullOrWhiteSpace(identificacion))
+        {
+            modelo.ResultadoConsulta = false;
+            modelo.MensajeConsulta = "Debe iniciar sesion para solicitar una linea.";
+            return modelo;
+        }
+
+        ListarLineasDisponiblesResult resultado =
+            await _proveedor2Service.ListarLineasDisponiblesAsync();
+
+        modelo.ResultadoConsulta = resultado.Resultado;
+        modelo.MensajeConsulta = resultado.Mensaje;
+        modelo.Lineas = resultado.Lineas;
+        return modelo;
     }
 
     [HttpGet]
@@ -81,6 +169,7 @@ public class ClienteController : Controller
         if (!string.IsNullOrWhiteSpace(numero))
         {
             modelo.Numero = numero.Trim();
+            await PrecargarMetodoPagoAsync(modelo, identificacion);
             return View(modelo);
         }
 
@@ -241,6 +330,52 @@ public class ClienteController : Controller
         return null;
     }
 
+    private async Task PrecargarMetodoPagoAsync(
+        CargarSaldoViewModel modelo,
+        string? identificacion)
+    {
+        if (string.IsNullOrWhiteSpace(identificacion))
+        {
+            return;
+        }
+
+        MetodoPagoCliente metodo =
+            await _autenticacionPortalService.ObtenerMetodoPagoClienteAsync(identificacion);
+
+        if (!metodo.Resultado)
+        {
+            return;
+        }
+
+        modelo.NumeroTarjeta = metodo.NumeroTarjeta;
+        modelo.NombreTarjeta = metodo.NombreTarjeta;
+        modelo.FechaVencimiento = metodo.FechaVencimiento;
+        modelo.CodigoSeguridad = metodo.CodigoSeguridad;
+    }
+
+    private async Task PrecargarMetodoPagoAsync(
+        PagarFacturaViewModel modelo,
+        string? identificacion)
+    {
+        if (string.IsNullOrWhiteSpace(identificacion))
+        {
+            return;
+        }
+
+        MetodoPagoCliente metodo =
+            await _autenticacionPortalService.ObtenerMetodoPagoClienteAsync(identificacion);
+
+        if (!metodo.Resultado)
+        {
+            return;
+        }
+
+        modelo.NumeroTarjeta = metodo.NumeroTarjeta;
+        modelo.NombreTarjeta = metodo.NombreTarjeta;
+        modelo.FechaVencimiento = metodo.FechaVencimiento;
+        modelo.CodigoSeguridad = metodo.CodigoSeguridad;
+    }
+
     [HttpGet]
     public async Task<IActionResult> PagarFactura(string numero)
     {
@@ -288,6 +423,7 @@ public class ClienteController : Controller
         }
 
         modelo.MontoFactura = linea.FacturaPendiente;
+        await PrecargarMetodoPagoAsync(modelo, identificacion);
         return View(modelo);
     }
 

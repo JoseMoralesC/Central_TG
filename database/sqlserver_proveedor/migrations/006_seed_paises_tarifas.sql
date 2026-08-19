@@ -60,8 +60,8 @@ INSERT INTO dbo.tarifas (
 SELECT source.tipo_llamada, source.descripcion, source.costo_por_minuto, 1, p.pais_id
 FROM (
     VALUES
-        ('INTERNACIONAL_PA', 'Llamadas internacionales hacia Panama', 15.00, 'Panama'),
-        ('INTERNACIONAL_MX', 'Llamadas internacionales hacia Mexico', 25.00, 'Mexico'),
+        ('INTERNACIONAL_PA', 'Llamadas internacionales hacia Panama', 60.00, 'Panama'),
+        ('INTERNACIONAL_MX', 'Llamadas internacionales hacia Mexico', 60.00, 'Mexico'),
         ('INTERNACIONAL_FR', 'Llamadas internacionales hacia Francia', 60.00, 'Francia')
 ) AS source (tipo_llamada, descripcion, costo_por_minuto, pais_nombre)
 JOIN dbo.paises p ON p.nombre = source.pais_nombre
@@ -80,8 +80,8 @@ SET t.descripcion = source.descripcion,
 FROM dbo.tarifas t
 JOIN (
     VALUES
-        ('INTERNACIONAL_PA', 'Llamadas internacionales hacia Panama', 15.00, 'Panama'),
-        ('INTERNACIONAL_MX', 'Llamadas internacionales hacia Mexico', 25.00, 'Mexico'),
+        ('INTERNACIONAL_PA', 'Llamadas internacionales hacia Panama', 60.00, 'Panama'),
+        ('INTERNACIONAL_MX', 'Llamadas internacionales hacia Mexico', 60.00, 'Mexico'),
         ('INTERNACIONAL_FR', 'Llamadas internacionales hacia Francia', 60.00, 'Francia')
 ) AS source (tipo_llamada, descripcion, costo_por_minuto, pais_nombre)
     ON source.tipo_llamada = t.tipo_llamada

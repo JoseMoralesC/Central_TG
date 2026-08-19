@@ -148,9 +148,7 @@ namespace WebAdministrativo
 
         private List<UsuarioServicio> ObtenerUsuariosMongoAsignables()
         {
-            return UsuariosActivos(
-                _autenticacionClient.ListarClientes(),
-                _autenticacionClient.ListarAdministradores());
+            return UsuariosActivos(_autenticacionClient.ListarClientes());
         }
 
         private static List<UsuarioServicio> UsuariosActivos(params ResultadoListadoUsuarios[] respuestas)

@@ -39,6 +39,7 @@
     <Reference Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Assets\Logo.png" />
     <Content Include="Default.aspx" />
     <Content Include="Global.asax" />
     <Content Include="Lineas.aspx" />

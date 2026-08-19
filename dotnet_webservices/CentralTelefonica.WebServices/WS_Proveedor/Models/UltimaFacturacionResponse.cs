@@ -31,5 +31,8 @@ namespace WS_Proveedor.Models
 
         [DataMember(Order = 9)]
         public string FechaRegistro { get; set; }
+
+        [DataMember(Order = 10)]
+        public string NumeroTelefono { get; set; }
     }
 }

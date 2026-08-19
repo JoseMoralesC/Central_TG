@@ -5,20 +5,22 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Central Telefonica - Administrativo</title>
+    <link rel="icon" type="image/png" href="Assets/Logo.png" />
     <link rel="stylesheet" href="Styles/site.css" />
 </head>
 <body>
     <form id="form1" runat="server">
         <header class="topbar">
             <div class="brand">
-                <span class="brand-mark">CT</span>
+                <img class="brand-logo" src="Assets/Logo.png" alt="Central TG" />
                 <span>Central Telefonica</span>
             </div>
             <nav class="main-nav">
                 <asp:HyperLink runat="server" ID="LineasNuevasLink" NavigateUrl="~/LineasNuevas.aspx" Text="Nuevas lineas" />
                 <asp:HyperLink runat="server" ID="LineasActivarLink" NavigateUrl="~/LineasActivar.aspx" Text="Asignar linea" />
+                <asp:HyperLink runat="server" ID="SolicitudesLineasLink" NavigateUrl="~/SolicitudesLineas.aspx" Text="Solicitudes" />
                 <asp:HyperLink runat="server" ID="LineasDevolucionLink" NavigateUrl="~/LineasDevolucion.aspx" Text="Devolucion linea" />
-                <asp:HyperLink runat="server" ID="FacturacionLink" NavigateUrl="~/Facturacion.aspx" Text="Calcular facturacion" />
+                <asp:HyperLink runat="server" ID="FacturacionLink" NavigateUrl="~/Facturacion.aspx" Text="Facturacion" />
                 <asp:HyperLink runat="server" ID="AdministradoresLink" NavigateUrl="~/Administradores.aspx" Text="Administradores" />
                 <asp:LinkButton runat="server" ID="SalirLink" Text="Salir del sitio" OnClick="SalirLink_Click" />
             </nav>

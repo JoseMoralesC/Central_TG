@@ -19,6 +19,7 @@ namespace SimuladorTelefonico.UI
         private readonly CryptoService _cryptoService = new();
         private readonly AutenticacionCryptoService _authCryptoService = new();
         private readonly MongoUsuariosConsultaService _mongoUsuariosService = new();
+        private readonly System.Windows.Forms.Timer _pollingTimer = new();
         private readonly DataGridView _grid = new();
         private readonly DataGridView _gridUsuarios = new();
         private readonly Label _estado = new();
@@ -55,6 +56,9 @@ namespace SimuladorTelefonico.UI
         private readonly TextBox _txtFactFechaMaximaPago = new();
         private readonly TextBox _txtDatosFacturacionWcf = new();
         private List<TelefonoVirtual> _telefonosActuales = new();
+        private bool _refrescandoCatalogo;
+        private bool _refrescandoMongo;
+        private bool _mongoConsultado;
 
         public AdministracionTelefonicaForm()
         {
@@ -67,13 +71,17 @@ namespace SimuladorTelefonico.UI
             DoubleBuffered = true;
 
             ConstruirInterfaz();
+            _pollingTimer.Interval = 7000;
+            _pollingTimer.Tick += async (_, _) => await RefrescarPollingAsync();
             Shown += async (_, _) =>
             {
                 GenerarIdentificadoresRegistro();
                 await RefrescarCatalogoAsync();
                 GenerarDatosRegistroWcf();
                 ActualizarDatosWcf();
+                _pollingTimer.Start();
             };
+            FormClosed += (_, _) => _pollingTimer.Dispose();
         }
 
         private void ConstruirInterfaz()
@@ -762,20 +770,48 @@ namespace SimuladorTelefonico.UI
 
         private async Task RefrescarCatalogoAsync()
         {
-            _estado.Text = "Consultando catalogo real...";
-            List<TelefonoVirtual> telefonos = await ConsultarCatalogoConTimeoutAsync();
-
-            if (telefonos.Count > 0)
+            if (_refrescandoCatalogo)
             {
-                AppConfig.ActualizarCatalogoTelefonos(telefonos);
-                CargarGrid(telefonos);
-                _estado.Text = "Catalogo actualizado desde Python/Java.";
+                return;
             }
-            else
+
+            _refrescandoCatalogo = true;
+            _estado.Text = "Consultando catalogo real...";
+            try
             {
-                AppConfig.ActualizarCatalogoTelefonos(telefonos);
-                CargarGrid(telefonos);
-                _estado.Text = "No hay telefonos confirmados por el backend.";
+                List<TelefonoVirtual> telefonos = await ConsultarCatalogoConTimeoutAsync();
+
+                if (telefonos.Count > 0)
+                {
+                    AppConfig.ActualizarCatalogoTelefonos(telefonos);
+                    CargarGrid(telefonos);
+                    _estado.Text = "Catalogo actualizado desde Python/Java.";
+                }
+                else
+                {
+                    AppConfig.ActualizarCatalogoTelefonos(telefonos);
+                    CargarGrid(telefonos);
+                    _estado.Text = "No hay telefonos confirmados por el backend.";
+                }
+            }
+            finally
+            {
+                _refrescandoCatalogo = false;
+            }
+        }
+
+        private async Task RefrescarPollingAsync()
+        {
+            if (!Visible)
+            {
+                return;
+            }
+
+            await RefrescarCatalogoAsync();
+
+            if (_mongoConsultado)
+            {
+                await ConsultarUsuariosMongoAsync(esPolling: true);
             }
         }
 
@@ -1173,27 +1209,42 @@ namespace SimuladorTelefonico.UI
                     : "Validacion local: revise formato o rango de fechas.");
         }
 
-        private async Task ConsultarUsuariosMongoAsync()
+        private async Task ConsultarUsuariosMongoAsync(bool esPolling = false)
         {
+            if (_refrescandoMongo)
+            {
+                return;
+            }
+
+            _refrescandoMongo = true;
+            _mongoConsultado = true;
             _estado.Text = "Consultando usuarios en MongoDB...";
-            var resultado = await _mongoUsuariosService.ConsultarUsuariosAsync();
+            try
+            {
+                var resultado = await _mongoUsuariosService.ConsultarUsuariosAsync();
 
-            _gridUsuarios.DataSource = resultado.Usuarios
-                .Select(u => new
-                {
-                    u.Identificacion,
-                    u.Nombre,
-                    u.PrimerApellido,
-                    u.Correo,
-                    u.Estado,
-                    u.Tipo,
-                    Usuario = UiTheme.ResumirIdentificador(u.UsuarioCifrado, 28)
-                })
-                .ToList();
+                _gridUsuarios.DataSource = resultado.Usuarios
+                    .Select(u => new
+                    {
+                        u.Identificacion,
+                        u.Nombre,
+                        u.PrimerApellido,
+                        u.Correo,
+                        u.Estado,
+                        u.Tipo,
+                        Usuario = UiTheme.ResumirIdentificador(u.UsuarioCifrado, 28)
+                    })
+                    .ToList();
 
-            _estado.Text = resultado.Exitoso
-                ? $"{resultado.Mensaje} Total: {resultado.Usuarios.Count}."
-                : resultado.Mensaje;
+                _estado.Text = resultado.Exitoso
+                    ? $"{resultado.Mensaje} Total: {resultado.Usuarios.Count}."
+                        + (esPolling ? $" Actualizado {DateTime.Now:HH:mm:ss}." : string.Empty)
+                    : resultado.Mensaje;
+            }
+            finally
+            {
+                _refrescandoMongo = false;
+            }
         }
 
         private void SincronizarUsuarioSeleccionado()

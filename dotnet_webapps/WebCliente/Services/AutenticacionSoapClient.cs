@@ -22,6 +22,14 @@ namespace WebCliente.Services
             string contrasenaEncriptada,
             string estado,
             int tipo);
+
+        [OperationContract]
+        ResultadoOperacion RegistrarMetodoPagoCliente(
+            string identificacion,
+            string numeroTarjetaEncriptado,
+            string nombreTarjetaEncriptado,
+            string fechaVencimientoEncriptada,
+            string codigoSeguridadEncriptado);
     }
 
     [DataContract(Namespace = "http://centraltelefonica.cr/ws/autenticacion")]
@@ -114,6 +122,22 @@ namespace WebCliente.Services
                     contrasenaEncriptada,
                     "activo",
                     TipoCliente));
+        }
+
+        public ResultadoOperacion RegistrarMetodoPagoCliente(
+            string identificacion,
+            string numeroTarjeta,
+            string nombreTarjeta,
+            string fechaVencimiento,
+            string codigoSeguridad)
+        {
+            return Ejecutar(servicio =>
+                servicio.RegistrarMetodoPagoCliente(
+                    identificacion.Trim(),
+                    CryptoHelper.Encrypt(numeroTarjeta.Trim()),
+                    CryptoHelper.Encrypt(nombreTarjeta.Trim()),
+                    CryptoHelper.Encrypt(fechaVencimiento.Trim()),
+                    CryptoHelper.Encrypt(codigoSeguridad.Trim())));
         }
 
         private static T Ejecutar<T>(Func<IAutenticacionService, T> accion)

@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "Pagar factura";
     var cultura = new System.Globalization.CultureInfo("es-CR");
+    var metodoPagoRegistrado = !string.IsNullOrWhiteSpace(Model.NumeroTarjeta);
 }
 
 @if (Model.ModoLista)
@@ -49,13 +50,14 @@
                 {
                     var tieneFactura = linea.FacturaPendiente > 0;
                     <tr data-numero="@linea.NumeroTelefono"
+                        data-factura="@linea.FacturaPendiente"
                         style="cursor: @(tieneFactura ? "pointer" : "default")"
                         title="@(tieneFactura ? "Doble clic para pagar factura" : "Sin factura pendiente")">
                         <td>@linea.NumeroTelefono</td>
                         <td class="text-end">
                             @if (tieneFactura)
                             {
-                                @("₡" + linea.FacturaPendiente.ToString("N2", cultura))
+                                @("CRC " + linea.FacturaPendiente.ToString("N2", cultura))
                             }
                             else
                             {
@@ -70,7 +72,7 @@
 }
 else
 {
-    <h2>Pagar factura (CLIENTE6)</h2>
+    <h2>Pagar factura</h2>
     <p><strong>Linea seleccionada:</strong> @Model.Numero</p>
 
     <form asp-action="PagarFactura" asp-controller="Cliente" method="post">
@@ -82,7 +84,7 @@ else
             {
                 <div class="alert alert-success" role="alert">
                     <strong>@Model.MensajeResultado</strong>
-                    <br />Factura cancelada: @("₡" + Model.MontoFactura.ToString("N2", cultura))
+                    <br />Factura cancelada: @("CRC " + Model.MontoFactura.ToString("N2", cultura))
                     @if (!string.IsNullOrWhiteSpace(Model.DetalleCorreo))
                     {
                         <br />@Model.DetalleCorreo
@@ -105,7 +107,7 @@ else
                     <label class="form-label">Monto total de la factura por cancelar</label>
                     <input type="text"
                            class="form-control"
-                           value="@("₡" + Model.MontoFactura.ToString("N2", cultura))"
+                           value="@("CRC " + Model.MontoFactura.ToString("N2", cultura))"
                            readonly />
                     <div class="form-text">El monto se carga automaticamente y no puede modificarse.</div>
                 </div>
@@ -121,6 +123,7 @@ else
                            value="@Model.NumeroTarjeta"
                            maxlength="19"
                            placeholder="1234-5678-9012"
+                           readonly="@(metodoPagoRegistrado ? "readonly" : null)"
                            required />
                 </div>
 
@@ -132,6 +135,7 @@ else
                            name="NombreTarjeta"
                            value="@Model.NombreTarjeta"
                            maxlength="60"
+                           readonly="@(metodoPagoRegistrado ? "readonly" : null)"
                            required />
                 </div>
 
@@ -145,6 +149,7 @@ else
                                value="@Model.FechaVencimiento"
                                maxlength="5"
                                placeholder="MM/AA"
+                               readonly="@(metodoPagoRegistrado ? "readonly" : null)"
                                required />
                     </div>
                     <div class="col-md-6">
@@ -156,6 +161,7 @@ else
                                value="@Model.CodigoSeguridad"
                                maxlength="3"
                                placeholder="000"
+                               readonly="@(metodoPagoRegistrado ? "readonly" : null)"
                                required />
                     </div>
                 </div>
@@ -201,7 +207,8 @@ else
             document.querySelectorAll('#tablaPostpago tbody tr').forEach(function (fila) {
                 fila.addEventListener('dblclick', function () {
                     var numero = fila.dataset.numero;
-                    if (numero) {
+                    var factura = parseFloat(fila.dataset.factura || '0');
+                    if (numero && factura > 0) {
                         window.location.href = '/Cliente/PagarFactura?numero=' + encodeURIComponent(numero);
                     }
                 });

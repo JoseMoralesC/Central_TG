@@ -13,6 +13,82 @@ namespace WS_Proveedor
 {
     public class ProveedorService : IProveedorService
     {
+        public FacturacionConsultaResponse ConsultarFacturacion(
+            CalcularFacturacionRequest solicitud)
+        {
+            try
+            {
+                if (!CalcularFacturacionValidator.EsValida(solicitud) ||
+                    string.IsNullOrWhiteSpace(solicitud.NumeroTelefono))
+                {
+                    return CrearRespuestaErrorConsultaFacturacion(
+                        "Ingrese linea postpago y fechas validas para consultar.");
+                }
+
+                string connectionString = ObtenerConnectionString();
+
+                const string sql = @"
+SELECT TOP 1
+    s.numero_telefono,
+    COUNT(lp.llamada_id) AS total_llamadas,
+    ISNULL(SUM(lp.costo), 0.00) AS total_facturar
+FROM dbo.servicios s
+LEFT JOIN dbo.llamadas_proveedor lp
+    ON lp.servicio_id = s.servicio_id
+    AND lp.fecha_llamada >= @fechaCalculo
+    AND lp.fecha_llamada <= @fechaMaximaPago
+    AND COALESCE(lp.estado, 'FINALIZADA') = 'FINALIZADA'
+WHERE UPPER(ISNULL(s.tipo_servicio, '')) = 'POSTPAGO'
+  AND s.activo = 1
+  AND UPPER(ISNULL(s.estado_linea, 'ACTIVO')) = 'ACTIVO'
+  AND (
+      s.numero_telefono = @numeroTelefono
+      OR RIGHT(REPLACE(s.numero_telefono, '+', ''), 8) =
+         RIGHT(REPLACE(@numeroTelefono, '+', ''), 8)
+  )
+GROUP BY s.servicio_id, s.numero_telefono
+ORDER BY s.servicio_id DESC;";
+
+                using (var conexion = new SqlConnection(connectionString))
+                using (var comando = new SqlCommand(sql, conexion))
+                {
+                    comando.Parameters.AddWithValue("@fechaCalculo", solicitud.FechaCalculo);
+                    comando.Parameters.AddWithValue("@fechaMaximaPago", solicitud.FechaMaximaPago);
+                    comando.Parameters.AddWithValue("@numeroTelefono", solicitud.NumeroTelefono.Trim());
+                    conexion.Open();
+
+                    using (var reader = comando.ExecuteReader(CommandBehavior.SingleRow))
+                    {
+                        if (!reader.Read())
+                        {
+                            return CrearRespuestaErrorConsultaFacturacion(
+                                "No se encontro una linea postpago activa para consultar.");
+                        }
+
+                        int totalLlamadas = Convert.ToInt32(reader["total_llamadas"]);
+                        decimal totalFacturar = Convert.ToDecimal(reader["total_facturar"]);
+                        string numeroTelefono = Convert.ToString(reader["numero_telefono"]);
+
+                        return new FacturacionConsultaResponse
+                        {
+                            Resultado = true,
+                            Mensaje = "Consulta realizada. Puede generar la factura con este resultado.",
+                            NumeroTelefono = numeroTelefono,
+                            FechaCalculo = solicitud.FechaCalculo,
+                            FechaMaximaPago = solicitud.FechaMaximaPago,
+                            TotalLlamadas = totalLlamadas,
+                            TotalFacturar = totalFacturar
+                        };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Error en ConsultarFacturacion: " + ex);
+                return CrearRespuestaErrorConsultaFacturacion();
+            }
+        }
+
         public RespuestaServicio ActivarDesactivarLinea(
             ActivarDesactivarLineaRequest solicitud)
         {
@@ -113,7 +189,7 @@ namespace WS_Proveedor
                     return new RespuestaServicio
                     {
                         Resultado = true,
-                        Mensaje = mensaje
+                            Mensaje = "Factura generada. " + mensaje
                     };
                 }
 
@@ -142,7 +218,6 @@ namespace WS_Proveedor
                 const string sql = @"
 SELECT TOP 1
     s.numero_telefono,
-    COUNT(*) OVER() AS total_registros,
     f.total_llamadas,
     f.total_facturar
 FROM dbo.facturacion_postpago f
@@ -199,15 +274,15 @@ ORDER BY f.facturacion_id DESC;";
 
                 const string sql = @"
 SELECT TOP 1
-    fecha_calculo,
-    fecha_maxima_pago,
-    COUNT(*) AS total_lineas,
-    SUM(total_llamadas) AS total_llamadas,
-    SUM(total_facturar) AS total_facturar,
-    MAX(fecha_registro) AS fecha_registro
-FROM dbo.facturacion_postpago
-GROUP BY fecha_calculo, fecha_maxima_pago
-ORDER BY MAX(fecha_registro) DESC, fecha_calculo DESC;";
+    s.numero_telefono,
+    f.fecha_calculo,
+    f.fecha_maxima_pago,
+    f.total_llamadas,
+    f.total_facturar,
+    f.fecha_registro
+FROM dbo.facturacion_postpago f
+JOIN dbo.servicios s ON s.servicio_id = f.servicio_id
+ORDER BY f.fecha_registro DESC, f.facturacion_id DESC;";
 
                 using (var conexion = new SqlConnection(connectionString))
                 using (var comando = new SqlCommand(sql, conexion))
@@ -226,8 +301,8 @@ ORDER BY MAX(fecha_registro) DESC, fecha_calculo DESC;";
                             };
                         }
 
-                        DateTime fechaCalculo = reader.GetDateTime(0);
-                        DateTime fechaMaximaPago = reader.GetDateTime(1);
+                        DateTime fechaCalculo = reader.GetDateTime(1);
+                        DateTime fechaMaximaPago = reader.GetDateTime(2);
                         DateTime fechaRegistro = reader.GetDateTime(5);
 
                         return new UltimaFacturacionResponse
@@ -237,7 +312,8 @@ ORDER BY MAX(fecha_registro) DESC, fecha_calculo DESC;";
                             HayFacturacion = true,
                             FechaCalculo = fechaCalculo.ToString("yyyy-MM-dd"),
                             FechaMaximaPago = fechaMaximaPago.ToString("yyyy-MM-dd"),
-                            TotalLineas = Convert.ToInt32(reader["total_lineas"]),
+                            NumeroTelefono = Convert.ToString(reader["numero_telefono"]),
+                            TotalLineas = 1,
                             TotalLlamadas = Convert.ToInt32(reader["total_llamadas"]),
                             TotalFacturar = Convert.ToDecimal(reader["total_facturar"]),
                             FechaRegistro = fechaRegistro.ToString("yyyy-MM-dd HH:mm:ss")
@@ -257,9 +333,192 @@ ORDER BY MAX(fecha_registro) DESC, fecha_calculo DESC;";
             return ListarLineas("DISPONIBLE");
         }
 
+        public RespuestaServicio SolicitarLineaCliente(SolicitarLineaClienteRequest solicitud)
+        {
+            try
+            {
+                if (solicitud == null ||
+                    solicitud.ServicioId <= 0 ||
+                    string.IsNullOrWhiteSpace(solicitud.NumeroTelefono) ||
+                    string.IsNullOrWhiteSpace(solicitud.TipoServicio) ||
+                    string.IsNullOrWhiteSpace(solicitud.IdentificacionCliente) ||
+                    string.IsNullOrWhiteSpace(solicitud.NombreCliente) ||
+                    !TipoServicioValido(solicitud.TipoServicio))
+                {
+                    return CrearRespuestaError("Debe seleccionar una linea disponible.");
+                }
+
+                string connectionString = ObtenerConnectionString();
+
+                using (var conexion = new SqlConnection(connectionString))
+                {
+                    conexion.Open();
+
+                    if (!LineaDisponibleCoincide(conexion, solicitud))
+                    {
+                        return CrearRespuestaError("La linea seleccionada ya no esta disponible.");
+                    }
+
+                    if (ExisteSolicitudPendiente(conexion, solicitud.ServicioId, solicitud.IdentificacionCliente))
+                    {
+                        return CrearRespuestaError("Ya existe una solicitud pendiente para esta linea.");
+                    }
+
+                    const string sql = @"
+INSERT INTO dbo.solicitudes_linea
+    (servicio_id, numero_telefono, tipo_servicio, identificacion_cliente,
+     nombre_cliente, estado)
+VALUES
+    (@servicioId, @numeroTelefono, @tipoServicio, @identificacionCliente,
+     @nombreCliente, 'PENDIENTE');";
+
+                    using (var comando = new SqlCommand(sql, conexion))
+                    {
+                        comando.Parameters.AddWithValue("@servicioId", solicitud.ServicioId);
+                        comando.Parameters.AddWithValue("@numeroTelefono", solicitud.NumeroTelefono.Trim());
+                        comando.Parameters.AddWithValue("@tipoServicio", solicitud.TipoServicio.Trim().ToUpperInvariant());
+                        comando.Parameters.AddWithValue("@identificacionCliente", solicitud.IdentificacionCliente.Trim());
+                        comando.Parameters.AddWithValue("@nombreCliente", solicitud.NombreCliente.Trim());
+                        comando.ExecuteNonQuery();
+                    }
+                }
+
+                return new RespuestaServicio
+                {
+                    Resultado = true,
+                    Mensaje = "Solicitud registrada. Un administrador revisara la asignacion."
+                };
+            }
+            catch (SqlException ex)
+            {
+                Debug.WriteLine("Error SQL en SolicitarLineaCliente: " + ex);
+                return CrearRespuestaError("No fue posible registrar la solicitud.");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Error en SolicitarLineaCliente: " + ex);
+                return CrearRespuestaError("No fue posible registrar la solicitud.");
+            }
+        }
+
         public ListadoLineasResponse ListarLineasActivas()
         {
             return ListarLineas("ACTIVO");
+        }
+
+        public ListadoSolicitudesLineaResponse ListarSolicitudesLineaPendientes()
+        {
+            try
+            {
+                var solicitudes = new List<SolicitudLineaDto>();
+                string connectionString = ObtenerConnectionString();
+
+                const string sql = @"
+SELECT
+    solicitud_id,
+    servicio_id,
+    numero_telefono,
+    tipo_servicio,
+    identificacion_cliente,
+    nombre_cliente,
+    estado,
+    fecha_solicitud
+FROM dbo.solicitudes_linea
+WHERE UPPER(estado) = 'PENDIENTE'
+ORDER BY fecha_solicitud ASC, solicitud_id ASC;";
+
+                using (var conexion = new SqlConnection(connectionString))
+                using (var comando = new SqlCommand(sql, conexion))
+                {
+                    conexion.Open();
+
+                    using (var reader = comando.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            solicitudes.Add(new SolicitudLineaDto
+                            {
+                                SolicitudId = Convert.ToInt32(reader["solicitud_id"]),
+                                ServicioId = Convert.ToInt32(reader["servicio_id"]),
+                                NumeroTelefono = Convert.ToString(reader["numero_telefono"]),
+                                TipoServicio = Convert.ToString(reader["tipo_servicio"]),
+                                IdentificacionCliente = Convert.ToString(reader["identificacion_cliente"]),
+                                NombreCliente = Convert.ToString(reader["nombre_cliente"]),
+                                Estado = Convert.ToString(reader["estado"]),
+                                FechaSolicitud = Convert.ToDateTime(reader["fecha_solicitud"])
+                                    .ToString("yyyy-MM-dd HH:mm:ss")
+                            });
+                        }
+                    }
+                }
+
+                return new ListadoSolicitudesLineaResponse
+                {
+                    Resultado = true,
+                    Mensaje = solicitudes.Count == 0
+                        ? "No hay solicitudes pendientes."
+                        : "Exitoso",
+                    Solicitudes = solicitudes
+                };
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Error en ListarSolicitudesLineaPendientes: " + ex);
+                return new ListadoSolicitudesLineaResponse
+                {
+                    Resultado = false,
+                    Mensaje = "No se pudieron consultar las solicitudes.",
+                    Solicitudes = new List<SolicitudLineaDto>()
+                };
+            }
+        }
+
+        public RespuestaServicio MarcarSolicitudLineaAtendida(int solicitudId, string estado)
+        {
+            try
+            {
+                string estadoNormalizado = estado?.Trim().ToUpperInvariant();
+
+                if (solicitudId <= 0 ||
+                    (estadoNormalizado != "APROBADA" && estadoNormalizado != "RECHAZADA"))
+                {
+                    return CrearRespuestaError("Solicitud o estado incorrecto.");
+                }
+
+                string connectionString = ObtenerConnectionString();
+
+                const string sql = @"
+UPDATE dbo.solicitudes_linea
+SET estado = @estado,
+    fecha_atencion = SYSUTCDATETIME()
+WHERE solicitud_id = @solicitudId
+  AND UPPER(estado) = 'PENDIENTE';";
+
+                using (var conexion = new SqlConnection(connectionString))
+                using (var comando = new SqlCommand(sql, conexion))
+                {
+                    comando.Parameters.AddWithValue("@estado", estadoNormalizado);
+                    comando.Parameters.AddWithValue("@solicitudId", solicitudId);
+                    conexion.Open();
+
+                    int afectadas = comando.ExecuteNonQuery();
+                    if (afectadas == 0)
+                    {
+                        return CrearRespuestaError("La solicitud ya fue atendida o no existe.");
+                    }
+                }
+
+                return new RespuestaServicio
+                {
+                    Resultado = true,
+                    Mensaje = "Solicitud actualizada."
+                };
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Error en MarcarSolicitudLineaAtendida: " + ex);
+                return CrearRespuestaError("No se pudo actualizar la solicitud.");
+            }
         }
 
         public RespuestaServicio RegistrarLinea(RegistrarLineaAdministrativaRequest solicitud)
@@ -408,6 +667,23 @@ WHERE servicio_id = @servicioId
             };
         }
 
+        private static FacturacionConsultaResponse CrearRespuestaErrorConsultaFacturacion(
+            string detalle = null)
+        {
+            return new FacturacionConsultaResponse
+            {
+                Resultado = false,
+                Mensaje = string.IsNullOrWhiteSpace(detalle)
+                    ? "Problemas al consultar la facturacion."
+                    : detalle.Trim(),
+                NumeroTelefono = string.Empty,
+                FechaCalculo = string.Empty,
+                FechaMaximaPago = string.Empty,
+                TotalLlamadas = 0,
+                TotalFacturar = 0
+            };
+        }
+
         private static UltimaFacturacionResponse CrearRespuestaErrorUltimaFacturacion(
             string detalle = null)
         {
@@ -527,6 +803,48 @@ ORDER BY s.numero_telefono;";
         {
             string valor = tipoServicio?.Trim().ToUpperInvariant();
             return valor == "PREPAGO" || valor == "POSTPAGO";
+        }
+
+        private static bool LineaDisponibleCoincide(
+            SqlConnection conexion,
+            SolicitarLineaClienteRequest solicitud)
+        {
+            const string sql = @"
+SELECT COUNT(1)
+FROM dbo.servicios
+WHERE servicio_id = @servicioId
+  AND numero_telefono = @numeroTelefono
+  AND UPPER(ISNULL(tipo_servicio, '')) = @tipoServicio
+  AND activo = 0
+  AND UPPER(ISNULL(estado_linea, 'DISPONIBLE')) = 'DISPONIBLE';";
+
+            using (var comando = new SqlCommand(sql, conexion))
+            {
+                comando.Parameters.AddWithValue("@servicioId", solicitud.ServicioId);
+                comando.Parameters.AddWithValue("@numeroTelefono", solicitud.NumeroTelefono.Trim());
+                comando.Parameters.AddWithValue("@tipoServicio", solicitud.TipoServicio.Trim().ToUpperInvariant());
+                return Convert.ToInt32(comando.ExecuteScalar()) > 0;
+            }
+        }
+
+        private static bool ExisteSolicitudPendiente(
+            SqlConnection conexion,
+            int servicioId,
+            string identificacionCliente)
+        {
+            const string sql = @"
+SELECT COUNT(1)
+FROM dbo.solicitudes_linea
+WHERE servicio_id = @servicioId
+  AND identificacion_cliente = @identificacionCliente
+  AND UPPER(estado) = 'PENDIENTE';";
+
+            using (var comando = new SqlCommand(sql, conexion))
+            {
+                comando.Parameters.AddWithValue("@servicioId", servicioId);
+                comando.Parameters.AddWithValue("@identificacionCliente", identificacionCliente.Trim());
+                return Convert.ToInt32(comando.ExecuteScalar()) > 0;
+            }
         }
 
         private static bool EsActivacion(string estado)

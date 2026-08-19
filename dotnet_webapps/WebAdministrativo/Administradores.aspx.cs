@@ -12,7 +12,7 @@ namespace WebAdministrativo
             new Regex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.Compiled);
 
         private static readonly Regex ContrasenaRegex =
-            new Regex(@"^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{14}$", RegexOptions.Compiled);
+            new Regex(@"^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{7,}$", RegexOptions.Compiled);
 
         private readonly AutenticacionSoapClient _autenticacionClient =
             new AutenticacionSoapClient();
@@ -43,9 +43,11 @@ namespace WebAdministrativo
 
         protected void GuardarButton_Click(object sender, EventArgs e)
         {
-            if (!FormularioValido())
+            string errorValidacion = ValidarFormulario();
+            if (!string.IsNullOrWhiteSpace(errorValidacion))
             {
-                MensajeLabel.Text = "Error al realizar el proceso";
+                FormularioPanel.Visible = true;
+                MensajeLabel.Text = errorValidacion;
                 return;
             }
 
@@ -112,7 +114,7 @@ namespace WebAdministrativo
                         return;
                     }
 
-                    string nuevoEstado = partes[1] == "activo" ? "inactivo" : "activo";
+                    string nuevoEstado = EstadoActivo(partes[1]) ? "inactivo" : "activo";
                     var respuesta = _autenticacionClient.CambiarEstadoAdministrador(partes[0], nuevoEstado);
                     MensajeLabel.Text = respuesta != null && respuesta.Resultado
                         ? "Registro exitoso"
@@ -185,20 +187,57 @@ namespace WebAdministrativo
             FormularioPanel.Visible = true;
         }
 
-        private bool FormularioValido()
+        protected bool EstadoActivo(object estado)
+        {
+            return string.Equals(
+                Convert.ToString(estado)?.Trim(),
+                "activo",
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        private string ValidarFormulario()
         {
             bool editando = ModoHidden.Value == "editar";
-            bool contrasenaValida = editando
-                ? string.IsNullOrWhiteSpace(ContrasenaText.Text) || ContrasenaRegex.IsMatch(ContrasenaText.Text)
-                : ContrasenaRegex.IsMatch(ContrasenaText.Text);
 
-            return !string.IsNullOrWhiteSpace(IdentificacionText.Text) &&
-                !string.IsNullOrWhiteSpace(NombreText.Text) &&
-                !string.IsNullOrWhiteSpace(PrimerApellidoText.Text) &&
-                !string.IsNullOrWhiteSpace(CorreoText.Text) &&
-                (editando || !string.IsNullOrWhiteSpace(UsuarioText.Text)) &&
-                CorreoRegex.IsMatch(CorreoText.Text.Trim()) &&
-                contrasenaValida;
+            if (string.IsNullOrWhiteSpace(IdentificacionText.Text))
+            {
+                return "La identificacion es obligatoria.";
+            }
+
+            if (string.IsNullOrWhiteSpace(NombreText.Text))
+            {
+                return "El nombre es obligatorio.";
+            }
+
+            if (string.IsNullOrWhiteSpace(PrimerApellidoText.Text))
+            {
+                return "El primer apellido es obligatorio.";
+            }
+
+            if (string.IsNullOrWhiteSpace(CorreoText.Text) ||
+                !CorreoRegex.IsMatch(CorreoText.Text.Trim()))
+            {
+                return "Ingrese un correo electronico valido.";
+            }
+
+            if (!editando && string.IsNullOrWhiteSpace(UsuarioText.Text))
+            {
+                return "El usuario es obligatorio.";
+            }
+
+            if (!editando && !ContrasenaRegex.IsMatch(ContrasenaText.Text))
+            {
+                return "La contrasena debe tener minimo 7 caracteres, con mayuscula, minuscula, numero y especial.";
+            }
+
+            if (editando &&
+                !string.IsNullOrWhiteSpace(ContrasenaText.Text) &&
+                !ContrasenaRegex.IsMatch(ContrasenaText.Text))
+            {
+                return "La nueva contrasena debe tener minimo 7 caracteres, con mayuscula, minuscula, numero y especial.";
+            }
+
+            return string.Empty;
         }
 
         private void LimpiarFormulario()

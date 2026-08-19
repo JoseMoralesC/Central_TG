@@ -89,6 +89,39 @@ namespace CentralTelefonica.WS_Autenticacion
             => new ResultadoListadoUsuarios { Resultado = false, Mensaje = mensaje, Usuarios = new List<UsuarioServicio>() };
     }
 
+    [DataContract(Namespace = "http://centraltelefonica.cr/ws/autenticacion")]
+    public class MetodoPagoClienteServicio
+    {
+        [DataMember]
+        public bool Resultado { get; set; }
+
+        [DataMember]
+        public string Mensaje { get; set; }
+
+        [DataMember]
+        public string NumeroTarjeta { get; set; }
+
+        [DataMember]
+        public string NombreTarjeta { get; set; }
+
+        [DataMember]
+        public string FechaVencimiento { get; set; }
+
+        [DataMember]
+        public string CodigoSeguridad { get; set; }
+
+        public static MetodoPagoClienteServicio Fallo(string mensaje)
+            => new MetodoPagoClienteServicio
+            {
+                Resultado = false,
+                Mensaje = mensaje,
+                NumeroTarjeta = string.Empty,
+                NombreTarjeta = string.Empty,
+                FechaVencimiento = string.Empty,
+                CodigoSeguridad = string.Empty
+            };
+    }
+
     [ServiceContract(Namespace = "http://centraltelefonica.cr/ws/autenticacion")]
     public interface IAutenticacionService
     {
@@ -128,5 +161,16 @@ namespace CentralTelefonica.WS_Autenticacion
 
         [OperationContract]
         ResultadoOperacion EliminarUsuario(string identificacion);
+
+        [OperationContract]
+        ResultadoOperacion RegistrarMetodoPagoCliente(
+            string identificacion,
+            string numeroTarjetaEncriptado,
+            string nombreTarjetaEncriptado,
+            string fechaVencimientoEncriptada,
+            string codigoSeguridadEncriptado);
+
+        [OperationContract]
+        MetodoPagoClienteServicio ObtenerMetodoPagoCliente(string identificacion);
     }
 }

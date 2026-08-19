@@ -151,7 +151,11 @@ public class ManejoCliente extends Thread
             tipoDestino = "NACIONAL";
         }
 
-        String respuesta = verificarSaldo.procesarVerificacionLlamada(origen, tipoDestino);
+        String respuesta = verificarSaldo.procesarVerificacionLlamada(
+            origen,
+            tipoDestino,
+            leerDecimal(solicitud, "costo_por_minuto")
+        );
         enviarRespuesta(writer, respuesta);
     }
 
@@ -271,6 +275,24 @@ public class ManejoCliente extends Thread
             || "0".equals(normalizado)
             || "inactivo".equals(normalizado)
             || "disponible".equals(normalizado));
+    }
+
+    private java.math.BigDecimal leerDecimal(String solicitud, String campo)
+    {
+        String valor = leerCampo(solicitud, campo);
+        if (valor.isEmpty())
+        {
+            return java.math.BigDecimal.ZERO;
+        }
+
+        try
+        {
+            return new java.math.BigDecimal(valor);
+        }
+        catch (Exception e)
+        {
+            return java.math.BigDecimal.ZERO;
+        }
     }
 
     private String respuestaConsultaSaldoOk(String numero, String saldo)

@@ -260,6 +260,8 @@ WHERE servicio_id = @servicioId";
 
                         int facturacionId;
                         decimal pendiente;
+                        DateTime fechaCalculo;
+                        DateTime fechaMaximaPago;
 
                         using (SqlCommand comando = new SqlCommand(PendienteSql, conexion, transaccion))
                         {
@@ -278,7 +280,16 @@ WHERE servicio_id = @servicioId";
 
                                 facturacionId = Convert.ToInt32(lector["facturacion_id"]);
                                 pendiente = Convert.ToDecimal(lector["total_facturar"]);
+                                fechaCalculo = Convert.ToDateTime(lector["fecha_calculo"]);
+                                fechaMaximaPago = Convert.ToDateTime(lector["fecha_maxima_pago"]);
                             }
+                        }
+
+                        if (pendiente <= 0)
+                        {
+                            transaccion.Rollback();
+                            return ErrorPago(
+                                "La linea postpago no posee factura pendiente.");
                         }
 
                         if (monto != pendiente)
@@ -292,6 +303,15 @@ WHERE servicio_id = @servicioId";
                         {
                             comando.CommandTimeout = _timeoutSegundos;
                             comando.Parameters.AddWithValue("@facturacionId", facturacionId);
+                            comando.ExecuteNonQuery();
+                        }
+
+                        using (SqlCommand comando = new SqlCommand(CancelarConsumoSql, conexion, transaccion))
+                        {
+                            comando.CommandTimeout = _timeoutSegundos;
+                            comando.Parameters.AddWithValue("@servicioId", servicioId);
+                            comando.Parameters.AddWithValue("@fechaCalculo", fechaCalculo);
+                            comando.Parameters.AddWithValue("@fechaMaximaPago", fechaMaximaPago);
                             comando.ExecuteNonQuery();
                         }
 
@@ -384,17 +404,25 @@ WHERE identificacion = @identificacion
             };
 
         private const string PendienteSql = @"
-SELECT TOP 1 facturacion_id, total_facturar
+SELECT TOP 1 facturacion_id, fecha_calculo, fecha_maxima_pago, total_facturar
 FROM dbo.facturacion_postpago
 WHERE servicio_id = @servicioId
-  AND total_facturar > 0
-ORDER BY fecha_calculo DESC, facturacion_id DESC";
+ORDER BY fecha_registro DESC, facturacion_id DESC";
 
         private const string CancelarSql = @"
 UPDATE dbo.facturacion_postpago
 SET total_facturar = 0.00,
+    total_llamadas = 0,
     fecha_registro = GETDATE()
 WHERE facturacion_id = @facturacionId";
+
+        private const string CancelarConsumoSql = @"
+UPDATE dbo.llamadas_proveedor
+SET estado = 'PAGADA'
+WHERE servicio_id = @servicioId
+  AND fecha_llamada >= @fechaCalculo
+  AND fecha_llamada < DATEADD(day, 1, @fechaMaximaPago)
+  AND COALESCE(estado, 'FINALIZADA') = 'FINALIZADA'";
 
         private RecargarSaldoResponse ErrorRecarga(string mensaje) =>
             new RecargarSaldoResponse
@@ -422,7 +450,7 @@ OUTER APPLY (
     SELECT TOP 1 f.total_facturar, f.fecha_maxima_pago
     FROM dbo.facturacion_postpago f
     WHERE f.servicio_id = s.servicio_id
-    ORDER BY f.fecha_calculo DESC, f.facturacion_id DESC
+    ORDER BY f.fecha_registro DESC, f.facturacion_id DESC
 ) AS factura
 WHERE s.identificacion_dueno_cifrada = @identificacionCifrada
   AND s.activo = 1

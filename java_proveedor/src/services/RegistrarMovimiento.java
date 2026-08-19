@@ -63,7 +63,11 @@ public class RegistrarMovimiento
             BigDecimal montoTotal = request.montoTotal;
 
             if (montoTotal.compareTo(BigDecimal.ZERO) <= 0) {
-                montoTotal = calcularMontoDesdeTarifa(tarifa, request.duracionMinutos);
+                montoTotal = calcularMonto(
+                    request.costoPorMinuto,
+                    tarifa,
+                    request.duracionMinutos
+                );
             }
 
             LlamadaProveedorDAO.ResultadoRegistro resultado =
@@ -91,10 +95,20 @@ public class RegistrarMovimiento
         }
     }
 
-    private BigDecimal calcularMontoDesdeTarifa(Tarifa tarifa, int duracionMinutos)
+    private BigDecimal calcularMonto(
+        BigDecimal costoPorMinutoSolicitado,
+        Tarifa tarifa,
+        int duracionMinutos
+    )
     {
         int minutosFacturados = Math.max(1, duracionMinutos);
-        return tarifa.getCostoPorMinuto()
+        BigDecimal costoPorMinuto =
+            costoPorMinutoSolicitado != null &&
+            costoPorMinutoSolicitado.compareTo(BigDecimal.ZERO) > 0
+                ? costoPorMinutoSolicitado
+                : tarifa.getCostoPorMinuto();
+
+        return costoPorMinuto
             .multiply(BigDecimal.valueOf(minutosFacturados))
             .setScale(2, RoundingMode.HALF_UP);
     }
@@ -166,6 +180,7 @@ public class RegistrarMovimiento
         private LocalDateTime fechaFin;
         private int duracionSegundos;
         private int duracionMinutos;
+        private BigDecimal costoPorMinuto;
         private BigDecimal montoTotal;
 
         static MovimientoRequest desdeJson(String json)
@@ -186,6 +201,7 @@ public class RegistrarMovimiento
                 "duracion_minutos",
                 (int)Math.ceil(Math.max(1, request.duracionSegundos) / 60.0)
             );
+            request.costoPorMinuto = leerDecimal(json, "costo_por_minuto", BigDecimal.ZERO);
             request.montoTotal = leerDecimal(json, "monto_total", BigDecimal.ZERO);
 
             LocalDateTime ahora = LocalDateTime.now();

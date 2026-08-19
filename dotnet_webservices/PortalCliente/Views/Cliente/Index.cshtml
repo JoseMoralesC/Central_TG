@@ -45,18 +45,9 @@
 else
 {
     <h2>Mis lineas telefonicas</h2>
-    <div class="mb-4 d-flex align-items-center gap-3">
-        <span class="badge bg-secondary">Cliente: @Model.Identificacion</span>
-        <form asp-action="Index" asp-controller="Cliente" method="post" class="d-flex gap-2">
-            <input type="text"
-                   class="form-control form-control-sm"
-                   style="width: 200px"
-                   name="identificacion"
-                   maxlength="20"
-                   value="@Model.Identificacion"
-                   title="Cambiar identificacion" />
-            <button type="submit" class="btn btn-outline-secondary btn-sm">Cambiar</button>
-        </form>
+    <div class="client-summary mb-4">
+        <span class="client-name">@(!string.IsNullOrWhiteSpace(Model.NombreCliente) ? Model.NombreCliente : "Cliente")</span>
+        <span class="badge bg-secondary">Cedula: @Model.Identificacion</span>
     </div>
 
     @if (!Model.Resultado)
@@ -70,12 +61,20 @@ else
         <div class="alert alert-info" role="alert">
             @Model.Mensaje
         </div>
+        <a asp-action="SolicitarLinea" asp-controller="Cliente" class="btn btn-primary">
+            Solicitar linea
+        </a>
     }
     else
     {
-        <p class="text-muted">
-            Haga <strong>doble clic</strong> sobre una linea para continuar.
-        </p>
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+            <p class="text-muted mb-0">
+                Haga <strong>doble clic</strong> sobre una linea para continuar.
+            </p>
+            <a asp-action="SolicitarLinea" asp-controller="Cliente" class="btn btn-outline-primary">
+                Solicitar otra linea
+            </a>
+        </div>
 
         <div class="row g-4">
             <div class="col-md-6">
@@ -97,7 +96,7 @@ else
                                     <tr data-numero="@linea.NumeroTelefono" style="cursor: pointer"
                                         title="Doble clic para cargar saldo">
                                         <td>@linea.NumeroTelefono</td>
-                                        <td class="text-end">@("₡" + linea.Saldo.ToString("N2", cultura))</td>
+                                        <td class="text-end">@("CRC " + linea.Saldo.ToString("N2", cultura))</td>
                                     </tr>
                                 }
                             </tbody>
@@ -130,7 +129,7 @@ else
                                         <td class="text-end">
                                             @if (linea.FacturaPendiente > 0)
                                             {
-                                                @("₡" + linea.FacturaPendiente.ToString("N2", cultura))
+                                                @("CRC " + linea.FacturaPendiente.ToString("N2", cultura))
                                             }
                                             else
                                             {

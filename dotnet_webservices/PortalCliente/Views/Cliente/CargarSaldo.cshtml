@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "Cargar saldo";
     var cultura = new System.Globalization.CultureInfo("es-CR");
+    var metodoPagoRegistrado = !string.IsNullOrWhiteSpace(Model.NumeroTarjeta);
 }
 
 @if (Model.ModoLista)
@@ -48,7 +49,7 @@
                     <tr data-numero="@linea.NumeroTelefono" style="cursor: pointer"
                         title="Doble clic para cargar saldo">
                         <td>@linea.NumeroTelefono</td>
-                        <td class="text-end">@("₡" + linea.Saldo.ToString("N2", cultura))</td>
+                        <td class="text-end">@("CRC " + linea.Saldo.ToString("N2", cultura))</td>
                     </tr>
                 }
             </tbody>
@@ -57,7 +58,7 @@
 }
 else
 {
-    <h2>Cargar saldo (CLIENTE5)</h2>
+    <h2>Cargar saldo</h2>
     <p><strong>Linea seleccionada:</strong> @Model.Numero</p>
 
     <form asp-action="CargarSaldo" asp-controller="Cliente" method="post">
@@ -69,7 +70,7 @@ else
             {
                 <div class="alert alert-success" role="alert">
                     <strong>@Model.MensajeResultado</strong>
-                    <br />Saldo actualizado: @("₡" + Model.NuevoSaldo.ToString("N2", cultura))
+                    <br />Saldo actualizado: @("CRC " + Model.NuevoSaldo.ToString("N2", cultura))
                 </div>
             }
             else
@@ -93,6 +94,7 @@ else
                            value="@Model.NumeroTarjeta"
                            maxlength="19"
                            placeholder="1234-5678-9012"
+                           readonly="@(metodoPagoRegistrado ? "readonly" : null)"
                            required />
                 </div>
 
@@ -104,6 +106,7 @@ else
                            name="NombreTarjeta"
                            value="@Model.NombreTarjeta"
                            maxlength="60"
+                           readonly="@(metodoPagoRegistrado ? "readonly" : null)"
                            required />
                 </div>
 
@@ -117,6 +120,7 @@ else
                                value="@Model.FechaVencimiento"
                                maxlength="5"
                                placeholder="MM/AA"
+                               readonly="@(metodoPagoRegistrado ? "readonly" : null)"
                                required />
                     </div>
                     <div class="col-md-4">
@@ -128,6 +132,7 @@ else
                                value="@Model.CodigoSeguridad"
                                maxlength="3"
                                placeholder="000"
+                               readonly="@(metodoPagoRegistrado ? "readonly" : null)"
                                required />
                     </div>
                     <div class="col-md-4">

@@ -43,8 +43,11 @@ namespace WebCliente
 
                 Session["UsuarioCliente"] = UsuarioText.Text.Trim();
                 Session["IdentificacionCliente"] = respuesta.Usuario.Identificacion;
-                Session["NombreCliente"] = respuesta.Usuario.Nombre;
-                Response.Redirect(ConstruirUrlPortal(respuesta.Usuario.Identificacion), false);
+                string nombreCompleto = ConstruirNombreCompleto(respuesta.Usuario);
+                Session["NombreCliente"] = nombreCompleto;
+                Response.Redirect(
+                    ConstruirUrlPortal(respuesta.Usuario.Identificacion, nombreCompleto),
+                    false);
                 Context.ApplicationInstance.CompleteRequest();
             }
             catch (Exception)
@@ -53,7 +56,7 @@ namespace WebCliente
             }
         }
 
-        private static string ConstruirUrlPortal(string identificacion)
+        private static string ConstruirUrlPortal(string identificacion, string nombreCompleto)
         {
             string baseUrl = ConfigurationManager.AppSettings["PortalClienteUrl"];
 
@@ -63,7 +66,24 @@ namespace WebCliente
             }
 
             string separador = baseUrl.Contains("?") ? "&" : "?";
-            return baseUrl + separador + "identificacion=" + HttpUtility.UrlEncode(identificacion ?? string.Empty);
+            return baseUrl
+                + separador
+                + "identificacion="
+                + HttpUtility.UrlEncode(identificacion ?? string.Empty)
+                + "&nombre="
+                + HttpUtility.UrlEncode(nombreCompleto ?? string.Empty);
+        }
+
+        private static string ConstruirNombreCompleto(UsuarioServicio usuario)
+        {
+            return string.Join(
+                " ",
+                new[]
+                {
+                    usuario.Nombre,
+                    usuario.PrimerApellido,
+                    usuario.SegundoApellido
+                }).Replace("  ", " ").Trim();
         }
     }
 }

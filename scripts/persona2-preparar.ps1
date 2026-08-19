@@ -50,7 +50,9 @@ if ($ApplySqlMigrations) {
 
     $sqlFiles = @(
         "database/sqlserver_proveedor/migrations/010_proveedor6_facturacion.sql",
-        "database/sqlserver_proveedor/migrations/013_normalizar_estado_linea_disponible.sql"
+        "database/sqlserver_proveedor/migrations/013_normalizar_estado_linea_disponible.sql",
+        "database/sqlserver_proveedor/migrations/016_solicitudes_linea_cliente.sql",
+        "database/sqlserver_proveedor/migrations/017_normalizar_tarifas_extranjeras.sql"
     )
 
     foreach ($file in $sqlFiles) {

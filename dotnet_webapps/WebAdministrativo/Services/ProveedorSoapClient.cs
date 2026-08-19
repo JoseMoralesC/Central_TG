@@ -9,6 +9,9 @@ namespace WebAdministrativo.Services
     public interface IProveedorService
     {
         [OperationContract]
+        FacturacionConsultaResponse ConsultarFacturacion(CalcularFacturacionRequest solicitud);
+
+        [OperationContract]
         RespuestaServicio CalcularFacturacion(CalcularFacturacionRequest solicitud);
 
         [OperationContract]
@@ -19,6 +22,12 @@ namespace WebAdministrativo.Services
 
         [OperationContract]
         ListadoLineasResponse ListarLineasActivas();
+
+        [OperationContract]
+        ListadoSolicitudesLineaResponse ListarSolicitudesLineaPendientes();
+
+        [OperationContract]
+        RespuestaServicio MarcarSolicitudLineaAtendida(int solicitudId, string estado);
 
         [OperationContract]
         RespuestaServicio RegistrarLinea(RegistrarLineaAdministrativaRequest solicitud);
@@ -51,6 +60,31 @@ namespace WebAdministrativo.Services
 
         [DataMember(Order = 2)]
         public string Mensaje { get; set; }
+    }
+
+    [DataContract(Namespace = "http://schemas.datacontract.org/2004/07/WS_Proveedor.Models")]
+    public class FacturacionConsultaResponse
+    {
+        [DataMember(Order = 1)]
+        public bool Resultado { get; set; }
+
+        [DataMember(Order = 2)]
+        public string Mensaje { get; set; }
+
+        [DataMember(Order = 3)]
+        public string NumeroTelefono { get; set; }
+
+        [DataMember(Order = 4)]
+        public string FechaCalculo { get; set; }
+
+        [DataMember(Order = 5)]
+        public string FechaMaximaPago { get; set; }
+
+        [DataMember(Order = 6)]
+        public int TotalLlamadas { get; set; }
+
+        [DataMember(Order = 7)]
+        public decimal TotalFacturar { get; set; }
     }
 
     [DataContract(Namespace = "http://schemas.datacontract.org/2004/07/WS_Proveedor.Models")]
@@ -107,6 +141,47 @@ namespace WebAdministrativo.Services
 
         [DataMember(Order = 3)]
         public LineaAdministrativaDto[] Lineas { get; set; }
+    }
+
+    [DataContract(Namespace = "http://schemas.datacontract.org/2004/07/WS_Proveedor.Models")]
+    public class SolicitudLineaDto
+    {
+        [DataMember(Order = 1)]
+        public int SolicitudId { get; set; }
+
+        [DataMember(Order = 2)]
+        public int ServicioId { get; set; }
+
+        [DataMember(Order = 3)]
+        public string NumeroTelefono { get; set; }
+
+        [DataMember(Order = 4)]
+        public string TipoServicio { get; set; }
+
+        [DataMember(Order = 5)]
+        public string IdentificacionCliente { get; set; }
+
+        [DataMember(Order = 6)]
+        public string NombreCliente { get; set; }
+
+        [DataMember(Order = 7)]
+        public string Estado { get; set; }
+
+        [DataMember(Order = 8)]
+        public string FechaSolicitud { get; set; }
+    }
+
+    [DataContract(Namespace = "http://schemas.datacontract.org/2004/07/WS_Proveedor.Models")]
+    public class ListadoSolicitudesLineaResponse
+    {
+        [DataMember(Order = 1)]
+        public bool Resultado { get; set; }
+
+        [DataMember(Order = 2)]
+        public string Mensaje { get; set; }
+
+        [DataMember(Order = 3)]
+        public SolicitudLineaDto[] Solicitudes { get; set; }
     }
 
     [DataContract(Namespace = "http://schemas.datacontract.org/2004/07/WS_Proveedor.Models")]
@@ -182,6 +257,9 @@ namespace WebAdministrativo.Services
 
         [DataMember(Order = 9)]
         public string FechaRegistro { get; set; }
+
+        [DataMember(Order = 10)]
+        public string NumeroTelefono { get; set; }
     }
 
     public class ProveedorSoapClient
@@ -206,6 +284,21 @@ namespace WebAdministrativo.Services
             return Ejecutar(servicio => servicio.CalcularFacturacion(solicitud));
         }
 
+        public FacturacionConsultaResponse ConsultarFacturacion(
+            DateTime fechaCalculo,
+            DateTime fechaMaximaPago,
+            string numeroTelefono)
+        {
+            var solicitud = new CalcularFacturacionRequest
+            {
+                FechaCalculo = fechaCalculo.ToString("yyyy-MM-dd"),
+                FechaMaximaPago = fechaMaximaPago.ToString("yyyy-MM-dd"),
+                NumeroTelefono = numeroTelefono
+            };
+
+            return Ejecutar(servicio => servicio.ConsultarFacturacion(solicitud));
+        }
+
         public ListadoLineasResponse ListarLineasDisponibles()
         {
             return PrepararLineasVisibles(
@@ -216,6 +309,16 @@ namespace WebAdministrativo.Services
         {
             return PrepararLineasVisibles(
                 Ejecutar(servicio => servicio.ListarLineasActivas()));
+        }
+
+        public ListadoSolicitudesLineaResponse ListarSolicitudesLineaPendientes()
+        {
+            return Ejecutar(servicio => servicio.ListarSolicitudesLineaPendientes());
+        }
+
+        public RespuestaServicio MarcarSolicitudLineaAtendida(int solicitudId, string estado)
+        {
+            return Ejecutar(servicio => servicio.MarcarSolicitudLineaAtendida(solicitudId, estado));
         }
 
         public RespuestaServicio RegistrarLinea(
