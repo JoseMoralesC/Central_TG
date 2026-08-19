@@ -52,31 +52,29 @@ PortalCliente:       http://localhost:56123/Cliente/Index (destino despues del l
 6. CLIENTE6: pagar una factura postpago pendiente.
 7. CLIENTE7: devolver una linea prepago o una postpago sin deuda.
 
-## SMTP para CLIENTE6
+## SMTP para facturacion y CLIENTE6
 
-`PortalCliente` intenta enviar correo usando la seccion `Smtp` de:
+El envio real de correos se configura desde `.env` en la raiz del proyecto.
+`scripts/persona2-levantar.ps1` carga esas variables y las expone a
+WebAdministrativo y PortalCliente.
 
-```txt
-dotnet_webservices/PortalCliente/appsettings.json
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_FROM=correo@dominio.com
+SMTP_USER=correo@dominio.com
+SMTP_PASSWORD=app-password
+SMTP_ENABLE_SSL=true
 ```
 
-Para evidencia real de correo se deben configurar:
+Correos esperados:
 
-```json
-{
-  "Smtp": {
-    "Host": "smtp.gmail.com",
-    "Port": 587,
-    "From": "cuenta@dominio.com",
-    "User": "cuenta@dominio.com",
-    "Password": "clave-o-app-password",
-    "EnableSsl": true
-  }
-}
-```
+- WebAdministrativo envia correo cuando se genera una factura postpago.
+- PortalCliente envia correo cuando el cliente paga/cancela la factura.
 
-Si no se configuran credenciales, el pago queda registrado y la pantalla muestra
-que no se pudo enviar el correo por falta de configuracion SMTP.
+Si no se configuran credenciales, la factura o el pago quedan registrados y la
+pantalla muestra que no se pudo enviar el correo por falta de configuracion
+SMTP.
 
 ## Diagnostico rapido
 

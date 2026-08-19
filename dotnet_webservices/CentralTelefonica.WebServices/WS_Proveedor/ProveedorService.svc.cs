@@ -4,6 +4,7 @@ using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using WS_Proveedor.Infrastructure;
 using WS_Proveedor.Models;
 using WS_Proveedor.Services;
@@ -406,6 +407,66 @@ VALUES
             return ListarLineas("ACTIVO");
         }
 
+        public RespuestaServicio ActualizarCorreoCliente(ActualizarCorreoClienteRequest solicitud)
+        {
+            try
+            {
+                if (solicitud == null ||
+                    string.IsNullOrWhiteSpace(solicitud.IdentificacionCliente) ||
+                    !CorreoValido(solicitud.CorreoCliente))
+                {
+                    return CrearRespuestaError("Debe indicar identificacion y correo valido.");
+                }
+
+                string identificacion = solicitud.IdentificacionCliente.Trim();
+                string identificacionCifrada = ProveedorCryptoService.Encriptar(identificacion);
+                string correo = solicitud.CorreoCliente.Trim();
+                string connectionString = ObtenerConnectionString();
+
+                const string sql = @"
+UPDATE c
+SET c.correo = @correo
+FROM dbo.clientes c
+WHERE c.identificacion = @identificacion
+   OR c.identificacion = @identificacionCifrada
+   OR EXISTS (
+       SELECT 1
+       FROM dbo.servicios s
+       WHERE s.cliente_id = c.cliente_id
+         AND (
+             s.identificacion_dueno_cifrada = @identificacion
+             OR s.identificacion_dueno_cifrada = @identificacionCifrada
+         )
+   );";
+
+                using (var conexion = new SqlConnection(connectionString))
+                using (var comando = new SqlCommand(sql, conexion))
+                {
+                    comando.Parameters.AddWithValue("@identificacion", identificacion);
+                    comando.Parameters.AddWithValue("@identificacionCifrada", identificacionCifrada);
+                    comando.Parameters.AddWithValue("@correo", correo);
+                    conexion.Open();
+
+                    int filas = comando.ExecuteNonQuery();
+                    if (filas <= 0)
+                    {
+                        return CrearRespuestaError("No se encontro el cliente en proveedor.");
+                    }
+                }
+
+                return new RespuestaServicio
+                {
+                    Resultado = true,
+                    Mensaje = "Correo del cliente sincronizado."
+                };
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Error en ActualizarCorreoCliente: " + ex);
+                return CrearRespuestaError("No fue posible sincronizar el correo del cliente.");
+            }
+        }
+
         public ListadoSolicitudesLineaResponse ListarSolicitudesLineaPendientes()
         {
             try
@@ -713,6 +774,7 @@ SELECT
     ISNULL(s.tipo_servicio, '') AS tipo_servicio,
     ISNULL(s.identificacion_dueno_cifrada, '') AS identificacion_dueno_cifrada,
     ISNULL(c.nombre, '') AS nombre_cliente,
+    ISNULL(c.correo, '') AS correo_cliente,
     ISNULL(s.estado_linea, CASE WHEN s.activo = 1 THEN 'ACTIVO' ELSE 'DISPONIBLE' END) AS estado_linea,
     s.activo,
     ISNULL(s.proveedor_codigo, 'KOLBI') AS proveedor_codigo
@@ -759,6 +821,7 @@ ORDER BY s.numero_telefono;";
                                 IdentificacionClienteVisible = DesencriptarOResumir(
                                     Convert.ToString(reader["identificacion_dueno_cifrada"])),
                                 NombreCliente = Convert.ToString(reader["nombre_cliente"]),
+                                CorreoCliente = Convert.ToString(reader["correo_cliente"]),
                                 EstadoLinea = Convert.ToString(reader["estado_linea"]),
                                 Activo = Convert.ToBoolean(reader["activo"]),
                                 ProveedorCodigo = Convert.ToString(reader["proveedor_codigo"])
@@ -803,6 +866,19 @@ ORDER BY s.numero_telefono;";
         {
             string valor = tipoServicio?.Trim().ToUpperInvariant();
             return valor == "PREPAGO" || valor == "POSTPAGO";
+        }
+
+        private static bool CorreoValido(string correo)
+        {
+            if (string.IsNullOrWhiteSpace(correo))
+            {
+                return false;
+            }
+
+            return Regex.IsMatch(
+                correo.Trim(),
+                @"^[^@\s]+@[^@\s]+\.[^@\s]+$",
+                RegexOptions.CultureInvariant);
         }
 
         private static bool LineaDisponibleCoincide(

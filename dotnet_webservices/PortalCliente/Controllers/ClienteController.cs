@@ -15,19 +15,22 @@ public class ClienteController : Controller
     private readonly IProveedor2Service _proveedor2Service;
     private readonly IEmailService _emailService;
     private readonly IAutenticacionPortalService _autenticacionPortalService;
+    private readonly ProveedorCryptoHelper _proveedorCryptoHelper;
 
     public ClienteController(
         IProveedorClienteService proveedorClienteService,
         IProveedorPortalService proveedorPortalService,
         IProveedor2Service proveedor2Service,
         IEmailService emailService,
-        IAutenticacionPortalService autenticacionPortalService)
+        IAutenticacionPortalService autenticacionPortalService,
+        ProveedorCryptoHelper proveedorCryptoHelper)
     {
         _proveedorClienteService = proveedorClienteService;
         _proveedorPortalService = proveedorPortalService;
         _proveedor2Service = proveedor2Service;
         _emailService = emailService;
         _autenticacionPortalService = autenticacionPortalService;
+        _proveedorCryptoHelper = proveedorCryptoHelper;
     }
 
     [HttpGet]
@@ -84,6 +87,100 @@ public class ClienteController : Controller
     {
         HttpContext.Session.Clear();
         return Redirect(LoginClienteUrl);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Perfil()
+    {
+        string? identificacion = HttpContext.Session.GetString(SessionIdentificacion);
+        if (string.IsNullOrWhiteSpace(identificacion))
+        {
+            return View(new PerfilClienteViewModel
+            {
+                Procesado = true,
+                Exitoso = false,
+                MensajeResultado = "Debe iniciar sesion para consultar sus datos."
+            });
+        }
+
+        ClientePerfilResult resultado =
+            await _autenticacionPortalService.ObtenerPerfilClienteAsync(identificacion);
+
+        if (!resultado.Resultado || resultado.Perfil is null)
+        {
+            return View(new PerfilClienteViewModel
+            {
+                Identificacion = identificacion,
+                Procesado = true,
+                Exitoso = false,
+                MensajeResultado = resultado.Mensaje
+            });
+        }
+
+        return View(resultado.Perfil);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Perfil(PerfilClienteViewModel modelo)
+    {
+        string? identificacion = HttpContext.Session.GetString(SessionIdentificacion);
+        if (string.IsNullOrWhiteSpace(identificacion))
+        {
+            modelo.Procesado = true;
+            modelo.Exitoso = false;
+            modelo.MensajeResultado = "Debe iniciar sesion para actualizar sus datos.";
+            return View(modelo);
+        }
+
+        modelo.Identificacion = identificacion;
+
+        string? error = ValidarCambiosPerfil(modelo);
+        if (error is not null)
+        {
+            modelo.Procesado = true;
+            modelo.Exitoso = false;
+            modelo.MensajeResultado = error;
+            return View(modelo);
+        }
+
+        OperacionPerfilResult resultado =
+            await _autenticacionPortalService.ActualizarPerfilClienteAsync(modelo);
+
+        modelo.Procesado = true;
+        modelo.Exitoso = resultado.Resultado;
+        modelo.MensajeResultado = resultado.Resultado
+            ? "Datos actualizados correctamente."
+            : resultado.Mensaje;
+
+        if (resultado.Resultado)
+        {
+            CambioEstadoLineaResult sincronizacionCorreo =
+                await _proveedor2Service.ActualizarCorreoClienteAsync(
+                    identificacion,
+                    modelo.CorreoElectronico);
+
+            if (!sincronizacionCorreo.Resultado)
+            {
+                modelo.MensajeResultado += " Aviso: no se pudo sincronizar el correo para facturacion: "
+                    + sincronizacionCorreo.Mensaje;
+            }
+
+            ClientePerfilResult perfilActualizado =
+                await _autenticacionPortalService.ObtenerPerfilClienteAsync(identificacion);
+
+            if (perfilActualizado.Perfil is not null)
+            {
+                modelo.Nombre = perfilActualizado.Perfil.Nombre;
+                modelo.PrimerApellido = perfilActualizado.Perfil.PrimerApellido;
+                modelo.SegundoApellido = perfilActualizado.Perfil.SegundoApellido;
+                modelo.Estado = perfilActualizado.Perfil.Estado;
+                modelo.UsuarioActual = perfilActualizado.Perfil.UsuarioActual;
+                modelo.NuevoUsuario = string.Empty;
+                modelo.NuevaContrasena = string.Empty;
+            }
+        }
+
+        return View(modelo);
     }
 
     [HttpGet]
@@ -611,7 +708,7 @@ public class ClienteController : Controller
 
         var solicitud = new ActivarDesactivarLineaPortalRequest
         {
-            NumeroTelefono = linea.NumeroTelefono,
+            NumeroTelefono = _proveedorCryptoHelper.Encrypt(linea.NumeroTelefono),
             IdentificadorTelefono = linea.IdentificadorTelefono,
             IdentificadorTarjeta = linea.IdentificadorTarjeta,
             Tipo = linea.TipoServicio,
@@ -630,5 +727,32 @@ public class ClienteController : Controller
                 : resultado.Mensaje);
 
         return RedirectToAction(nameof(DevolverLinea));
+    }
+
+    private static string? ValidarCambiosPerfil(PerfilClienteViewModel modelo)
+    {
+        if (string.IsNullOrWhiteSpace(modelo.CorreoElectronico) ||
+            !System.Text.RegularExpressions.Regex.IsMatch(
+                modelo.CorreoElectronico.Trim(),
+                @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+        {
+            return "Ingrese un correo electronico valido.";
+        }
+
+        if (!string.IsNullOrWhiteSpace(modelo.NuevoUsuario) &&
+            modelo.NuevoUsuario.Trim().Length < 4)
+        {
+            return "El usuario debe tener al menos 4 caracteres.";
+        }
+
+        if (!string.IsNullOrWhiteSpace(modelo.NuevaContrasena) &&
+            !System.Text.RegularExpressions.Regex.IsMatch(
+                modelo.NuevaContrasena,
+                @"^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{7,}$"))
+        {
+            return "La contrasena debe tener minimo 7 caracteres, mayuscula, minuscula, numero y especial.";
+        }
+
+        return null;
     }
 }

@@ -43,5 +43,8 @@ namespace WS_Proveedor.Models
 
         [DataMember(Order = 11)]
         public string ProveedorCodigo { get; set; }
+
+        [DataMember(Order = 14)]
+        public string CorreoCliente { get; set; }
     }
 }

@@ -4,7 +4,7 @@
 <head runat="server">
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Central Telefonica - Administrativo</title>
+    <title>Central Telefonica TG - Administrativo</title>
     <link rel="icon" type="image/png" href="Assets/Logo.png" />
     <link rel="stylesheet" href="Styles/site.css" />
 </head>
@@ -13,7 +13,7 @@
         <header class="topbar">
             <div class="brand">
                 <img class="brand-logo" src="Assets/Logo.png" alt="Central TG" />
-                <span>Central Telefonica</span>
+                <span>Central Telefonica TG</span>
             </div>
             <nav class="main-nav">
                 <asp:HyperLink runat="server" ID="LineasNuevasLink" NavigateUrl="~/LineasNuevas.aspx" Text="Nuevas lineas" />
@@ -28,7 +28,7 @@
         <main class="shell">
             <asp:ContentPlaceHolder ID="MainContent" runat="server" />
         </main>
-        <footer class="footer">Central Telefonica - Sitio administrativo</footer>
+        <footer class="footer">Central Telefonica TG - Sitio administrativo</footer>
     </form>
 </body>
 </html>

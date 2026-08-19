@@ -34,6 +34,69 @@ function Quote-PS($value) {
     return "'" + ($value -replace "'", "''") + "'"
 }
 
+function Load-DotEnv($path) {
+    if (-not (Test-Path $path)) {
+        Write-Host "[ENV] No se encontro .env; se usaran variables existentes del sistema."
+        return
+    }
+
+    Get-Content -Path $path | ForEach-Object {
+        $line = $_.Trim()
+
+        if ([string]::IsNullOrWhiteSpace($line) -or $line.StartsWith("#")) {
+            return
+        }
+
+        $separator = $line.IndexOf("=")
+        if ($separator -le 0) {
+            return
+        }
+
+        $name = $line.Substring(0, $separator).Trim()
+        $value = $line.Substring($separator + 1).Trim()
+
+        if (($value.StartsWith('"') -and $value.EndsWith('"')) -or
+            ($value.StartsWith("'") -and $value.EndsWith("'"))) {
+            $value = $value.Substring(1, $value.Length - 2)
+        }
+
+        [Environment]::SetEnvironmentVariable($name, $value, "Process")
+    }
+
+    Write-Host "[ENV] Variables cargadas desde .env."
+}
+
+function Set-EnvIfValue($name, $value) {
+    if (-not [string]::IsNullOrWhiteSpace($value)) {
+        [Environment]::SetEnvironmentVariable($name, $value, "Process")
+    }
+}
+
+function Configure-SmtpEnvironment {
+    $smtpHost = $env:SMTP_HOST
+    $smtpFrom = $env:SMTP_FROM
+    $smtpUser = $env:SMTP_USER
+    $smtpPassword = $env:SMTP_PASSWORD
+    $smtpEnableSsl = $env:SMTP_ENABLE_SSL
+
+    Set-EnvIfValue "CentralTelefonica_SmtpHost" $smtpHost
+    Set-EnvIfValue "CentralTelefonica_SmtpFrom" $smtpFrom
+    Set-EnvIfValue "CentralTelefonica_SmtpUser" $smtpUser
+    Set-EnvIfValue "CentralTelefonica_SmtpPassword" $smtpPassword
+    Set-EnvIfValue "Smtp__Host" $smtpHost
+    Set-EnvIfValue "Smtp__From" $smtpFrom
+    Set-EnvIfValue "Smtp__User" $smtpUser
+    Set-EnvIfValue "Smtp__Password" $smtpPassword
+    Set-EnvIfValue "Smtp__EnableSsl" $smtpEnableSsl
+
+    if ([string]::IsNullOrWhiteSpace($smtpPassword)) {
+        Write-Host "[SMTP] Aviso: SMTP_PASSWORD no esta configurado; no se enviaran correos reales."
+    }
+    else {
+        Write-Host "[SMTP] Configuracion SMTP cargada para WebAdministrativo y PortalCliente."
+    }
+}
+
 function Start-PowerShellWindow($title, $command) {
     $root = Quote-PS $RepoRoot
     $windowTitle = Quote-PS $title
@@ -75,6 +138,9 @@ function Wait-TcpPort($hostName, $port, $timeoutSeconds) {
 
     return $false
 }
+
+Load-DotEnv (Join-Path $RepoRoot ".env")
+Configure-SmtpEnvironment
 
 Write-Host "[MongoDB] No se levanta desde este script. Debe estar iniciado manualmente en localhost:27017 con datos reales."
 if (Wait-TcpPort "127.0.0.1" 27017 2) {

@@ -154,6 +154,16 @@ namespace CentralTelefonica.WS_Autenticacion
             string contrasenaEncriptada);
 
         [OperationContract]
+        ResultadoOperacion ModificarCliente(
+            string identificacion,
+            string nombre,
+            string primerApellido,
+            string segundoApellido,
+            string correoElectronico,
+            string usuarioEncriptado,
+            string contrasenaEncriptada);
+
+        [OperationContract]
         ResultadoOperacion CambiarEstadoUsuario(string identificacion, string estado);
 
         [OperationContract]

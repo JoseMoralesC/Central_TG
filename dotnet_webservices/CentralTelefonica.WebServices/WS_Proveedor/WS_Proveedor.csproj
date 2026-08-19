@@ -71,6 +71,7 @@
     <Compile Include="Infrastructure\ProveedorClientOptions.cs" />
     <Compile Include="Infrastructure\ProveedorTcpClient.cs" />
     <Compile Include="Models\ActivarDesactivarLineaRequest.cs" />
+    <Compile Include="Models\ActualizarCorreoClienteRequest.cs" />
     <Compile Include="Models\CalcularFacturacionRequest.cs" />
     <Compile Include="Models\FacturacionConsultaResponse.cs" />
     <Compile Include="Models\LineaAdministrativaDto.cs" />

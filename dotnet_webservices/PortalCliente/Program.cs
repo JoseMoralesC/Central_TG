@@ -10,6 +10,8 @@ builder.Services.AddSingleton<IProveedorClienteService, ProveedorClienteSoapClie
 builder.Services.AddSingleton<IProveedorPortalService, ProveedorPortalSoapClient>();
 builder.Services.AddSingleton<IProveedor2Service, Proveedor2SoapClient>();
 builder.Services.AddSingleton<IEmailService, EmailService>();
+builder.Services.AddSingleton<CryptoHelper>();
+builder.Services.AddSingleton<ProveedorCryptoHelper>();
 builder.Services.AddSingleton<IAutenticacionPortalService, AutenticacionPortalSoapClient>();
 
 var app = builder.Build();

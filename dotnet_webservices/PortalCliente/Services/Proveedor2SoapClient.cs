@@ -15,6 +15,8 @@ public class Proveedor2SoapClient : IProveedor2Service
         "http://tempuri.org/IProveedorService/ListarLineasDisponibles";
     private const string SolicitarLineaClienteAction =
         "http://tempuri.org/IProveedorService/SolicitarLineaCliente";
+    private const string ActualizarCorreoClienteAction =
+        "http://tempuri.org/IProveedorService/ActualizarCorreoCliente";
 
     private readonly HttpClient _httpClient;
     private readonly string _url;
@@ -158,6 +160,52 @@ public class Proveedor2SoapClient : IProveedor2Service
             }
 
             return ParsearRespuesta(xml, "ActivarDesactivarLineaResult");
+        }
+        catch (TaskCanceledException)
+        {
+            return Error("El servicio WS_PROVEEDOR2 no respondio a tiempo.");
+        }
+        catch (HttpRequestException ex)
+        {
+            return Error("No se pudo conectar con WS_PROVEEDOR2: " + ex.Message);
+        }
+    }
+
+    public async Task<CambioEstadoLineaResult> ActualizarCorreoClienteAsync(
+        string identificacionCliente,
+        string correoCliente)
+    {
+        if (string.IsNullOrWhiteSpace(identificacionCliente) ||
+            string.IsNullOrWhiteSpace(correoCliente))
+        {
+            return Error("Debe indicar identificacion y correo del cliente.");
+        }
+
+        string cuerpo = $"<ActualizarCorreoCliente xmlns=\"{ServiceNamespace}\">"
+            + "<solicitud xmlns:a=\"http://schemas.datacontract.org/2004/07/WS_Proveedor.Models\">"
+            + $"<a:IdentificacionCliente>{EscapeXml(identificacionCliente.Trim())}</a:IdentificacionCliente>"
+            + $"<a:CorreoCliente>{EscapeXml(correoCliente.Trim())}</a:CorreoCliente>"
+            + "</solicitud>"
+            + "</ActualizarCorreoCliente>";
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, _url);
+        request.Headers.Add("SOAPAction", "\"" + ActualizarCorreoClienteAction + "\"");
+        request.Content = new StringContent(CrearSobre(cuerpo), Encoding.UTF8, "text/xml");
+
+        try
+        {
+            using HttpResponseMessage respuesta =
+                await _httpClient.SendAsync(request).ConfigureAwait(false);
+
+            string xml = await respuesta.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            if (!respuesta.IsSuccessStatusCode)
+            {
+                return Error("WS_PROVEEDOR2 respondio con error HTTP: "
+                    + (int)respuesta.StatusCode);
+            }
+
+            return ParsearRespuesta(xml, "ActualizarCorreoClienteResult");
         }
         catch (TaskCanceledException)
         {

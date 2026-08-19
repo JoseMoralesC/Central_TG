@@ -13,7 +13,7 @@
         <div class="login-brand">
             <img src="Assets/Logo.png" alt="Central TG" />
             <div>
-                <h1>Central Telefonica</h1>
+                <h1>Central Telefonica TG</h1>
                 <h2>Clientes</h2>
             </div>
         </div>

@@ -13,6 +13,10 @@ public interface IProveedor2Service
         string identificacionCliente,
         string nombreCliente);
 
+    Task<CambioEstadoLineaResult> ActualizarCorreoClienteAsync(
+        string identificacionCliente,
+        string correoCliente);
+
     Task<CambioEstadoLineaResult> ActivarDesactivarLineaAsync(
         ActivarDesactivarLineaPortalRequest solicitud);
 }

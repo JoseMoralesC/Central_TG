@@ -3,14 +3,14 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewBag.Title - Central Telefonica</title>
+    <title>@ViewBag.Title - Central Telefonica TG</title>
     @Styles.Render("~/Content/css")
     @Scripts.Render("~/bundles/modernizr")
 </head>
 <body>
     <nav class="navbar navbar-expand-sm navbar-dark bg-dark">
         <div class="container">
-            @Html.ActionLink("Central Telefonica", "Index", "Home", null, new { @class = "navbar-brand" })
+            @Html.ActionLink("Central Telefonica TG", "Index", "Home", null, new { @class = "navbar-brand" })
             <div class="navbar-nav">
                 @Html.ActionLink("Inicio", "Index", "Home", null, new { @class = "nav-link" })
                 @Html.ActionLink("Nuevas lineas", "Nuevas", "Lineas", null, new { @class = "nav-link" })
@@ -23,7 +23,7 @@
     <div class="container body-content pt-4">
         @RenderBody()
         <hr />
-        <footer><p>&copy; @DateTime.Now.Year - Central Telefonica</p></footer>
+        <footer><p>&copy; @DateTime.Now.Year - Central Telefonica TG</p></footer>
     </div>
     @Scripts.Render("~/bundles/jquery")
     @Scripts.Render("~/bundles/bootstrap")

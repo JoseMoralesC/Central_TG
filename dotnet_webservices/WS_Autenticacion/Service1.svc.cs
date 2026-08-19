@@ -165,6 +165,47 @@ namespace CentralTelefonica.WS_Autenticacion
             string usuarioEncriptado,
             string contrasenaEncriptada)
         {
+            return ModificarUsuarioPorTipo(
+                identificacion,
+                nombre,
+                primerApellido,
+                segundoApellido,
+                correoElectronico,
+                usuarioEncriptado,
+                contrasenaEncriptada,
+                TipoAdministrador);
+        }
+
+        public ResultadoOperacion ModificarCliente(
+            string identificacion,
+            string nombre,
+            string primerApellido,
+            string segundoApellido,
+            string correoElectronico,
+            string usuarioEncriptado,
+            string contrasenaEncriptada)
+        {
+            return ModificarUsuarioPorTipo(
+                identificacion,
+                nombre,
+                primerApellido,
+                segundoApellido,
+                correoElectronico,
+                usuarioEncriptado,
+                contrasenaEncriptada,
+                TipoCliente);
+        }
+
+        private ResultadoOperacion ModificarUsuarioPorTipo(
+            string identificacion,
+            string nombre,
+            string primerApellido,
+            string segundoApellido,
+            string correoElectronico,
+            string usuarioEncriptado,
+            string contrasenaEncriptada,
+            int tipo)
+        {
             if (!UsuarioValidator.EsIdentificacionValida(identificacion) ||
                 !UsuarioValidator.EsNombreValido(nombre) ||
                 !UsuarioValidator.EsNombreValido(primerApellido) ||
@@ -174,7 +215,7 @@ namespace CentralTelefonica.WS_Autenticacion
                 return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOIncorrecto);
             }
 
-            var usuarioExistente = _repositorio.ObtenerPorIdentificacionYTipo(identificacion, TipoAdministrador);
+            var usuarioExistente = _repositorio.ObtenerPorIdentificacionYTipo(identificacion, tipo);
             if (usuarioExistente == null)
                 return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOIncorrecto);
 
@@ -184,14 +225,15 @@ namespace CentralTelefonica.WS_Autenticacion
                 return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOIncorrecto);
             }
 
-            if (usuarioEncriptado != usuarioExistente.UsuarioCifrado)
+            var correoNuevo = correoElectronico.Trim();
+            if (correoNuevo != usuarioExistente.Correo && _repositorio.ExisteCorreo(correoNuevo, usuarioExistente.Tipo))
+                return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOIncorrecto);
+
+            if (usuarioEncriptado != usuarioExistente.UsuarioCifrado &&
+                _repositorio.ExisteUsuarioCifrado(usuarioEncriptado, usuarioExistente.Tipo))
             {
                 return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOIncorrecto);
             }
-
-            var correoNuevo = correoElectronico.Trim();
-            if (correoNuevo != usuarioExistente.Correo && _repositorio.ExisteCorreo(correoNuevo, TipoAdministrador))
-                return ResultadoOperacion.Fallo(MensajeUsuarioNoExisteOIncorrecto);
 
             var debeActualizarContrasena = !string.IsNullOrWhiteSpace(contrasenaEncriptada);
             string contrasenaPlana = null;
@@ -207,6 +249,7 @@ namespace CentralTelefonica.WS_Autenticacion
             usuarioExistente.PrimerApellido = primerApellido.Trim();
             usuarioExistente.SegundoApellido = string.IsNullOrWhiteSpace(segundoApellido) ? null : segundoApellido.Trim();
             usuarioExistente.Correo = correoNuevo;
+            usuarioExistente.UsuarioCifrado = usuarioEncriptado;
             if (debeActualizarContrasena)
             {
                 usuarioExistente.ContrasenaCifrada = CryptoHelper.Encrypt(contrasenaPlana);

@@ -37,6 +37,9 @@ namespace WS_Proveedor
         RespuestaServicio MarcarSolicitudLineaAtendida(int solicitudId, string estado);
 
         [OperationContract]
+        RespuestaServicio ActualizarCorreoCliente(ActualizarCorreoClienteRequest solicitud);
+
+        [OperationContract]
         ListadoLineasResponse ListarLineasActivas();
 
         [OperationContract]

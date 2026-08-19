@@ -1,317 +1,135 @@
-# Configuración inicial del proyecto
+# Configuracion inicial del proyecto
 
-# Central Telefónica TG
+## Proyecto desarrollado por el equipo Central TG
 
-Guía para preparar el entorno local después de clonar el repositorio.
+Conformado por:
 
----
+- Carlos Alfredo Mata Fallas / 304830029
+- Gabriel Navarro Aguirre / 304960432
+- Jose Rodolfo Morales Calderon / 305000192
 
-# 1. Clonar repositorio
-
-Ejecutar:
+## 1. Clonar repositorio
 
 ```bash
 git clone https://github.com/JoseMoralesC/Central_TG.git
-```
-
-Entrar al proyecto:
-
-```bash
 cd Central_TG
 ```
 
----
+## 2. Instalar requisitos
 
-# 2. Seleccionar rama de trabajo
+Instalar:
 
-Cada integrante debe trabajar únicamente en su rama asignada.
+- Visual Studio 2022 o Build Tools con MSBuild.
+- IIS Express.
+- .NET SDK compatible con `net8.0` y `net10.0-windows`.
+- Python 3.
+- Java JDK.
+- MySQL.
+- SQL Server.
+- MongoDB.
+- PowerShell.
 
-## Python - Identificador
+## 3. Crear `.env`
 
-```bash
-git checkout feature/python
-```
+Crear un archivo `.env` en la raiz del repositorio.
 
----
-
-## Java - Proveedor
-
-```bash
-git checkout feature/java
-```
-
----
-
-## C# - Simulador
-
-```bash
-git checkout feature/csharp
-```
-
-Para compilar y ejecutar el simulador:
-
-```powershell
-dotnet build csharp_simulador\SimuladorTelefonico.slnx
-dotnet run --project csharp_simulador\SimuladorTelefonico\SimuladorTelefonico.csproj
-```
-
-Variables relevantes para el simulador C#:
+Ejemplo:
 
 ```env
 IDENTIFICADOR_HOST=127.0.0.1
 IDENTIFICADOR_PORT=5000
-CSHARP_SOCKET_CONNECT_TIMEOUT_MS=5000
-CSHARP_SOCKET_READ_TIMEOUT_MS=8000
-AES_KEY=ClaveSecreta1234
-AES_IV=VectorInicio1234
-CSHARP_AES_ACTIVO=true
-```
+PROVEEDOR_HOST=127.0.0.1
+PROVEEDOR_PORT=6000
 
-El simulador cifra telefono, identificador del telefono, dispositivo y tarjeta
-antes de enviarlos al Identificador. Python debe usar la misma llave, IV, modo
-AES-CBC, padding PKCS7 y Base64 para poder descifrar.
-
----
-
-# 3. Crear archivo de entorno
-
-El proyecto incluye:
-
-```txt
-.env.example
-```
-
-Este archivo debe copiarse como:
-
-```txt
-.env
-```
-
-Comando:
-
-Windows:
-
-```cmd
-copy .env.example .env
-```
-
-Linux:
-
-```bash
-cp .env.example .env
-```
-
----
-
-# 4. Configurar credenciales
-
-Abrir:
-
-```txt
-.env
-```
-
-Cambiar los datos según el integrante.
-
-Ejemplo MySQL:
-
-```env
+MYSQL_HOST=127.0.0.1
+MYSQL_PORT=3306
+MYSQL_DATABASE=central_identificador
 MYSQL_USER=usuario
 MYSQL_PASSWORD=password
-```
 
-Ejemplo SQL Server:
-
-```env
+SQLSERVER_HOST=127.0.0.1
+SQLSERVER_PORT=49172
+SQLSERVER_DATABASE=CentralProveedor
 SQLSERVER_USER=usuario
 SQLSERVER_PASSWORD=password
+
+AES_KEY=ClaveSecreta1234
+AES_IV=VectorInicio1234
+
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_FROM=correo@dominio.com
+SMTP_USER=correo@dominio.com
+SMTP_PASSWORD=app-password
+SMTP_ENABLE_SSL=true
 ```
 
-IMPORTANTE:
+No subir `.env` a Git.
 
-El archivo:
+## 4. Preparar bases de datos
+
+Ejecutar los scripts correspondientes:
 
 ```txt
-.env
-```
-
-NO debe subirse a GitHub.
-
----
-
-# 5. Verificar conexión a bases de datos
-
-El proyecto utiliza bases de datos remotas compartidas.
-
-No es necesario ejecutar scripts SQL al clonar el repositorio.
-
-Los scripts ubicados en:
-
 database/mysql_identificador/
-
 database/sqlserver_proveedor/
+database/mongodb/
+```
 
-son únicamente para:
+Bases esperadas:
 
-- documentación
-- respaldo
-- creación inicial
-- reconstrucción del ambiente
+- MySQL: `central_identificador`
+- SQL Server: `CentralProveedor`
+- MongoDB: `central_tg_mongo`
 
+## 5. Instalar dependencias Python
 
-Cada integrante debe configurar únicamente su archivo .env con las credenciales asignadas.
+```powershell
+cd python_identificador
+pip install -r requirements.txt
+cd ..
+```
 
+## 6. Compilar
 
-## MySQL Identificador
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\scripts\persona2-preparar.ps1
+```
 
-Host:
+## 7. Levantar sistema
 
-100.114.84.5
+```powershell
+.\scripts\persona2-levantar.ps1
+```
 
-Puerto:
+El script abre ventanas para Java, Python, Simulador, servicios WCF, WebAdmin,
+WebCliente y PortalCliente.
 
-3306
-
-
-## SQL Server Proveedor
-
-Host:
-
-100.88.25.17
-
-Puerto:
-
-49172
-
-
-Si la conexión funciona, el ambiente está listo.
-
-# 6. Verificar puertos
-
-El proyecto utiliza:
-
-|Servicio|Puerto|
-|-|-|
-|Identificador Python|5000|
-|Proveedor Java|6000|
-
-Verificar que estén disponibles.
-
----
-
-# 7. Revisar contratos
-
-Antes de programar revisar:
+## 8. URLs
 
 ```txt
-shared/contracts/
+WebAdministrativo:   http://localhost:56121/Login.aspx
+WebCliente:          http://localhost:56122/Login.aspx
+PortalCliente:       http://localhost:56123/Cliente/Index
+WS_Autenticacion:    http://localhost:59113/Service1.svc?wsdl
+WS_Proveedor:        http://localhost:55254/ProveedorService.svc?wsdl
+WS_ProveedorCliente: http://localhost:55260/ProveedorClienteService.svc?wsdl
 ```
 
-Estos archivos definen cómo se comunican los sistemas.
+## 9. Ruta de demo
 
-No modificar contratos sin avisar al equipo.
-
----
-
-# 8. Revisar ejemplos
-
-Casos disponibles:
+Ver:
 
 ```txt
-shared/examples/
+docs/entrega_final/Ruta_demo_alcance_final.md
 ```
 
-Incluye:
+## 10. Diagnostico
 
-- llamada exitosa
-- saldo insuficiente
-- teléfono inactivo
-- SIM inválida
-- ubicación inválida
-- consulta saldo
-- finalizar llamada
-
----
-
-# 9. Flujo diario recomendado
-
-Antes de programar:
-
-Actualizar main:
-
-```bash
-git checkout main
-
-git pull origin main
-```
-
-Entrar a la rama personal:
-
-```bash
-git checkout feature/nombre
-```
-
-Actualizar rama:
-
-```bash
-git pull origin feature/nombre
-```
-
-Fusionar cambios recientes:
-
-```bash
-git merge main
-```
-
----
-
-# 10. Subir cambios
-
-Ver cambios:
-
-```bash
-git status
-```
-
-Preparar:
-
-```bash
-git add .
-```
-
-Crear commit:
-
-```bash
-git commit -m "mensaje descriptivo"
-```
-
-Enviar:
-
-```bash
-git push origin feature/nombre
-```
-
----
-
-# Reglas del equipo
-
-- No trabajar directamente en main.
-- Avisar commits importantes.
-- Mantener mensajes claros.
-- No subir archivos `.env`.
-- Respetar contratos JSON.
-- Respetar estructura del proyecto.
-
----
-
-# Estado esperado después de configuración
-
-Cada integrante debe tener:
-
-✔ Proyecto actualizado  
-✔ Rama correcta  
-✔ Archivo `.env` creado  
-✔ Base correspondiente funcionando  
-✔ Contratos revisados  
-
-Después de esto puede iniciar desarrollo.
+- Si falla login: revisar MongoDB.
+- Si falla facturacion o devolucion de linea: revisar Java proveedor y SQL
+  Server.
+- Si falla simulador: revisar Python identificador y Java proveedor.
+- Si no llegan correos: revisar SMTP en `.env` y reiniciar con
+  `persona2-levantar.ps1`.

@@ -1,0 +1,77 @@
+@model PortalCliente.Models.PerfilClienteViewModel
+
+@{
+    ViewData["Title"] = "Mis datos";
+}
+
+<h2>Mis datos</h2>
+
+@if (Model.Procesado)
+{
+    <div class="alert @(Model.Exitoso ? "alert-success" : "alert-danger")" role="alert">
+        @Model.MensajeResultado
+    </div>
+}
+
+<form asp-action="Perfil" asp-controller="Cliente" method="post">
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h3 class="h5 mb-0">Datos personales</h3>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="Identificacion" class="form-label">Identificacion</label>
+                    <input asp-for="Identificacion" class="form-control" readonly />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Estado" class="form-label">Estado</label>
+                    <input asp-for="Estado" class="form-control" readonly />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Nombre" class="form-label">Nombre</label>
+                    <input asp-for="Nombre" class="form-control" readonly />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="PrimerApellido" class="form-label">Primer apellido</label>
+                    <input asp-for="PrimerApellido" class="form-control" readonly />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="SegundoApellido" class="form-label">Segundo apellido</label>
+                    <input asp-for="SegundoApellido" class="form-control" readonly />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-success text-white">
+            <h3 class="h5 mb-0">Datos de cuenta</h3>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="CorreoElectronico" class="form-label">Correo electronico</label>
+                    <input asp-for="CorreoElectronico" class="form-control" maxlength="120" type="email" required />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="UsuarioActual" class="form-label">Usuario actual</label>
+                    <input asp-for="UsuarioActual" class="form-control" readonly />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="NuevoUsuario" class="form-label">Nuevo usuario</label>
+                    <input asp-for="NuevoUsuario" class="form-control" maxlength="60" autocomplete="username" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="NuevaContrasena" class="form-label">Nueva contrasena</label>
+                    <input asp-for="NuevaContrasena" class="form-control" type="password" maxlength="80" autocomplete="new-password" />
+                </div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                <a asp-action="Index" asp-controller="Cliente" class="btn btn-outline-secondary">Volver</a>
+            </div>
+        </div>
+    </div>
+</form>

@@ -51,7 +51,8 @@ public class EmailService : IEmailService
         if (string.IsNullOrWhiteSpace(correo)
             || string.IsNullOrWhiteSpace(host)
             || string.IsNullOrWhiteSpace(cuenta)
-            || string.IsNullOrWhiteSpace(desde))
+            || string.IsNullOrWhiteSpace(desde)
+            || string.IsNullOrWhiteSpace(clave))
         {
             return new EmailEnvioResultado
             {
@@ -64,18 +65,21 @@ public class EmailService : IEmailService
             Environment.NewLine,
             "Estimado(a) cliente:",
             "",
-            "Se ha registrado el pago de su factura postpago con el siguiente detalle:",
+            "Central Telefonica TG confirma que la cancelacion de su factura postpago fue exitosa.",
+            "Este es el recibo del pago realizado:",
             "",
             $"Numero de linea: {numeroTelefono}",
             $"Identificacion de factura: {detalle.FacturacionId}",
             $"Monto cancelado: {detalle.MontoCancelado:N2}",
             $"Fecha de pago: {detalle.FechaPago:dd/MM/yyyy HH:mm}",
             "",
-            "Gracias por usar el portal del cliente.");
+            "Gracias por usar el portal del cliente.",
+            "",
+            "Central Telefonica TG");
 
         using var mensaje = new MailMessage(desde, correo)
         {
-            Subject = "Pago de factura registrado - Central Telefonica",
+            Subject = "Recibo de pago de factura - Central Telefonica TG",
             Body = cuerpo
         };
 
@@ -95,7 +99,7 @@ public class EmailService : IEmailService
             return new EmailEnvioResultado
             {
                 Enviado = true,
-                Mensaje = "Correo de facturacion enviado."
+                Mensaje = "Correo de recibo de pago enviado."
             };
         }
         catch (Exception ex)

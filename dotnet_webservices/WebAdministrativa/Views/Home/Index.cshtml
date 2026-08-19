@@ -1,7 +1,7 @@
 @{ ViewBag.Title = "Inicio"; }
 <main>
     <h1>Panel administrativo</h1>
-    <p class="lead">Administre las lineas telefonicas de la Central Telefonica.</p>
+    <p class="lead">Administre las lineas telefonicas de la Central Telefonica TG.</p>
     <div class="row mt-4">
         <section class="col-md-4"><h2>Nuevas lineas</h2><p>Consulte, agregue o retire lineas sin vender.</p><p>@Html.ActionLink("Administrar", "Nuevas", "Lineas", null, new { @class = "btn btn-outline-dark" })</p></section>
         <section class="col-md-4"><h2>Activar linea</h2><p>Asigne una linea disponible a un cliente.</p><p>@Html.ActionLink("Activar", "Activar", "Lineas", null, new { @class = "btn btn-outline-dark" })</p></section>

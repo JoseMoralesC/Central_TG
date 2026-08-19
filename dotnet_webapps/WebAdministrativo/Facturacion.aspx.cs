@@ -9,6 +9,7 @@ namespace WebAdministrativo
     {
         private readonly ProveedorSoapClient _proveedorClient =
             new ProveedorSoapClient();
+        private readonly EmailService _emailService = new EmailService();
 
         protected void Page_Load(object sender, EventArgs e)
         {
@@ -121,7 +122,19 @@ namespace WebAdministrativo
 
                 if (respuesta != null && respuesta.Resultado)
                 {
-                    MensajeLabel.Text = respuesta.Mensaje;
+                    var envioCorreo = _emailService.EnviarFacturaGenerada(
+                        new FacturaGeneradaEmail
+                        {
+                            CorreoCliente = Convert.ToString(ViewState["ConsultaCorreoCliente"]),
+                            NombreCliente = Convert.ToString(ViewState["ConsultaNombreCliente"]),
+                            NumeroTelefono = numeroTelefono,
+                            FechaCalculo = fechaCalculoTexto,
+                            FechaMaximaPago = fechaMaximaPagoTexto,
+                            TotalLlamadas = totalLlamadas,
+                            TotalFacturar = totalFacturar
+                        });
+
+                    MensajeLabel.Text = respuesta.Mensaje + " " + envioCorreo.Mensaje;
                     LimpiarConsultaPendiente();
                     CargarUltimaFacturacion();
                     return;
@@ -159,6 +172,8 @@ namespace WebAdministrativo
                     }
 
                     LineaPostpagoList.Items.Add(new ListItem(texto, linea.NumeroTelefono));
+                    ViewState["LineaCorreo_" + linea.NumeroTelefono] = linea.CorreoCliente;
+                    ViewState["LineaNombre_" + linea.NumeroTelefono] = linea.NombreCliente;
                 }
 
                 if (LineaPostpagoList.Items.Count == 0)
@@ -235,6 +250,18 @@ namespace WebAdministrativo
             ViewState["ConsultaFechaMaximaPago"] = respuesta.FechaMaximaPago;
             ViewState["ConsultaTotalLlamadas"] = respuesta.TotalLlamadas;
             ViewState["ConsultaTotalFacturar"] = respuesta.TotalFacturar;
+            string claveLinea = string.IsNullOrWhiteSpace(LineaPostpagoList.SelectedValue)
+                ? respuesta.NumeroTelefono
+                : LineaPostpagoList.SelectedValue;
+
+            ViewState["ConsultaCorreoCliente"] = ObtenerDatoLinea(
+                respuesta.NumeroTelefono,
+                claveLinea,
+                "Correo");
+            ViewState["ConsultaNombreCliente"] = ObtenerDatoLinea(
+                respuesta.NumeroTelefono,
+                claveLinea,
+                "Nombre");
 
             ResultadoConsultaPanel.Visible = true;
             GenerarFacturaButton.Enabled =
@@ -275,9 +302,24 @@ namespace WebAdministrativo
             ViewState["ConsultaFechaMaximaPago"] = null;
             ViewState["ConsultaTotalLlamadas"] = null;
             ViewState["ConsultaTotalFacturar"] = null;
+            ViewState["ConsultaCorreoCliente"] = null;
+            ViewState["ConsultaNombreCliente"] = null;
             ResultadoConsultaPanel.Visible = false;
             ResultadoConsultaLabel.Text = string.Empty;
             GenerarFacturaButton.Enabled = true;
+        }
+
+        private string ObtenerDatoLinea(string numeroRespuesta, string numeroSeleccionado, string campo)
+        {
+            string valor = Convert.ToString(ViewState["Linea" + campo + "_" + numeroRespuesta]);
+
+            if (string.IsNullOrWhiteSpace(valor) &&
+                !string.Equals(numeroRespuesta, numeroSeleccionado, StringComparison.Ordinal))
+            {
+                valor = Convert.ToString(ViewState["Linea" + campo + "_" + numeroSeleccionado]);
+            }
+
+            return valor;
         }
     }
 }

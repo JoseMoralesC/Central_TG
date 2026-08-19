@@ -104,6 +104,7 @@
     </Compile>
     <Compile Include="Services\AutenticacionSoapClient.cs" />
     <Compile Include="Services\CryptoHelper.cs" />
+    <Compile Include="Services\EmailService.cs" />
     <Compile Include="Services\ProveedorSoapClient.cs" />
     <Compile Include="Services\ProveedorCryptoHelper.cs" />
     <Compile Include="Site.Master.cs">
