@@ -9,8 +9,8 @@ INSERT INTO paises (
     activo
 ) VALUES
     ('Costa Rica', '+506', 'NACIONAL', 10.00, 'CRC', TRUE),
-    ('Panama', '+507', 'EXTRANJERO', 15.00, 'CRC', TRUE),
-    ('Mexico', '+52', 'EXTRANJERO', 25.00, 'CRC', TRUE),
+    ('Panama', '+507', 'EXTRANJERO', 60.00, 'CRC', TRUE),
+    ('Mexico', '+52', 'EXTRANJERO', 60.00, 'CRC', TRUE),
     ('Francia', '+33', 'EXTRANJERO', 60.00, 'CRC', TRUE)
 ON DUPLICATE KEY UPDATE
     codigo_area = VALUES(codigo_area),

@@ -8,12 +8,19 @@ La matriz oficial esta en:
 docs/testing/pruebas_integradas_oficiales.md
 ```
 
+La ruta actualizada de demo del alcance final esta en:
+
+```txt
+docs/entrega_final/Ruta_demo_alcance_final.md
+```
+
 ## Validaciones locales
 
 ```powershell
 dotnet build csharp_simulador\SimuladorTelefonico.slnx
 python -m compileall python_identificador
 javac java_proveedor\Main.java java_proveedor\src\sockets\SocketTCP.java java_proveedor\src\sockets\ManejoCliente.java java_proveedor\src\services\*.java java_proveedor\src\database\*.java java_proveedor\src\models\*.java java_proveedor\src\config\*.java
+dotnet build dotnet_webservices\PortalCliente\PortalCliente.csproj
 ```
 
 ## Pruebas funcionales minimas

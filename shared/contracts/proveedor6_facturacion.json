@@ -1,0 +1,6 @@
+{
+    "tipo_transaccion": "PROVEEDOR6",
+    "accion" : "CALCULAR_FACTURACION",
+    "fecha_calculo" : "2024-06-15",
+    "fecha_maxima_pago" : "2024-06-30"
+}

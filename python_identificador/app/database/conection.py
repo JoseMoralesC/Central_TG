@@ -18,7 +18,6 @@ def obtener_conexion():
         
         # Verificar si la conexion esta activa
         if conexion.is_connected():
-            print("[Database] Conexión exitosa a la base de datos MySQL.")
             return conexion
 
     except Error as e:
@@ -30,5 +29,4 @@ def cerrar_conexion(conexion):
     Cerramos la conexion de forma segura, para que no quede activa
     """
     if conexion and conexion.is_connected():
-       # conexion.close()
-        print("[Database] Conexion a MySQL cerrada correctamente.")
+        conexion.close()

@@ -1,0 +1,114 @@
+@model PortalCliente.Models.SolicitarLineaViewModel
+
+@{
+    ViewData["Title"] = "Solicitar linea";
+    var prepago = Model.Lineas
+        .Where(l => string.Equals(l.TipoServicio, "PREPAGO", StringComparison.OrdinalIgnoreCase))
+        .ToList();
+    var postpago = Model.Lineas
+        .Where(l => string.Equals(l.TipoServicio, "POSTPAGO", StringComparison.OrdinalIgnoreCase))
+        .ToList();
+}
+
+<h2>Solicitar linea telefonica</h2>
+
+<div class="client-summary mb-4">
+    <span class="client-name">@(!string.IsNullOrWhiteSpace(Model.NombreCliente) ? Model.NombreCliente : "Cliente")</span>
+    <span class="badge bg-secondary">Cedula: @Model.Identificacion</span>
+</div>
+
+@if (Model.Procesado)
+{
+    <div class="alert @(Model.Exitoso ? "alert-success" : "alert-danger")" role="alert">
+        @Model.MensajeResultado
+    </div>
+}
+
+@if (!Model.ResultadoConsulta)
+{
+    <div class="alert alert-danger" role="alert">
+        @Model.MensajeConsulta
+    </div>
+}
+else if (!Model.Lineas.Any())
+{
+    <div class="alert alert-info" role="alert">
+        No hay lineas disponibles para solicitar en este momento.
+    </div>
+}
+else
+{
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h3 class="h5 mb-0">Disponibles prepago</h3>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Numero</th>
+                                <th class="text-end">Accion</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var linea in prepago)
+                            {
+                                <tr>
+                                    <td>@linea.NumeroTelefono</td>
+                                    <td class="text-end">
+                                        <form asp-action="SolicitarLinea" asp-controller="Cliente" method="post">
+                                            <input type="hidden" name="servicioId" value="@linea.ServicioId" />
+                                            <input type="hidden" name="numeroTelefono" value="@linea.NumeroTelefono" />
+                                            <input type="hidden" name="tipoServicio" value="@linea.TipoServicio" />
+                                            <button type="submit" class="btn btn-primary btn-sm">
+                                                Solicitar
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="h5 mb-0">Disponibles postpago</h3>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Numero</th>
+                                <th class="text-end">Accion</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var linea in postpago)
+                            {
+                                <tr>
+                                    <td>@linea.NumeroTelefono</td>
+                                    <td class="text-end">
+                                        <form asp-action="SolicitarLinea" asp-controller="Cliente" method="post">
+                                            <input type="hidden" name="servicioId" value="@linea.ServicioId" />
+                                            <input type="hidden" name="numeroTelefono" value="@linea.NumeroTelefono" />
+                                            <input type="hidden" name="tipoServicio" value="@linea.TipoServicio" />
+                                            <button type="submit" class="btn btn-primary btn-sm">
+                                                Solicitar
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+}

@@ -27,7 +27,7 @@ public class RegistrarMovimiento
             MovimientoRequest request = MovimientoRequest.desdeJson(solicitudJson);
             String errorValidacion = request.validar();
 
-            if (!errorValidacion.isBlank()) {
+            if (!errorValidacion.isEmpty()) {
                 return respuestaError(errorValidacion);
             }
 
@@ -39,7 +39,7 @@ public class RegistrarMovimiento
             if (servicio == null) {
                 String error = servicioDAO.getUltimoError();
                 return respuestaError(
-                    error != null && !error.isBlank()
+                    error != null && !error.isEmpty()
                         ? "Error SQL Server: " + error
                         : "Linea no registrada en SQL Server"
                 );
@@ -54,7 +54,7 @@ public class RegistrarMovimiento
             if (tarifa == null) {
                 String error = tarifaDAO.getUltimoError();
                 return respuestaError(
-                    error != null && !error.isBlank()
+                    error != null && !error.isEmpty()
                         ? "Error consultando tarifa: " + error
                         : "Tarifa activa no encontrada para tipo de llamada " + request.tipoLlamada
                 );
@@ -63,13 +63,18 @@ public class RegistrarMovimiento
             BigDecimal montoTotal = request.montoTotal;
 
             if (montoTotal.compareTo(BigDecimal.ZERO) <= 0) {
-                montoTotal = calcularMontoDesdeTarifa(tarifa, request.duracionMinutos);
+                montoTotal = calcularMonto(
+                    request.costoPorMinuto,
+                    tarifa,
+                    request.duracionMinutos
+                );
             }
 
             LlamadaProveedorDAO.ResultadoRegistro resultado =
                 llamadaProveedorDAO.registrarMovimiento(
                     servicio,
                     tarifa,
+                    request.idLlamada,
                     request.telefonoDestino,
                     request.fechaInicio,
                     request.fechaFin,
@@ -90,10 +95,20 @@ public class RegistrarMovimiento
         }
     }
 
-    private BigDecimal calcularMontoDesdeTarifa(Tarifa tarifa, int duracionMinutos)
+    private BigDecimal calcularMonto(
+        BigDecimal costoPorMinutoSolicitado,
+        Tarifa tarifa,
+        int duracionMinutos
+    )
     {
         int minutosFacturados = Math.max(1, duracionMinutos);
-        return tarifa.getCostoPorMinuto()
+        BigDecimal costoPorMinuto =
+            costoPorMinutoSolicitado != null &&
+            costoPorMinutoSolicitado.compareTo(BigDecimal.ZERO) > 0
+                ? costoPorMinutoSolicitado
+                : tarifa.getCostoPorMinuto();
+
+        return costoPorMinuto
             .multiply(BigDecimal.valueOf(minutosFacturados))
             .setScale(2, RoundingMode.HALF_UP);
     }
@@ -115,6 +130,7 @@ public class RegistrarMovimiento
                 + "\"llamada_id\":" + resultado.getLlamadaId() + ","
                 + "\"saldo_anterior\":" + decimal(resultado.getSaldoAnterior()) + ","
                 + "\"monto_rebajado\":" + decimal(resultado.getMontoRebajado()) + ","
+                + "\"monto_facturable\":" + decimal(resultado.getMontoRebajado()) + ","
                 + "\"saldo_actual\":" + decimal(resultado.getSaldoPosterior()) + ","
                 + "\"moneda\":\"CRC\""
             + "}"
@@ -145,7 +161,7 @@ public class RegistrarMovimiento
 
     private String sanitizar(String texto)
     {
-        if (texto == null || texto.isBlank()) {
+        if (texto == null || texto.isEmpty()) {
             return "Error registrando movimiento";
         }
 
@@ -155,6 +171,7 @@ public class RegistrarMovimiento
     private static class MovimientoRequest
     {
         private String telefonoOrigen;
+        private String idLlamada;
         private String telefonoDestino;
         private String tipoLlamada;
         private String motivoFinalizacion;
@@ -163,11 +180,13 @@ public class RegistrarMovimiento
         private LocalDateTime fechaFin;
         private int duracionSegundos;
         private int duracionMinutos;
+        private BigDecimal costoPorMinuto;
         private BigDecimal montoTotal;
 
         static MovimientoRequest desdeJson(String json)
         {
             MovimientoRequest request = new MovimientoRequest();
+            request.idLlamada = leerTexto(json, "id_llamada");
             request.telefonoOrigen = leerTexto(json, "telefono_origen");
             request.telefonoDestino = leerTexto(json, "telefono_destino");
             request.tipoLlamada = valorPorDefecto(leerTexto(json, "tipo_llamada"), "NACIONAL");
@@ -182,6 +201,7 @@ public class RegistrarMovimiento
                 "duracion_minutos",
                 (int)Math.ceil(Math.max(1, request.duracionSegundos) / 60.0)
             );
+            request.costoPorMinuto = leerDecimal(json, "costo_por_minuto", BigDecimal.ZERO);
             request.montoTotal = leerDecimal(json, "monto_total", BigDecimal.ZERO);
 
             LocalDateTime ahora = LocalDateTime.now();
@@ -193,11 +213,11 @@ public class RegistrarMovimiento
 
         String validar()
         {
-            if (telefonoOrigen == null || telefonoOrigen.isBlank()) {
+            if (telefonoOrigen == null || telefonoOrigen.isEmpty()) {
                 return "telefono_origen es obligatorio";
             }
 
-            if (telefonoDestino == null || telefonoDestino.isBlank()) {
+            if (telefonoDestino == null || telefonoDestino.isEmpty()) {
                 return "telefono_destino es obligatorio";
             }
 
@@ -236,7 +256,7 @@ public class RegistrarMovimiento
         {
             String valor = leerValorPrimitivo(json, campo);
 
-            if (valor.isBlank()) {
+            if (valor.isEmpty()) {
                 return valorDefecto;
             }
 
@@ -251,7 +271,7 @@ public class RegistrarMovimiento
         {
             String valor = leerValorPrimitivo(json, campo);
 
-            if (valor.isBlank()) {
+            if (valor.isEmpty()) {
                 return valorDefecto;
             }
 
@@ -315,11 +335,11 @@ public class RegistrarMovimiento
         ) {
             String valor = leerTexto(json, campo);
 
-            if (valor.isBlank()) {
+            if (valor.isEmpty()) {
                 valor = leerTexto(json, "fecha_hora");
             }
 
-            if (valor.isBlank()) {
+            if (valor.isEmpty()) {
                 return valorDefecto;
             }
 
@@ -332,7 +352,7 @@ public class RegistrarMovimiento
 
         private static String valorPorDefecto(String valor, String valorDefecto)
         {
-            if (valor == null || valor.isBlank()) {
+            if (valor == null || valor.isEmpty()) {
                 return valorDefecto;
             }
 

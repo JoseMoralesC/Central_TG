@@ -1,0 +1,95 @@
+param(
+    [switch]$SkipBuild,
+    [switch]$ApplySqlMigrations,
+    [switch]$UseIntegratedSql,
+    [string]$SqlServer = "localhost,49172",
+    [string]$SqlDatabase = "CentralProveedor",
+    [string]$SqlUser = "charlie_dev",
+    [string]$SqlPassword = "Charlie1234"
+)
+
+$ErrorActionPreference = "Stop"
+$RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
+Set-Location $RepoRoot
+
+function Require-Command($name) {
+    if (-not (Get-Command $name -ErrorAction SilentlyContinue)) {
+        throw "No se encontro '$name' en PATH."
+    }
+}
+
+function Find-MSBuild {
+    $candidates = @(
+        "C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe",
+        "C:\Program Files\Microsoft Visual Studio\18\Professional\MSBuild\Current\Bin\MSBuild.exe",
+        "C:\Program Files\Microsoft Visual Studio\18\Enterprise\MSBuild\Current\Bin\MSBuild.exe",
+        "C:\Program Files\Microsoft Visual Studio\18\BuildTools\MSBuild\Current\Bin\MSBuild.exe",
+        "C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe",
+        "C:\Program Files\Microsoft Visual Studio\2022\Professional\MSBuild\Current\Bin\MSBuild.exe",
+        "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe",
+        "C:\Program Files\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe"
+    )
+
+    foreach ($candidate in $candidates) {
+        if (Test-Path $candidate) {
+            return $candidate
+        }
+    }
+
+    $fromPath = Get-Command MSBuild.exe -ErrorAction SilentlyContinue
+    if ($fromPath) {
+        return $fromPath.Source
+    }
+
+    throw "No se encontro MSBuild de Visual Studio."
+}
+
+if ($ApplySqlMigrations) {
+    Write-Host "[SQL Server] Aplicando migraciones de facturacion y lineas..."
+    Require-Command sqlcmd
+
+    $sqlFiles = @(
+        "database/sqlserver_proveedor/migrations/010_proveedor6_facturacion.sql",
+        "database/sqlserver_proveedor/migrations/013_normalizar_estado_linea_disponible.sql",
+        "database/sqlserver_proveedor/migrations/016_solicitudes_linea_cliente.sql",
+        "database/sqlserver_proveedor/migrations/017_normalizar_tarifas_extranjeras.sql"
+    )
+
+    foreach ($file in $sqlFiles) {
+        if ($UseIntegratedSql) {
+            sqlcmd -S $SqlServer -d $SqlDatabase -E -i $file
+        }
+        else {
+            sqlcmd -S $SqlServer -d $SqlDatabase -U $SqlUser -P $SqlPassword -i $file
+        }
+    }
+}
+
+if (-not $SkipBuild) {
+    Write-Host "[Build] Compilando proyectos C# con MSBuild..."
+    $msbuild = Find-MSBuild
+
+    & $msbuild "dotnet_webapps/CentralTelefonica.WebApps.sln" /t:Build /p:Configuration=Debug /p:Platform="Any CPU" /m
+    & $msbuild "dotnet_webservices/WS_Autenticacion/WS_Autenticacion.sln" /t:Build /p:Configuration=Debug /p:Platform="Any CPU" /m
+    & $msbuild "dotnet_webservices/CentralTelefonica.WebServices/WS_Proveedor/WS_Proveedor.csproj" /t:Build /p:Configuration=Debug /p:Platform="AnyCPU" /m
+    & $msbuild "dotnet_webservices/CentralTelefonica.WebServices/WS_ProveedorCliente/WS_ProveedorCliente.sln" /t:Build /p:Configuration=Debug /p:Platform="Any CPU" /m
+
+    Write-Host "[Build] Compilando PortalCliente..."
+    Require-Command dotnet
+    dotnet build "dotnet_webservices/PortalCliente/PortalCliente.csproj"
+
+    Write-Host "[Build] Compilando simulador C#..."
+    dotnet build "csharp_simulador/SimuladorTelefonico/SimuladorTelefonico.csproj"
+
+    Write-Host "[Build] Compilando Java proveedor..."
+    Require-Command javac
+    New-Item -ItemType Directory -Force -Path ".tmp/java_proveedor_classes" | Out-Null
+    $javaFiles = Get-ChildItem -Recurse -Filter *.java "java_proveedor" | ForEach-Object { $_.FullName }
+    javac -encoding UTF-8 -d ".tmp/java_proveedor_classes" $javaFiles
+}
+
+Write-Host ""
+Write-Host "Preparacion de componentes completada."
+if (-not $ApplySqlMigrations) {
+    Write-Host "No se aplicaron migraciones. Para SQL use -ApplySqlMigrations; Mongo se maneja manualmente con datos reales."
+}

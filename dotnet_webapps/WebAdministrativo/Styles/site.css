@@ -1,0 +1,434 @@
+:root {
+    --bg: #eef3f7;
+    --surface: #ffffff;
+    --surface-soft: #f7fafc;
+    --ink: #17202a;
+    --muted: #64748b;
+    --line: #d6e0ea;
+    --nav: #102a3d;
+    --nav-soft: #173f59;
+    --primary: #0f766e;
+    --primary-hover: #0b5f59;
+    --danger: #b42318;
+    --danger-soft: #fee4e2;
+    --shadow: 0 18px 45px rgba(15, 35, 52, .09);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    min-height: 100%;
+}
+
+body {
+    margin: 0;
+    min-height: 100%;
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: var(--ink);
+    background:
+        linear-gradient(180deg, #f8fbfd 0, var(--bg) 280px),
+        var(--bg);
+    font-size: 15px;
+    line-height: 1.45;
+}
+
+body:not(.login-page)::before {
+    content: "";
+    position: fixed;
+    right: clamp(18px, 5vw, 86px);
+    bottom: clamp(18px, 5vw, 70px);
+    z-index: 0;
+    width: min(520px, 38vw);
+    aspect-ratio: 1;
+    background: url("../Assets/Logo.png") center / contain no-repeat;
+    opacity: .075;
+    filter: saturate(.85);
+    pointer-events: none;
+}
+
+.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 12px 28px;
+    background: linear-gradient(90deg, var(--nav), var(--nav-soft));
+    color: #fff;
+    box-shadow: 0 10px 28px rgba(16, 42, 61, .18);
+}
+
+.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    min-width: max-content;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.brand-logo {
+    display: block;
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+    background: #fff;
+    object-fit: cover;
+}
+
+.main-nav {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.topbar a,
+.topbar input[type="submit"] {
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    padding: 7px 11px;
+    color: rgba(255, 255, 255, .9);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    font: inherit;
+}
+
+.topbar a:hover,
+.topbar input[type="submit"]:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, .11);
+    border-color: rgba(255, 255, 255, .16);
+}
+
+.topbar a.active {
+    color: #102a3d;
+    background: #f4b942;
+    border-color: #f4b942;
+    font-weight: 750;
+}
+
+.shell {
+    position: relative;
+    z-index: 1;
+    width: min(1180px, calc(100% - 40px));
+    margin: 32px auto 40px;
+}
+
+h1 {
+    margin: 0 0 20px;
+    color: #111827;
+    font-size: 30px;
+    line-height: 1.15;
+    font-weight: 750;
+}
+
+h2 {
+    margin: 0 0 16px;
+    color: #22313f;
+    font-size: 20px;
+    line-height: 1.25;
+}
+
+.panel,
+.login-panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+}
+
+.panel {
+    overflow-x: auto;
+    padding: 22px;
+    margin-bottom: 20px;
+}
+
+.panel > input[type="submit"]:first-child {
+    margin-top: 0;
+    margin-bottom: 14px;
+}
+
+.login-page {
+    display: grid;
+    min-height: 100vh;
+    place-items: center;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    background:
+        linear-gradient(140deg, rgba(20, 125, 190, .16), transparent 35%),
+        linear-gradient(320deg, rgba(244, 185, 66, .18), transparent 32%),
+        #edf3f7;
+}
+
+.login-page::before {
+    content: "";
+    position: fixed;
+    inset: auto -80px -120px auto;
+    width: min(620px, 82vw);
+    aspect-ratio: 1;
+    background: url("../Assets/Logo.png") center / contain no-repeat;
+    opacity: .09;
+    filter: saturate(.8);
+    pointer-events: none;
+}
+
+.login-panel {
+    position: relative;
+    z-index: 1;
+    width: min(420px, 100%);
+    padding: 28px 30px 30px;
+}
+
+.login-brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+}
+
+.login-brand img {
+    flex: 0 0 auto;
+    width: 92px;
+    height: 92px;
+    border: 1px solid #e3ebf2;
+    border-radius: 14px;
+    background: #fff;
+    object-fit: cover;
+    box-shadow: 0 10px 28px rgba(16, 42, 61, .12);
+}
+
+.login-panel h1 {
+    margin-bottom: 3px;
+    font-size: 26px;
+}
+
+.login-panel h2 {
+    margin-bottom: 0;
+    color: var(--muted);
+    font-size: 17px;
+    font-weight: 600;
+}
+
+label {
+    display: block;
+    margin-top: 14px;
+    color: #334155;
+    font-weight: 650;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="date"],
+select {
+    width: 100%;
+    min-height: 42px;
+    padding: 9px 11px;
+    margin-top: 6px;
+    border: 1px solid #bdcbd8;
+    border-radius: 6px;
+    background: #fff;
+    color: var(--ink);
+    font: inherit;
+    transition: border-color .16s ease, box-shadow .16s ease;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="date"]:focus,
+select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(15, 118, 110, .16);
+    outline: 0;
+}
+
+input[type="submit"] {
+    min-height: 40px;
+    margin-top: 16px;
+    padding: 9px 15px;
+    border: 0;
+    border-radius: 6px;
+    background: var(--primary);
+    color: #fff;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+    transition: background .16s ease, transform .16s ease, box-shadow .16s ease;
+}
+
+input[type="submit"]:hover {
+    background: var(--primary-hover);
+    box-shadow: 0 8px 18px rgba(15, 118, 110, .22);
+    transform: translateY(-1px);
+}
+
+input[type="submit"].secondary-action {
+    margin-left: 8px;
+    background: #f4b942;
+    color: #132534;
+}
+
+input[type="submit"].secondary-action:hover {
+    background: #dda530;
+    box-shadow: 0 8px 18px rgba(244, 185, 66, .25);
+}
+
+.message {
+    display: block;
+    margin: 12px 0 2px;
+    color: #38546b;
+    font-weight: 600;
+}
+
+.result-summary {
+    margin-top: 16px;
+    padding: 14px;
+    border: 1px solid #b7d7d3;
+    border-radius: 8px;
+    background: #eef8f6;
+}
+
+.result-summary strong,
+.result-summary span {
+    display: block;
+}
+
+.result-summary span {
+    margin-top: 4px;
+    color: #38546b;
+}
+
+table {
+    width: 100%;
+    min-width: 720px;
+    border-collapse: separate;
+    border-spacing: 0;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+}
+
+th,
+td {
+    padding: 10px 12px;
+    border: 0;
+    border-bottom: 1px solid #e3ebf2;
+    text-align: left;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+th {
+    background: var(--surface-soft);
+    color: #243647;
+    font-weight: 750;
+}
+
+tr:last-child td {
+    border-bottom: 0;
+}
+
+tr:nth-child(even) td {
+    background: #fbfdfe;
+}
+
+tr:hover td {
+    background: #eef8f6;
+}
+
+td a {
+    color: var(--primary);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+td a:hover {
+    text-decoration: underline;
+}
+
+.grid-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.grid-actions a,
+.grid-actions input[type="submit"] {
+    margin-right: 0;
+}
+
+.danger-link,
+td .danger-link {
+    color: var(--danger);
+}
+
+.danger-link:hover {
+    color: #8f1d15;
+}
+
+.footer {
+    position: relative;
+    z-index: 1;
+    padding: 18px 20px 30px;
+    text-align: center;
+    color: var(--muted);
+}
+
+@media (max-width: 760px) {
+    .topbar {
+        position: static;
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 14px 18px;
+    }
+
+    .main-nav {
+        justify-content: flex-start;
+    }
+
+    .shell {
+        width: min(100% - 24px, 1180px);
+        margin-top: 22px;
+    }
+
+    h1 {
+        font-size: 25px;
+    }
+
+    .panel {
+        padding: 16px;
+    }
+
+    body:not(.login-page)::before {
+        right: -36px;
+        bottom: 18px;
+        width: min(360px, 78vw);
+        opacity: .055;
+    }
+
+    .brand-logo {
+        width: 44px;
+        height: 44px;
+    }
+
+    .login-brand {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .login-brand img {
+        width: 86px;
+        height: 86px;
+    }
+}

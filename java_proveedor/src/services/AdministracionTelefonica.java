@@ -70,6 +70,8 @@ public class AdministracionTelefonica {
         String tipoServicio,
         String proveedorCodigo,
         String saldoInicialTexto,
+        String simCifrado,
+        String imeiCifrado,
         boolean activo
     ) {
         if (numeroTelefono == null || numeroTelefono.isBlank()) {
@@ -82,6 +84,8 @@ public class AdministracionTelefonica {
             valorPorDefecto(tipoServicio, "PREPAGO").toUpperCase(),
             valorPorDefecto(proveedorCodigo, "KOLBI").toUpperCase(),
             saldoInicial,
+            simCifrado,
+            imeiCifrado,
             activo
         );
 

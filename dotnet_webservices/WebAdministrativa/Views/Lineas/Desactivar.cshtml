@@ -1,0 +1,8 @@
+@model IEnumerable<WebAdministrativa.Models.Linea>
+@{ ViewBag.Title = "Desactivar linea"; }
+<main><h1>Desactivar linea</h1><p class="text-muted">Seleccione una linea activa para devolverla a estado inactivo.</p>
+@if (TempData["Mensaje"] != null) { <div class="alert alert-info">@TempData["Mensaje"]</div> }
+<table class="table table-striped"><thead><tr><th>Telefono</th><th>Tarjeta</th><th>Cliente</th><th>Tipo</th><th></th></tr></thead><tbody>
+@if (!Model.Any()) { <tr><td colspan="5" class="text-center">El listado se cargara desde el Web Service en la siguiente etapa.</td></tr> }
+@foreach (var linea in Model) { <tr><td>@linea.NumeroTelefono</td><td>@linea.IdentificadorTarjeta</td><td>@linea.IdentificacionCliente</td><td>@linea.Tipo</td><td>@using (Html.BeginForm("ConfirmarDesactivacion", "Lineas", new { id = linea.Id }, FormMethod.Post, new { onsubmit = "return confirm('Esta seguro que desea desactivar la linea?');" })) { @Html.AntiForgeryToken()<button type="submit" class="btn btn-sm btn-outline-danger">Desactivar</button> }</td></tr> }
+</tbody></table></main>

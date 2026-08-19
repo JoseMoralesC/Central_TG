@@ -9,7 +9,11 @@ public class VerificarSaldo {
 
     private ServicioDAO servicioDAO = new ServicioDAO();
 
-    public String procesarVerificacionLlamada(String numeroOrigen, String tipoDestino) {
+    public String procesarVerificacionLlamada(
+        String numeroOrigen,
+        String tipoDestino,
+        BigDecimal costoPorMinutoSolicitado
+    ) {
         Servicio servicio = servicioDAO.obtenerDetalleParaLlamada(numeroOrigen, tipoDestino);
 
         if (servicio == null) {
@@ -25,17 +29,21 @@ public class VerificarSaldo {
             return respuestaError("Linea inactiva");
         }
 
+        BigDecimal costoMinuto = costoPorMinutoSolicitado != null &&
+            costoPorMinutoSolicitado.compareTo(BigDecimal.ZERO) > 0
+                ? costoPorMinutoSolicitado
+                : servicio.getTarifaAplicable();
+
         if ("POSTPAGO".equalsIgnoreCase(servicio.getTipoServicio())) {
             return respuestaOk(
                 "POSTPAGO",
                 BigDecimal.valueOf(-1),
-                servicio.getTarifaAplicable(),
+                costoMinuto,
                 -1
             );
         }
 
         BigDecimal saldo = servicio.getSaldoDisponible();
-        BigDecimal costoMinuto = servicio.getTarifaAplicable();
 
         if (saldo.compareTo(costoMinuto) < 0 || saldo.compareTo(BigDecimal.ZERO) <= 0) {
             return respuestaInsuficiente("Saldo insuficiente para iniciar la llamada");

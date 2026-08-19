@@ -1,0 +1,10 @@
+{
+  "tipo_transaccion": "PROVEEDOR5",
+  "telefono": "dato_cifrado",
+  "identificador_dispositivo": "dato_cifrado",
+  "identificador_tarjeta": "dato_cifrado",
+  "tipo_servicio": "PREPAGO",
+  "identificacion_dueno": "112340567",
+  "accion": "ACTIVAR",
+  "fecha_hora": "2026-07-16T12:30:00"
+}

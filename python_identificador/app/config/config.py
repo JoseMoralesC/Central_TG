@@ -9,7 +9,7 @@ class Settings:
     DB_HOST: str = os.getenv("MYSQL_HOST","localhost")
     DB_USER: str = os.getenv("MYSQL_USER","root")
     DB_PASSWORD: str = os.getenv("MYSQL_PASSWORD","llave-falsa")
-    DB_NAME: str = os.getenv("MYSQL_DATABASE","central")
+    DB_NAME: str = os.getenv("MYSQL_DATABASE","central_identificador")
     DB_PORT: int = int(os.getenv("MYSQL_PORT", 3306))
 
     # Socket del Identificador (recibe de C#)

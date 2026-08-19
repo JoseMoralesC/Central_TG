@@ -12,9 +12,11 @@ namespace SimuladorTelefonico.UI
     public class SeleccionTelefonoForm : Form
     {
         private readonly List<CheckBox> _opcionesTelefono = new();
+        private readonly System.Windows.Forms.Timer _pollingTimer = new();
         private Label _lblEstado = null!;
         private Label _lblFuente = null!;
         private FlowLayoutPanel _listaTelefonos = null!;
+        private bool _actualizandoCatalogo;
 
         public SeleccionTelefonoForm()
         {
@@ -28,6 +30,7 @@ namespace SimuladorTelefonico.UI
 
             CrearInterfaz();
             Shown += SeleccionTelefonoForm_Shown;
+            FormClosed += (_, _) => _pollingTimer.Dispose();
         }
 
         private void CrearInterfaz()
@@ -109,14 +112,14 @@ namespace SimuladorTelefonico.UI
                 UiTheme.Primario);
             btnAbrir.Click += AbrirTelefonosSeleccionados_Click;
 
-            //Button btnAdministracion = UiTheme.CrearBoton(
-               // "Administracion telefonica",
-               // 460,
-              //  588,
-               // 260,
-               // 44,
-               // Color.FromArgb(52, 60, 72));
-            //btnAdministracion.Click += async (_, _) => await AdministracionTelefonicaAsync();
+            Button btnAdministracion = UiTheme.CrearBoton(
+                "Administracion telefonica",
+                460,
+                588,
+                260,
+                44,
+                Color.FromArgb(52, 60, 72));
+            btnAdministracion.Click += async (_, _) => await AdministracionTelefonicaAsync();
 
             Controls.Add(lblTitulo);
             Controls.Add(lblSubtitulo);
@@ -124,7 +127,10 @@ namespace SimuladorTelefonico.UI
             Controls.Add(listaTelefonos);
             Controls.Add(_lblEstado);
             Controls.Add(btnAbrir);
-            //Controls.Add(btnAdministracion);
+            Controls.Add(btnAdministracion);
+
+            _pollingTimer.Interval = 6000;
+            _pollingTimer.Tick += async (_, _) => await RefrescarCatalogoPollingAsync();
         }
 
         private CheckBox CrearOpcionTelefono(TelefonoVirtual telefono)
@@ -179,9 +185,14 @@ namespace SimuladorTelefonico.UI
             AppConfig.SeleccionarTelefono(seleccionados[0].Id);
 
             Form1 pantallaPrincipal = new Form1(seleccionados);
-            pantallaPrincipal.FormClosed += (s, args) => Show();
+            pantallaPrincipal.FormClosed += (s, args) =>
+            {
+                Show();
+                _pollingTimer.Start();
+            };
             pantallaPrincipal.Show();
 
+            _pollingTimer.Stop();
             Hide();
         }
 
@@ -190,6 +201,7 @@ namespace SimuladorTelefonico.UI
             using AdministracionTelefonicaForm form = new AdministracionTelefonicaForm();
             form.ShowDialog(this);
 
+            _pollingTimer.Stop();
             _lblEstado.Text = "Actualizando catalogo despues de administracion...";
             _lblEstado.ForeColor = UiTheme.TextoSecundario;
 
@@ -202,6 +214,7 @@ namespace SimuladorTelefonico.UI
                 : UiTheme.Advertencia;
             _lblEstado.Text = "Catalogo listo para seleccionar.";
             _lblEstado.ForeColor = UiTheme.TextoSecundario;
+            _pollingTimer.Start();
         }
 
         private async void SeleccionTelefonoForm_Shown(object? sender, EventArgs e)
@@ -225,10 +238,44 @@ namespace SimuladorTelefonico.UI
                 : UiTheme.Advertencia;
             _lblEstado.Text = "Catalogo listo para seleccionar.";
             _lblEstado.ForeColor = UiTheme.TextoSecundario;
+            _pollingTimer.Start();
         }
 
-        private void RecargarOpciones()
+        private async Task RefrescarCatalogoPollingAsync()
         {
+            if (_actualizandoCatalogo || !Visible)
+            {
+                return;
+            }
+
+            _actualizandoCatalogo = true;
+            string[] seleccionados = _opcionesTelefono
+                .Where(opcion => opcion.Checked)
+                .Select(opcion => opcion.Tag)
+                .OfType<TelefonoVirtual>()
+                .Select(telefono => telefono.Id)
+                .ToArray();
+
+            try
+            {
+                await Task.Run(AppConfig.RecargarCatalogoTelefonos);
+                RecargarOpciones(seleccionados);
+                _lblFuente.Text = AppConfig.FuenteDatosTelefonos;
+                _lblEstado.Text = $"Catalogo actualizado automaticamente {DateTime.Now:HH:mm:ss}.";
+                _lblEstado.ForeColor = UiTheme.TextoSecundario;
+            }
+            finally
+            {
+                _actualizandoCatalogo = false;
+            }
+        }
+
+        private void RecargarOpciones(IEnumerable<string>? idsSeleccionados = null)
+        {
+            HashSet<string> seleccionados = new(
+                idsSeleccionados ?? Enumerable.Empty<string>(),
+                StringComparer.OrdinalIgnoreCase);
+
             SuspendLayout();
             _listaTelefonos.SuspendLayout();
             _listaTelefonos.Controls.Clear();
@@ -237,8 +284,23 @@ namespace SimuladorTelefonico.UI
             foreach (TelefonoVirtual telefono in AppConfig.TelefonosVirtuales)
             {
                 CheckBox opcion = CrearOpcionTelefono(telefono);
+                opcion.Checked = seleccionados.Contains(telefono.Id) && telefono.Activo;
                 _opcionesTelefono.Add(opcion);
                 _listaTelefonos.Controls.Add(opcion);
+            }
+
+            if (_opcionesTelefono.Count == 0)
+            {
+                _listaTelefonos.Controls.Add(UiTheme.CrearEtiqueta(
+                    "No hay telefonos activos confirmados por el backend.",
+                    0,
+                    0,
+                    720,
+                    48,
+                    10,
+                    FontStyle.Regular,
+                    UiTheme.TextoSecundario,
+                    ContentAlignment.MiddleCenter));
             }
 
             _listaTelefonos.ResumeLayout(true);

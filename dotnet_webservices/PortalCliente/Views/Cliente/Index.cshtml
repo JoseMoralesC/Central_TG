@@ -1,0 +1,171 @@
+@model PortalCliente.Models.IndexViewModel
+
+@{
+    ViewData["Title"] = "Mis lineas";
+    var prepago = Model.Lineas
+        .Where(l => string.Equals(l.TipoServicio, "PREPAGO", StringComparison.OrdinalIgnoreCase))
+        .ToList();
+    var postpago = Model.Lineas
+        .Where(l => string.Equals(l.TipoServicio, "POSTPAGO", StringComparison.OrdinalIgnoreCase))
+        .ToList();
+    var cultura = new System.Globalization.CultureInfo("es-CR");
+}
+
+@if (Model.RequiereIdentificacion)
+{
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <h2 class="card-title h4 mb-3">Bienvenido al portal del cliente</h2>
+                    <p class="text-muted">
+                        Ingrese su numero de identificacion para consultar sus lineas telefonicas.
+                    </p>
+
+                    <form asp-action="Index" asp-controller="Cliente" method="post">
+                        <div class="mb-3">
+                            <label for="identificacion" class="form-label">Identificacion</label>
+                            <input type="text"
+                                   class="form-control"
+                                   id="identificacion"
+                                   name="identificacion"
+                                   maxlength="20"
+                                   placeholder="Ej: 101234567"
+                                   required />
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            Consultar mis lineas
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <h2>Mis lineas telefonicas</h2>
+    <div class="client-summary mb-4">
+        <span class="client-name">@(!string.IsNullOrWhiteSpace(Model.NombreCliente) ? Model.NombreCliente : "Cliente")</span>
+        <span class="badge bg-secondary">Cedula: @Model.Identificacion</span>
+    </div>
+
+    @if (!Model.Resultado)
+    {
+        <div class="alert alert-danger" role="alert">
+            @Model.Mensaje
+        </div>
+    }
+    else if (!Model.Lineas.Any())
+    {
+        <div class="alert alert-info" role="alert">
+            @Model.Mensaje
+        </div>
+        <a asp-action="SolicitarLinea" asp-controller="Cliente" class="btn btn-primary">
+            Solicitar linea
+        </a>
+    }
+    else
+    {
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+            <p class="text-muted mb-0">
+                Haga <strong>doble clic</strong> sobre una linea para continuar.
+            </p>
+            <a asp-action="SolicitarLinea" asp-controller="Cliente" class="btn btn-outline-primary">
+                Solicitar otra linea
+            </a>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h3 class="h5 mb-0">Lineas prepago</h3>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-hover align-middle mb-0" id="tablaPrepago">
+                            <thead>
+                                <tr>
+                                    <th>Numero</th>
+                                    <th class="text-end">Saldo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var linea in prepago)
+                                {
+                                    <tr data-numero="@linea.NumeroTelefono" style="cursor: pointer"
+                                        title="Doble clic para cargar saldo">
+                                        <td>@linea.NumeroTelefono</td>
+                                        <td class="text-end">@("CRC " + linea.Saldo.ToString("N2", cultura))</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="h5 mb-0">Lineas postpago</h3>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-hover align-middle mb-0" id="tablaPostpago">
+                            <thead>
+                                <tr>
+                                    <th>Numero</th>
+                                    <th class="text-end">Factura pendiente</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var linea in postpago)
+                                {
+                                    <tr data-numero="@linea.NumeroTelefono"
+                                        data-factura="@linea.FacturaPendiente"
+                                        style="cursor: @(linea.FacturaPendiente > 0 ? "pointer" : "default")"
+                                        title="@(linea.FacturaPendiente > 0 ? "Doble clic para pagar factura" : "Sin factura pendiente")">
+                                        <td>@linea.NumeroTelefono</td>
+                                        <td class="text-end">
+                                            @if (linea.FacturaPendiente > 0)
+                                            {
+                                                @("CRC " + linea.FacturaPendiente.ToString("N2", cultura))
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">0.00</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('#tablaPrepago tbody tr').forEach(function (fila) {
+            fila.addEventListener('dblclick', function () {
+                var numero = fila.dataset.numero;
+                if (numero) {
+                    window.location.href = '/Cliente/CargarSaldo?numero=' + encodeURIComponent(numero);
+                }
+            });
+        });
+
+        document.querySelectorAll('#tablaPostpago tbody tr').forEach(function (fila) {
+            fila.addEventListener('dblclick', function () {
+                var numero = fila.dataset.numero;
+                var factura = parseFloat(fila.dataset.factura || '0');
+                if (numero && factura > 0) {
+                    window.location.href = '/Cliente/PagarFactura?numero=' + encodeURIComponent(numero);
+                }
+            });
+        });
+    </script>
+}

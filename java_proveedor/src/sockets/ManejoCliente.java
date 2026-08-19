@@ -6,6 +6,8 @@ import java_proveedor.src.services.ConsultaSaldo;
 import java_proveedor.src.services.RegistrarMovimiento;
 import java_proveedor.src.services.VerificarSaldo;
 import java_proveedor.src.services.AdministracionTelefonica;
+import java_proveedor.src.services.Proveedor5Service;
+import java_proveedor.src.services.Proveedor6Service;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -24,6 +26,8 @@ public class ManejoCliente extends Thread
     RegistrarMovimiento registrarMovimiento = new RegistrarMovimiento();
     VerificarSaldo verificarSaldo = new VerificarSaldo();
     AdministracionTelefonica administracionTelefonica = new AdministracionTelefonica();
+    Proveedor5Service proveedor5Service = new Proveedor5Service();
+    Proveedor6Service proveedor6Service = new Proveedor6Service();
     BitacoraService bitacoraService = BitacoraService.obtenerInstancia();
 
     public ManejoCliente(Socket clienteSocket)
@@ -94,6 +98,15 @@ public class ManejoCliente extends Thread
                     procesarCambioEstadoTelefono(solicitud, writer);
                     break;
 
+                case "ACTIVAR":
+                case "DESACTIVAR":
+                    procesarProveedor5(solicitud, writer);
+                    break;
+
+                case "CALCULAR_FACTURACION":
+                    procesarProveedor6(solicitud, writer);
+                    break;
+
                 default:
                     enviarRespuesta(writer, "{\"status\":\"ERROR\",\"mensaje\":\"Accion no reconocida: " + accion + "\"}");
                     break;
@@ -138,7 +151,11 @@ public class ManejoCliente extends Thread
             tipoDestino = "NACIONAL";
         }
 
-        String respuesta = verificarSaldo.procesarVerificacionLlamada(origen, tipoDestino);
+        String respuesta = verificarSaldo.procesarVerificacionLlamada(
+            origen,
+            tipoDestino,
+            leerDecimal(solicitud, "costo_por_minuto")
+        );
         enviarRespuesta(writer, respuesta);
     }
 
@@ -197,8 +214,10 @@ public class ManejoCliente extends Thread
         String tipoServicio = leerCampo(solicitud, "tipo_servicio");
         String proveedorCodigo = leerCampo(solicitud, "proveedor_codigo");
         String saldoInicial = leerCampo(solicitud, "saldo_inicial");
+        String sim = leerCampo(solicitud, "sim");
+        String imei = leerCampo(solicitud, "imei");
         String activoTexto = leerCampo(solicitud, "activo");
-        boolean activo = !"false".equalsIgnoreCase(activoTexto) && !"0".equals(activoTexto);
+        boolean activo = interpretarActivo(activoTexto);
 
         enviarRespuesta(
             writer,
@@ -207,6 +226,8 @@ public class ManejoCliente extends Thread
                 tipoServicio,
                 proveedorCodigo,
                 saldoInicial,
+                sim,
+                imei,
                 activo
             )
         );
@@ -221,15 +242,57 @@ public class ManejoCliente extends Thread
         }
 
         String activoTexto = leerCampo(solicitud, "activo");
-        boolean activo = !"false".equalsIgnoreCase(activoTexto) && !"0".equals(activoTexto);
+        boolean activo = interpretarActivo(activoTexto);
 
         enviarRespuesta(writer, administracionTelefonica.procesarCambioEstado(numero, activo));
+    }
+
+    private void procesarProveedor5(String solicitud, PrintWriter writer)
+    {
+        enviarRespuesta(writer, proveedor5Service.procesar(solicitud));
+    }
+
+    private void procesarProveedor6(String solicitud, PrintWriter writer)
+    {
+        enviarRespuesta(writer, proveedor6Service.procesar(solicitud));
     }
 
     private void enviarRespuesta(PrintWriter writer, String respuesta)
     {
         bitacoraService.registrarSalida(respuesta);
         writer.println(respuesta);
+    }
+
+    private boolean interpretarActivo(String valor)
+    {
+        if (valor == null || valor.isBlank())
+        {
+            return true;
+        }
+
+        String normalizado = valor.trim().toLowerCase();
+        return !("false".equals(normalizado)
+            || "0".equals(normalizado)
+            || "inactivo".equals(normalizado)
+            || "disponible".equals(normalizado));
+    }
+
+    private java.math.BigDecimal leerDecimal(String solicitud, String campo)
+    {
+        String valor = leerCampo(solicitud, campo);
+        if (valor.isEmpty())
+        {
+            return java.math.BigDecimal.ZERO;
+        }
+
+        try
+        {
+            return new java.math.BigDecimal(valor);
+        }
+        catch (Exception e)
+        {
+            return java.math.BigDecimal.ZERO;
+        }
     }
 
     private String respuestaConsultaSaldoOk(String numero, String saldo)

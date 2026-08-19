@@ -30,6 +30,13 @@ def procesar_catalogo_telefonos(_: dict) -> dict:
             "accion": "DETALLE_TELEFONO",
             "telefono_origen": numero
         })
+        codigo_detalle = detalle.get(
+            "resultado",
+            {}
+        ).get("codigo", detalle.get("status", "ERROR"))
+
+        if codigo_detalle != "OK":
+            continue
 
         detalle_tel = detalle.get("telefono", {})
         pais = item.get("pais") or "Costa Rica"
@@ -48,6 +55,7 @@ def procesar_catalogo_telefonos(_: dict) -> dict:
             "tipo_llamada": detalle_tel.get("tipo_llamada", tipo_llamada),
             "tipo_servicio": detalle_tel.get("tipo_servicio", item.get("tipo_servicio", "PREPAGO")),
             "saldo": detalle_tel.get("saldo", 0),
+            "consumo_postpago": detalle_tel.get("consumo_postpago", 0),
             "sim": sim or item.get("identificador_tarjeta_cifrado", ""),
             "imei": imei or item.get("identificador_dispositivo_cifrado", ""),
             "activo": bool(item.get("activo")) and bool(item.get("sim_activa", True)) and bool(item.get("dispositivo_activo", True))
@@ -106,6 +114,8 @@ def procesar_registro_telefono(trama: dict) -> dict:
         "proveedor_codigo": proveedor_codigo,
         "pais": pais,
         "saldo_inicial": saldo_inicial,
+        "sim": encriptar_aes(sim),
+        "imei": encriptar_aes(imei),
         "activo": bool(trama.get("activo", True))
     })
 

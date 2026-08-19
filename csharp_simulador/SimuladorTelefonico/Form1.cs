@@ -33,7 +33,13 @@ namespace SimuladorTelefonico
 
             if (_telefonosSeleccionados.Count == 0)
             {
-                _telefonosSeleccionados.Add(AppConfig.TelefonosVirtuales.First(t => t.Activo));
+                TelefonoVirtual? telefonoActivo = AppConfig.TelefonosVirtuales
+                    .FirstOrDefault(t => t.Activo);
+
+                if (telefonoActivo != null)
+                {
+                    _telefonosSeleccionados.Add(telefonoActivo);
+                }
             }
 
             InitializeComponent();
@@ -325,7 +331,9 @@ namespace SimuladorTelefonico
                 using MarcarNumeroForm form = new MarcarNumeroForm(
                     contactoDestinoSeleccionado.Numero,
                     contactoDestinoSeleccionado.Pais,
-                    contactoDestinoSeleccionado.TipoLlamada);
+                    contactoDestinoSeleccionado.TipoLlamada,
+                    contactoDestinoSeleccionado.TipoServicio,
+                    contactoDestinoSeleccionado.Nacionalidad);
                 form.ShowDialog(this);
 
                 CambiarEstadoTelefono(lblEstado, false);

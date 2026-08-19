@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <OutputType>Exe</OutputType>
+    <StartupObject>Program</StartupObject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="WS_Autenticacion/**/*.cs" />
+    <Compile Remove="WS_Proveedor/**/*.cs" />
+    <Compile Remove="WS_Proveedor_1/**/*.cs" />
+    <Compile Remove="WS_ProveedorCliente/**/*.cs" />
+    <Compile Remove="MinimalHost.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MongoDB.Driver" Version="2.30.0" />
+  </ItemGroup>
+</Project>

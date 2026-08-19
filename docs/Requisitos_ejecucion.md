@@ -1,217 +1,214 @@
 # Requisitos para ejecutar el proyecto en otra maquina
 
-Este documento resume que se necesita instalar y configurar para correr el
-proyecto `Central_TG` fuera de la computadora actual.
+## Proyecto desarrollado por el equipo Central TG
+
+Conformado por:
+
+- Carlos Alfredo Mata Fallas / 304830029
+- Gabriel Navarro Aguirre / 304960432
+- Jose Rodolfo Morales Calderon / 305000192
 
 ## Resumen rapido
 
-Si se ejecuta en otra maquina, si se deben instalar herramientas externas:
+Para correr `Central_TG` fuera de la computadora actual se deben instalar y
+configurar herramientas externas. El proyecto ya trae codigo fuente, scripts de
+base de datos, contratos, documentacion y el driver JDBC de SQL Server.
 
-- .NET SDK 10 para el simulador C# WinForms.
-- Python 3 con `pip` para el Identificador.
-- Java JDK para compilar y ejecutar el proveedor Java.
-- Acceso a MySQL para la base del Identificador.
-- Acceso a SQL Server para la base del Proveedor.
-- Dependencias Python del archivo `python_identificador/requirements.txt`.
+Se necesita:
 
-El proyecto ya trae en el repositorio:
-
-- Codigo fuente C#, Python y Java.
-- Scripts SQL de creacion, migracion y datos iniciales.
-- Contratos JSON en `shared/contracts`.
-- Driver JDBC de SQL Server en `java_proveedor/lib/mssql-jdbc.jar`.
-
-## Lo instalado en esta maquina
-
-En la computadora actual el proyecto corre con:
-
-| Herramienta | Version detectada |
-|---|---|
-| .NET SDK | 10.0.300 |
-| .NET Runtime | 10.0.8 y 8.0.27 |
-| Python | 3.13.5 |
-| pip | 25.1.1 |
-| Java JDK | OpenJDK 21.0.6 |
-| javac | 21.0.6 |
-
-Librerias Python instaladas actualmente:
-
-| Libreria | Version instalada | Version pedida en requirements |
-|---|---:|---:|
-| python-dotenv | 1.2.2 | 1.0.1 |
-| pycryptodome | 3.23.0 | 3.20.0 |
-| mysql-connector-python | 9.7.0 | 8.0.33 |
-
-Nota: aunque en esta maquina hay versiones mas nuevas de las librerias Python, en
-otra maquina se recomienda instalar exactamente lo indicado por
-`python_identificador/requirements.txt` para evitar diferencias.
+- Windows.
+- Visual Studio 2022 o Build Tools con MSBuild.
+- IIS Express.
+- .NET SDK compatible con `net8.0` y `net10.0-windows`.
+- Python 3 con `pip`.
+- Java JDK.
+- MySQL.
+- SQL Server.
+- MongoDB.
+- PowerShell.
+- Acceso SMTP para correos reales.
 
 ## Requisitos por componente
 
-### Simulador C#
+### Web Administrativo
+
+Ruta:
+
+```txt
+dotnet_webapps/WebAdministrativo
+```
 
 Requiere:
 
-- Windows, porque el proyecto usa WinForms.
-- .NET SDK compatible con `net10.0-windows`.
+- ASP.NET WebForms.
+- .NET Framework 4.7.2.
+- IIS Express.
+- MSBuild de Visual Studio.
+- Acceso a `WS_Autenticacion` y `WS_Proveedor`.
 
-Archivo principal del proyecto:
+URL esperada:
 
 ```txt
-csharp_simulador/SimuladorTelefonico/SimuladorTelefonico.csproj
+http://localhost:56121/Login.aspx
 ```
 
-Comandos desde la raiz del proyecto:
+### Web Cliente
+
+Ruta:
+
+```txt
+dotnet_webapps/WebCliente
+```
+
+Requiere:
+
+- ASP.NET WebForms.
+- .NET Framework 4.7.2.
+- IIS Express.
+- MSBuild de Visual Studio.
+- Acceso a `WS_Autenticacion`.
+
+URL esperada:
+
+```txt
+http://localhost:56122/Login.aspx
+```
+
+### PortalCliente
+
+Ruta:
+
+```txt
+dotnet_webservices/PortalCliente
+```
+
+Requiere:
+
+- .NET SDK para ASP.NET Core `net8.0`.
+- Acceso a `WS_Autenticacion`, `WS_Proveedor` y `WS_ProveedorCliente`.
+
+Comando:
 
 ```powershell
-dotnet build csharp_simulador\SimuladorTelefonico.slnx
-dotnet run --project csharp_simulador\SimuladorTelefonico\SimuladorTelefonico.csproj
+dotnet run --project dotnet_webservices\PortalCliente\PortalCliente.csproj --urls http://localhost:56123
 ```
 
-Variables usadas por C#:
+### Servicios WCF
 
-```env
-IDENTIFICADOR_HOST=127.0.0.1
-IDENTIFICADOR_PORT=5000
-CSHARP_SOCKET_CONNECT_TIMEOUT_MS=5000
-CSHARP_SOCKET_READ_TIMEOUT_MS=8000
-CSHARP_SOCKET_BUFFER_BYTES=8192
-SOCKET_ENCODING=UTF-8
-AES_KEY=ClaveSecreta1234
-AES_IV=VectorInicio1234
-CSHARP_AES_ACTIVO=true
+Rutas:
+
+```txt
+dotnet_webservices/WS_Autenticacion
+dotnet_webservices/CentralTelefonica.WebServices/WS_Proveedor
+dotnet_webservices/CentralTelefonica.WebServices/WS_ProveedorCliente
+```
+
+Requieren:
+
+- .NET Framework 4.7.2.
+- IIS Express.
+- MSBuild de Visual Studio.
+- MongoDB para autenticacion.
+- SQL Server para proveedor.
+
+URLs esperadas:
+
+```txt
+http://localhost:59113/Service1.svc?wsdl
+http://localhost:55254/ProveedorService.svc?wsdl
+http://localhost:55260/ProveedorClienteService.svc?wsdl
+```
+
+### Simulador C#
+
+Ruta:
+
+```txt
+csharp_simulador/SimuladorTelefonico
+```
+
+Requiere:
+
+- Windows.
+- .NET SDK compatible con `net10.0-windows`.
+
+Comandos:
+
+```powershell
+dotnet build csharp_simulador\SimuladorTelefonico\SimuladorTelefonico.csproj
+dotnet run --project csharp_simulador\SimuladorTelefonico\SimuladorTelefonico.csproj
 ```
 
 ### Identificador Python
 
+Ruta:
+
+```txt
+python_identificador
+```
+
 Requiere:
 
 - Python 3.
-- pip.
-- MySQL accesible.
+- Dependencias de `python_identificador/requirements.txt`.
+- MySQL.
 
-Instalar dependencias:
+Instalacion:
 
 ```powershell
 cd python_identificador
 pip install -r requirements.txt
-```
-
-Ejecutar:
-
-```powershell
 python main.py
-```
-
-Variables usadas por Python:
-
-```env
-MYSQL_HOST=localhost
-MYSQL_PORT=3306
-MYSQL_DATABASE=central_identificador
-MYSQL_USER=root
-MYSQL_PASSWORD=tu_password
-IDENTIFICADOR_HOST=0.0.0.0
-IDENTIFICADOR_PORT=5000
-PROVEEDOR_HOST=127.0.0.1
-PROVEEDOR_PORT=6000
-APP_ENV=development
-AES_KEY=ClaveSecreta1234
-AES_IV=VectorInicio1234
 ```
 
 ### Proveedor Java
 
+Ruta:
+
+```txt
+java_proveedor
+```
+
 Requiere:
 
 - Java JDK.
-- SQL Server accesible.
-- Driver JDBC de SQL Server.
+- SQL Server.
+- `java_proveedor/lib/mssql-jdbc.jar`.
 
-El driver JDBC ya esta incluido en:
-
-```txt
-java_proveedor/lib/mssql-jdbc.jar
-```
-
-La configuracion del proveedor esta en:
+Configuracion:
 
 ```txt
 java_proveedor/src/config/config.properties
 ```
 
-Ese archivo debe tener los datos correctos para la maquina o base que se vaya a
-usar:
-
-```properties
-socket.puerto=6000
-db.url=jdbc:sqlserver://HOST:PUERTO;databaseName=CentralProveedor;encrypt=true;trustServerCertificate=true;
-db.usuario=usuario_sqlserver
-db.contrasena=password_sqlserver
-```
-
-Compilar y ejecutar desde la raiz:
+Compilar/ejecutar:
 
 ```powershell
-javac java_proveedor\Main.java java_proveedor\src\sockets\SocketTCP.java java_proveedor\src\sockets\ManejoCliente.java java_proveedor\src\services\*.java java_proveedor\src\database\*.java java_proveedor\src\models\*.java java_proveedor\src\config\*.java
-java -cp ".;java_proveedor\lib\mssql-jdbc.jar" java_proveedor.Main
+javac -encoding UTF-8 -d .tmp\java_proveedor_classes (Get-ChildItem -Recurse -Filter *.java java_proveedor | ForEach-Object { $_.FullName })
+java -cp ".tmp\java_proveedor_classes;java_proveedor\lib\mssql-jdbc.jar" java_proveedor.Main
 ```
 
 ## Bases de datos
 
-### MySQL Identificador
+| Base | Motor | Uso |
+|---|---|---|
+| `central_identificador` | MySQL | Telefonos, SIM, dispositivos, llamadas activas, bitacora identificador |
+| `CentralProveedor` | SQL Server | Clientes, servicios, saldos, llamadas, facturacion, solicitudes |
+| `central_tg_mongo` | MongoDB | Usuarios admin/cliente y metodo de pago |
 
-Base esperada:
-
-```txt
-central_identificador
-```
-
-Scripts disponibles:
+Scripts:
 
 ```txt
-database/mysql_identificador/schema/001_create_database_identificador.sql
-database/mysql_identificador/seed/001_seed_identificador.sql
-database/mysql_identificador/migrations/
+database/mysql_identificador/
+database/sqlserver_proveedor/
+database/mongodb/
 ```
 
-### SQL Server Proveedor
+## Variables `.env`
 
-Base esperada:
+El archivo `.env` vive en la raiz y no debe subirse a Git.
 
-```txt
-CentralProveedor
-```
-
-Scripts disponibles:
-
-```txt
-database/sqlserver_proveedor/schema/001_create_database_proveedor.sql
-database/sqlserver_proveedor/seed/001_seed_proveedor.sql
-database/sqlserver_proveedor/migrations/
-```
-
-## Puertos necesarios
-
-| Servicio | Puerto |
-|---|---:|
-| Identificador Python | 5000 |
-| Proveedor Java | 6000 |
-| MySQL | 3306 |
-| SQL Server | depende de la configuracion, en docs aparece 49172 |
-
-En otra maquina se debe permitir comunicacion por esos puertos, especialmente si
-los componentes no corren todos en el mismo equipo.
-
-## Archivo .env
-
-El codigo C# y Python puede leer variables desde un archivo `.env` en la raiz del
-proyecto. Ese archivo no debe subirse al repositorio porque contiene credenciales.
-
-Importante: la documentacion existente menciona `.env.example`, pero actualmente
-no existe un `.env.example` en el repositorio.
-
-Ejemplo base de `.env`:
+Variables principales:
 
 ```env
 IDENTIFICADOR_HOST=127.0.0.1
@@ -219,30 +216,59 @@ IDENTIFICADOR_PORT=5000
 PROVEEDOR_HOST=127.0.0.1
 PROVEEDOR_PORT=6000
 
-MYSQL_HOST=localhost
+MYSQL_HOST=127.0.0.1
 MYSQL_PORT=3306
 MYSQL_DATABASE=central_identificador
-MYSQL_USER=root
-MYSQL_PASSWORD=tu_password
+MYSQL_USER=usuario
+MYSQL_PASSWORD=password
+
+SQLSERVER_HOST=127.0.0.1
+SQLSERVER_PORT=49172
+SQLSERVER_DATABASE=CentralProveedor
+SQLSERVER_USER=usuario
+SQLSERVER_PASSWORD=password
 
 AES_KEY=ClaveSecreta1234
 AES_IV=VectorInicio1234
 CSHARP_AES_ACTIVO=true
+
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_FROM=correo@dominio.com
+SMTP_USER=correo@dominio.com
+SMTP_PASSWORD=app-password
+SMTP_ENABLE_SSL=true
 ```
 
-## Orden recomendado para correr
+## Puertos
 
-1. Tener MySQL y SQL Server disponibles.
-2. Verificar que las bases y datos iniciales existan.
-3. Levantar el Proveedor Java en el puerto 6000.
-4. Levantar el Identificador Python en el puerto 5000.
-5. Levantar el Simulador C#.
+| Servicio | Puerto |
+|---|---:|
+| Identificador Python | 5000 |
+| Proveedor Java | 6000 |
+| WS Autenticacion | 59113 |
+| WS Proveedor | 55254 |
+| WS ProveedorCliente | 55260 |
+| Web Administrativo | 56121 |
+| Web Cliente | 56122 |
+| PortalCliente | 56123 |
+| MongoDB | 27017 |
+| MySQL | 3306 |
+| SQL Server | 49172 en ambiente local documentado |
 
-## Observaciones importantes
+## Ejecucion recomendada
 
-- La llave `AES_KEY` y el vector `AES_IV` deben ser iguales en C# y Python.
-- `AES_KEY` debe tener una longitud valida para AES: 16, 24 o 32 bytes.
-- El simulador C# depende de Windows por WinForms.
-- Si se cambia de computadora, revisar IPs de MySQL, SQL Server y sockets.
-- El archivo `java_proveedor/src/config/config.properties` contiene la conexion
-  usada por Java; se debe ajustar si cambia el servidor SQL Server.
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\scripts\persona2-preparar.ps1
+.\scripts\persona2-levantar.ps1
+```
+
+Si se quiere aplicar migraciones SQL desde el script:
+
+```powershell
+.\scripts\persona2-preparar.ps1 -ApplySqlMigrations
+```
+
+MongoDB debe estar iniciado manualmente antes de usar login, usuarios o metodo
+de pago.
